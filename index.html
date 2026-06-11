@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Apex Capital Training Desk — v1.0</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: {
+          ink: '#0b1020', panel: '#111831', panel2: '#16203f', line: '#26335c',
+          gold: '#d4a843', mint: '#3ecf8e', coral: '#f0635c', sky: '#5aa7f0', lav: '#a78bfa'
+        },
+        fontFamily: { mono: ['ui-monospace','SFMono-Regular','Menlo','monospace'] }
+      }
+    }
+  }
+</script>
+<style>
+  body { background:#0b1020; color:#dce3f5; }
+  ::-webkit-scrollbar { width:8px; height:8px; } ::-webkit-scrollbar-thumb { background:#26335c; border-radius:4px; }
+  .tab-active { border-bottom:2px solid #d4a843; color:#d4a843; }
+  .calc-input { background:#0b1020; border:1px solid #26335c; border-radius:6px; padding:6px 10px; width:100%; color:#dce3f5; font-family:ui-monospace,monospace; }
+  .calc-input:focus { outline:none; border-color:#d4a843; }
+  textarea.calc-input { font-family:inherit; }
+  .badge { font-size:10px; letter-spacing:.08em; text-transform:uppercase; padding:2px 8px; border-radius:9999px; font-weight:600; }
+  .kpi { font-family:ui-monospace,monospace; }
+</style>
+</head>
+<body class="min-h-screen">
+
+<!-- ============ HEADER ============ -->
+<header class="border-b border-line bg-panel/80 backdrop-blur sticky top-0 z-20">
+  <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
+    <div>
+      <h1 class="text-lg font-bold tracking-tight text-white">APEX CAPITAL <span class="text-gold">TRAINING DESK</span></h1>
+      <p class="text-xs text-slate-400">Institutional Buy-Side Curriculum · v1.0 · Grounded in: Burger King LBO (3G, 2010) · HDKS LBO (€)</p>
+    </div>
+    <div class="flex items-center gap-6">
+      <div class="text-right">
+        <div class="text-[10px] uppercase tracking-widest text-slate-400">Overall Mastery</div>
+        <div id="hdr-mastery" class="kpi text-xl font-bold text-gold">—</div>
+      </div>
+      <div class="text-right">
+        <div class="text-[10px] uppercase tracking-widest text-slate-400">Avg Eval Score</div>
+        <div id="hdr-avg" class="kpi text-xl font-bold text-mint">—</div>
+      </div>
+      <div class="text-right">
+        <div class="text-[10px] uppercase tracking-widest text-slate-400">Level</div>
+        <div id="hdr-level" class="kpi text-xl font-bold text-sky">—</div>
+      </div>
+    </div>
+  </div>
+  <nav class="max-w-7xl mx-auto px-4 flex gap-6 text-sm">
+    <button data-tab="dashboard" class="nav-tab py-2 tab-active" onclick="App.switchTab('dashboard')">Dashboard</button>
+    <button data-tab="workspace" class="nav-tab py-2 text-slate-400 hover:text-white" onclick="App.switchTab('workspace')">Workspace <span id="ws-dot" class="inline-block w-2 h-2 rounded-full bg-coral align-middle ml-1"></span></button>
+    <button data-tab="calculators" class="nav-tab py-2 text-slate-400 hover:text-white" onclick="App.switchTab('calculators')">Calculators</button>
+    <button data-tab="reference" class="nav-tab py-2 text-slate-400 hover:text-white" onclick="App.switchTab('reference')">Deal Reference</button>
+  </nav>
+</header>
+
+<main class="max-w-7xl mx-auto px-4 py-6">
+
+<!-- ============ DASHBOARD TAB ============ -->
+<section id="tab-dashboard">
+  <div class="grid md:grid-cols-2 xl:grid-cols-4 gap-4" id="asset-class-grid"></div>
+
+  <div class="grid lg:grid-cols-3 gap-4 mt-6">
+    <div class="lg:col-span-2 bg-panel border border-line rounded-xl p-5">
+      <h3 class="font-semibold text-white mb-1">Evaluation History</h3>
+      <p class="text-xs text-slate-400 mb-4">Each graded submission is logged here by the instructor with score and identified blind spots.</p>
+      <div id="eval-history"></div>
+    </div>
+    <div class="bg-panel border border-line rounded-xl p-5">
+      <h3 class="font-semibold text-white mb-4">Concept Mastery Ledger</h3>
+      <div id="concept-ledger" class="space-y-2"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ WORKSPACE TAB ============ -->
+<section id="tab-workspace" class="hidden">
+  <div class="flex items-center justify-between mb-4">
+    <div>
+      <span class="badge bg-lav/20 text-lav border border-lav/40" id="case-class">—</span>
+      <span class="badge bg-coral/20 text-coral border border-coral/40 ml-2" id="case-stakes">—</span>
+      <h2 class="text-xl font-bold text-white mt-2" id="case-title">—</h2>
+      <p class="text-xs text-slate-400" id="case-sub">—</p>
+    </div>
+    <div class="text-right shrink-0">
+      <div class="text-[10px] uppercase tracking-widest text-slate-400">Module Status</div>
+      <div class="kpi text-lg font-bold text-coral" id="case-status">DIAGNOSTIC — UNGRADED</div>
+    </div>
+  </div>
+
+  <div class="grid lg:grid-cols-2 gap-4">
+    <!-- LEFT: scenario -->
+    <div class="bg-panel border border-line rounded-xl p-5 overflow-y-auto" style="max-height:78vh" id="case-body"></div>
+
+    <!-- RIGHT: answer workspace -->
+    <div class="bg-panel border border-line rounded-xl p-5 overflow-y-auto" style="max-height:78vh">
+      <h3 class="font-semibold text-white mb-1">Your Analysis</h3>
+      <p class="text-xs text-slate-400 mb-4">Work the numbers in the embedded calculator or the Calculators tab. Drafts auto-save locally. When done, click <span class="text-gold">Export for Grading</span> and paste the output into chat — the instructor will grade it and push the updated dashboard.</p>
+      <div id="answer-fields" class="space-y-5"></div>
+      <div class="flex gap-3 mt-6">
+        <button onclick="App.exportAnswers()" class="bg-gold text-ink font-bold text-sm px-4 py-2 rounded-lg hover:opacity-90">Export for Grading ⇒ Clipboard</button>
+        <button onclick="App.clearDraft()" class="border border-line text-slate-300 text-sm px-4 py-2 rounded-lg hover:border-coral hover:text-coral">Clear Draft</button>
+      </div>
+      <p id="export-msg" class="text-xs text-mint mt-2 h-4"></p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ CALCULATORS TAB ============ -->
+<section id="tab-calculators" class="hidden">
+  <div class="grid lg:grid-cols-2 gap-4">
+
+    <!-- Debt Sizing -->
+    <div class="bg-panel border border-line rounded-xl p-5">
+      <h3 class="font-semibold text-white">Debt Sizing &amp; Coverage Engine</h3>
+      <p class="text-xs text-slate-400 mb-4">Size tranches off EBITDA, test against the HDKS covenant package (≤4.0x senior net, ≥2.0x interest cover, ≥1.1x DSCR).</p>
+      <div class="grid grid-cols-2 gap-3 text-sm">
+        <label class="block"><span class="text-xs text-slate-400">EBITDA (m)</span><input id="ds-ebitda" class="calc-input" type="number" value="13.5"></label>
+        <label class="block"><span class="text-xs text-slate-400">Cash conversion (OCF/EBITDA, %)</span><input id="ds-conv" class="calc-input" type="number" value="81"></label>
+        <label class="block"><span class="text-xs text-slate-400">Tranche 1 leverage (x)</span><input id="ds-l1" class="calc-input" type="number" step="0.25" value="1.33"></label>
+        <label class="block"><span class="text-xs text-slate-400">Tranche 1 rate (%) / amort (m/yr)</span>
+          <div class="flex gap-2"><input id="ds-r1" class="calc-input" type="number" step="0.05" value="3.5"><input id="ds-a1" class="calc-input" type="number" step="0.5" value="3"></div></label>
+        <label class="block"><span class="text-xs text-slate-400">Tranche 2 leverage (x)</span><input id="ds-l2" class="calc-input" type="number" step="0.25" value="2.67"></label>
+        <label class="block"><span class="text-xs text-slate-400">Tranche 2 rate (%) / amort (m/yr)</span>
+          <div class="flex gap-2"><input id="ds-r2" class="calc-input" type="number" step="0.05" value="4.25"><input id="ds-a2" class="calc-input" type="number" step="0.5" value="0"></div></label>
+        <label class="block"><span class="text-xs text-slate-400">Tranche 3 / junior leverage (x)</span><input id="ds-l3" class="calc-input" type="number" step="0.25" value="0"></label>
+        <label class="block"><span class="text-xs text-slate-400">Tranche 3 cash rate (%) / PIK (%)</span>
+          <div class="flex gap-2"><input id="ds-r3" class="calc-input" type="number" step="0.25" value="0"><input id="ds-p3" class="calc-input" type="number" step="0.25" value="0"></div></label>
+      </div>
+      <div id="ds-out" class="mt-4 text-sm font-mono bg-ink border border-line rounded-lg p-4"></div>
+    </div>
+
+    <!-- EV-Equity Bridge -->
+    <div class="bg-panel border border-line rounded-xl p-5">
+      <h3 class="font-semibold text-white">EV ⇄ Equity Value Bridge</h3>
+      <p class="text-xs text-slate-400 mb-4">Locked-box / completion-accounts bridge with NWC peg adjustment. Defaults: Burger King (2010, $m).</p>
+      <div class="grid grid-cols-2 gap-3 text-sm">
+        <label class="block"><span class="text-xs text-slate-400">Enterprise Value</span><input id="br-ev" class="calc-input" type="number" value="3893.2"></label>
+        <label class="block"><span class="text-xs text-slate-400">Total Debt (−)</span><input id="br-debt" class="calc-input" type="number" value="755.4"></label>
+        <label class="block"><span class="text-xs text-slate-400">Cash (+)</span><input id="br-cash" class="calc-input" type="number" value="187.6"></label>
+        <label class="block"><span class="text-xs text-slate-400">Debt-like items (−)</span><input id="br-dl" class="calc-input" type="number" value="0"></label>
+        <label class="block"><span class="text-xs text-slate-400">NWC at close</span><input id="br-nwc" class="calc-input" type="number" value="0"></label>
+        <label class="block"><span class="text-xs text-slate-400">NWC peg (target)</span><input id="br-peg" class="calc-input" type="number" value="0"></label>
+        <label class="block"><span class="text-xs text-slate-400">Diluted shares</span><input id="br-sh" class="calc-input" type="number" value="138.56"></label>
+      </div>
+      <div id="br-out" class="mt-4 text-sm font-mono bg-ink border border-line rounded-lg p-4"></div>
+    </div>
+
+    <!-- Returns -->
+    <div class="bg-panel border border-line rounded-xl p-5">
+      <h3 class="font-semibold text-white">Returns Engine — MOIC / IRR / Attribution</h3>
+      <p class="text-xs text-slate-400 mb-4">Defaults: Burger King base case (8.76x in / 8.76x out, 5-yr hold → 2.81x / 23.0%).</p>
+      <div class="grid grid-cols-2 gap-3 text-sm">
+        <label class="block"><span class="text-xs text-slate-400">Entry EBITDA</span><input id="rt-eb0" class="calc-input" type="number" value="444.6"></label>
+        <label class="block"><span class="text-xs text-slate-400">Exit EBITDA</span><input id="rt-eb1" class="calc-input" type="number" value="671.5"></label>
+        <label class="block"><span class="text-xs text-slate-400">Entry multiple (x)</span><input id="rt-m0" class="calc-input" type="number" step="0.1" value="8.76"></label>
+        <label class="block"><span class="text-xs text-slate-400">Exit multiple (x)</span><input id="rt-m1" class="calc-input" type="number" step="0.1" value="8.76"></label>
+        <label class="block"><span class="text-xs text-slate-400">Net debt at entry</span><input id="rt-nd0" class="calc-input" type="number" value="2456.6"></label>
+        <label class="block"><span class="text-xs text-slate-400">Net debt at exit</span><input id="rt-nd1" class="calc-input" type="number" value="1490.0"></label>
+        <label class="block"><span class="text-xs text-slate-400">Fees &amp; min-cash funded by equity (+)</span><input id="rt-fees" class="calc-input" type="number" value="123.4"></label>
+        <label class="block"><span class="text-xs text-slate-400">Hold (years)</span><input id="rt-yrs" class="calc-input" type="number" value="5"></label>
+      </div>
+      <div id="rt-out" class="mt-4 text-sm font-mono bg-ink border border-line rounded-lg p-4"></div>
+    </div>
+
+    <!-- LTV/CAC -->
+    <div class="bg-panel border border-line rounded-xl p-5">
+      <h3 class="font-semibold text-white">Growth Equity — Unit Economics (LTV / CAC)</h3>
+      <p class="text-xs text-slate-400 mb-4">Contribution-margin LTV with churn-implied lifetime; payback in months.</p>
+      <div class="grid grid-cols-2 gap-3 text-sm">
+        <label class="block"><span class="text-xs text-slate-400">ARPA (€/yr)</span><input id="uc-arpa" class="calc-input" type="number" value="12000"></label>
+        <label class="block"><span class="text-xs text-slate-400">Gross margin (%)</span><input id="uc-gm" class="calc-input" type="number" value="78"></label>
+        <label class="block"><span class="text-xs text-slate-400">Annual gross churn (%)</span><input id="uc-churn" class="calc-input" type="number" value="12"></label>
+        <label class="block"><span class="text-xs text-slate-400">Blended CAC (€)</span><input id="uc-cac" class="calc-input" type="number" value="21000"></label>
+      </div>
+      <div id="uc-out" class="mt-4 text-sm font-mono bg-ink border border-line rounded-lg p-4"></div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ============ REFERENCE TAB ============ -->
+<section id="tab-reference" class="hidden">
+  <div class="grid lg:grid-cols-2 gap-4">
+    <div class="bg-panel border border-line rounded-xl p-5">
+      <h3 class="font-semibold text-white mb-1">Deal File A — Burger King LBO (3G Capital, Sep 2010)</h3>
+      <p class="text-xs text-slate-400 mb-3">Source: your uploaded stream model ($m, FYE 6/30)</p>
+      <table class="w-full text-sm font-mono">
+        <tbody class="divide-y divide-line/50">
+          <tr><td class="py-1 text-slate-400">Offer / premium</td><td class="text-right">$24.00 · +27.25%</td></tr>
+          <tr><td class="py-1 text-slate-400">Equity value / EV</td><td class="text-right">$3,325.4 / $3,893.2</td></tr>
+          <tr><td class="py-1 text-slate-400">LTM EBITDA · entry = exit multiple</td><td class="text-right">$444.6 · 8.76x</td></tr>
+          <tr><td class="py-1 text-slate-400">TL USD</td><td class="text-right">$1,510.0 · 3.40x · 6.82% · amortizing</td></tr>
+          <tr><td class="py-1 text-slate-400">TL EUR</td><td class="text-right">$334.2 · 0.75x · 7.11%</td></tr>
+          <tr><td class="py-1 text-slate-400">Senior notes</td><td class="text-right">$800.0 · 1.80x · 10.19%</td></tr>
+          <tr><td class="py-1 text-slate-400">Total leverage / sponsor equity</td><td class="text-right">5.95x / $1,560.0 (36.5%)</td></tr>
+          <tr><td class="py-1 text-slate-400">Fees: transaction / financing</td><td class="text-right">$91.2 / $69.2</td></tr>
+          <tr><td class="py-1 text-slate-400">Min cash · cash-on-hand source</td><td class="text-right">$118.2 · $69.4</td></tr>
+          <tr><td class="py-1 text-slate-400">Exit 2015: EBITDA / EV / net debt</td><td class="text-right">$671.5 / $5,880.6 / $1,490.0</td></tr>
+          <tr><td class="py-1 text-gold">Returns (conservative case)</td><td class="text-right text-gold">2.81x MOIC · 23.0% IRR</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="bg-panel border border-line rounded-xl p-5">
+      <h3 class="font-semibold text-white mb-1">Deal File B — Project HDKS (European Mid-Cap, €m)</h3>
+      <p class="text-xs text-slate-400 mb-3">Source: your uploaded LBO/DCF model</p>
+      <table class="w-full text-sm font-mono">
+        <tbody class="divide-y divide-line/50">
+          <tr><td class="py-1 text-slate-400">EV / EBITDA / multiple</td><td class="text-right">€94.5 / €13.5 / 7.0x</td></tr>
+          <tr><td class="py-1 text-slate-400">Facility A (TLA)</td><td class="text-right">€18.0 · 1.33x · 3.50% · amortizing €3/yr · 6yr</td></tr>
+          <tr><td class="py-1 text-slate-400">Facility B (TLB)</td><td class="text-right">€36.0 · 2.67x · 4.25% · bullet · 7yr</td></tr>
+          <tr><td class="py-1 text-slate-400">Senior total / equity</td><td class="text-right">€54.0 (4.0x) / €41.5 (43.5%)</td></tr>
+          <tr><td class="py-1 text-slate-400">Covenants</td><td class="text-right">≤4.0x net · ≥2.0x int. cover · ≥1.1x DSCR · min 40% equity</td></tr>
+          <tr><td class="py-1 text-slate-400">Cash conversion (OCF/EBITDA)</td><td class="text-right">~80–82%</td></tr>
+          <tr><td class="py-1 text-slate-400">Tax rate</td><td class="text-right">30%</td></tr>
+          <tr><td class="py-1 text-slate-400">DCF: WACC / g / EV</td><td class="text-right">8.6% / 1.0% / €132.4</td></tr>
+          <tr><td class="py-1 text-slate-400">Football field (EV ranges)</td><td class="text-right">LBO 95–104.5 · Peers 90–110 · Txn 81–99 · DCF 120.6–147.4</td></tr>
+          <tr><td class="py-1 text-gold">Returns (7.0x exit, 2021)</td><td class="text-right text-gold">2.64x MoM · 21.4% IRR (PE hurdle &gt;20%)</td></tr>
+        </tbody>
+      </table>
+      <p class="text-[11px] text-slate-500 mt-3">Note: the two WSO Guide workbooks in the upload set are password-protected and could not be parsed; curriculum is grounded in Deal Files A &amp; B.</p>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer class="max-w-7xl mx-auto px-4 py-6 text-[11px] text-slate-500 border-t border-line mt-6">
+  Apex Capital Training Desk v1.0 · State persists in localStorage (key: <span class="font-mono">apexDesk.v1</span>) · Submit exported answers in chat for elite-rigor grading; the instructor pushes v1.x with updated scores, feedback and the next unlocked module.
+</footer>
+
+<script>
+'use strict';
+/* =====================================================================
+   STATE — the instructor (Claude) updates this block on every grading
+   cycle. stateVersion bump forces curriculum refresh; user drafts are
+   merged from localStorage.
+===================================================================== */
+const initialState = {
+  stateVersion: '1.0.0',
+  level: 'Analyst',
+  assetClasses: [
+    { id:'ma', name:'M&A', color:'sky', icon:'⚖', modules:[
+      { id:'MA-1', title:'NWC Peg Adjustment Dispute (BKC Bridge)', status:'locked', score:null },
+      { id:'MA-2', title:'Purchase Agreement: Locked Box vs Completion Accounts', status:'locked', score:null },
+      { id:'MA-3', title:'Accretion/Dilution & Synergy Phasing', status:'locked', score:null },
+    ]},
+    { id:'pe', name:'Traditional PE', color:'gold', icon:'◆', modules:[
+      { id:'PE-1', title:'LBO Returns Attribution (Burger King 2.81x Decomposition)', status:'locked', score:null },
+      { id:'PE-2', title:'Sources & Uses Under Stress: Min Cash and Fee Drag', status:'locked', score:null },
+      { id:'PE-3', title:'Management vs Conservative Case Underwriting', status:'locked', score:null },
+    ]},
+    { id:'ge', name:'Growth Equity', color:'mint', icon:'↗', modules:[
+      { id:'GE-1', title:'LTV/CAC Diligence & Cohort Decay', status:'locked', score:null },
+      { id:'GE-2', title:'Structured Minority: Participating Pref vs Convert', status:'locked', score:null },
+    ]},
+    { id:'pc', name:'Private Credit', color:'lav', icon:'▤', modules:[
+      { id:'PC-1', title:'Unitranche vs Senior/Mezz Debt Sizing — Project HDKS', status:'active', score:null },
+      { id:'PC-2', title:'Intercreditor & AAL Conflict: First-Out Triggers', status:'locked', score:null },
+      { id:'PC-3', title:'Covenant Headroom & EBITDA Addback Audit', status:'locked', score:null },
+    ]},
+  ],
+  concepts: [
+    { name:'EV ⇄ Equity bridge mechanics', mastered:false },
+    { name:'Leverage & coverage covenant math', mastered:false },
+    { name:'Amortizing vs bullet cash-flow impact', mastered:false },
+    { name:'Unitranche economics & AAL structure', mastered:false },
+    { name:'NWC peg construction', mastered:false },
+    { name:'Returns attribution (deleveraging vs growth vs multiple)', mastered:false },
+    { name:'LTV/CAC & payback diligence', mastered:false },
+  ],
+  evalHistory: [], // { date, module, score, verdict, blindSpots:[] }
+  activeCase: {
+    id:'PC-1',
+    assetClass:'Private Credit',
+    stakes:'DIAGNOSTIC · LEVEL 1 GATE',
+    title:'Project HDKS — The €67.5m Question: Unitranche vs Senior/Mezz',
+    subtitle:'Debt-sizing dilemma · grounded in your HDKS model (€13.5m EBITDA, 7.0x entry, 4.0x covenant stack)',
+    body: `
+      <div class="space-y-4 text-sm leading-relaxed">
+        <p class="text-slate-300"><span class="text-gold font-semibold">Situation.</span> Your sponsor has signed an SPA to acquire <span class="font-semibold text-white">HDKS</span>, a European industrial-services platform, at <span class="font-mono">€94.5m EV (7.0x × €13.5m EBITDA)</span>, plus <span class="font-mono">€1.0m</span> transaction costs. The business converts <span class="font-mono">~81%</span> of EBITDA to operating cash flow, pays <span class="font-mono">30%</span> tax, and has negligible capex in the model years. The deal must close in 3 weeks. Two financing packages are on the table:</p>
+
+        <div class="bg-ink border border-line rounded-lg p-4">
+          <p class="font-semibold text-sky mb-2">Option 1 — Bank Club: Senior A/B + Mezzanine</p>
+          <ul class="space-y-1 font-mono text-xs text-slate-300">
+            <li>· Facility A (TLA): €18.0m (1.33x) @ 3.50% cash, amortizing €3.0m/yr, 6yr</li>
+            <li>· Facility B (TLB): €36.0m (2.67x) @ 4.25% cash, bullet, 7yr</li>
+            <li>· Mezzanine: €13.5m (1.00x) @ 7.00% cash + 4.00% PIK, bullet, 8yr, warrants for 2% fully-diluted equity</li>
+            <li>· Total debt 5.00x · Maintenance covenants: senior net leverage ≤4.0x, interest cover ≥2.0x, DSCR ≥1.1x</li>
+          </ul>
+        </div>
+
+        <div class="bg-ink border border-line rounded-lg p-4">
+          <p class="font-semibold text-lav mb-2">Option 2 — Direct Lender: Unitranche</p>
+          <ul class="space-y-1 font-mono text-xs text-slate-300">
+            <li>· Unitranche TL: €67.5m (5.00x) @ 7.25% all-cash, bullet, 7yr, 98 OID</li>
+            <li>· Behind the scenes: lender syndicates a first-out/last-out via an Agreement Among Lenders (AAL) — borrower sees one tranche</li>
+            <li>· Single springing covenant: total net leverage ≤6.5x, tested only when RCF drawn &gt;35%</li>
+            <li>· Call protection: NC-1, then 102/101 · delayed-draw €10m for M&A</li>
+          </ul>
+        </div>
+
+        <p class="text-slate-300"><span class="text-gold font-semibold">Both options imply the same €67.5m of debt at close is NOT true</span> — Option 1 carries €67.5m total (54 senior + 13.5 mezz); Option 2 carries €67.5m unitranche. Equity plugs the rest of the €95.5m total uses in each case.</p>
+
+        <p class="text-slate-300"><span class="text-gold font-semibold">Your task (answer in the right pane):</span></p>
+        <ol class="list-decimal ml-5 space-y-2 text-slate-300">
+          <li><span class="font-semibold text-white">Year-1 cash interest</span> under each option (€m, one decimal). For Option 1, mezz PIK accrues — exclude it from <em>cash</em> interest but note the accretion. Assume full-year balances at opening levels; TLA amortization of €3.0m occurs at year-end.</li>
+          <li><span class="font-semibold text-white">Coverage math</span>: Year-1 EBITDA/cash-interest cover and DSCR (operating cash flow ÷ [cash interest + mandatory amortization]) for each option, using OCF ≈ 81% × €13.5m. Which option breaches — or comes dangerously close to — the model's covenant tests, and which faces no test at all in Year 1?</li>
+          <li><span class="font-semibold text-white">Recommendation memo</span> (≤250 words): which package do you take, and why? Address: (a) all-in cost incl. PIK accretion, OID and warrant dilution, not just cash coupon; (b) covenant headroom vs the HDKS model's downside (flat EBITDA 2020–21); (c) prepayment flexibility given the model shows €4–6m/yr CFADS available for delevering; (d) the intercreditor risk you CANNOT see in Option 2's AAL.</li>
+        </ol>
+
+        <div class="border-l-2 border-gold pl-3 text-xs text-slate-400">
+          Instructor's bar: an elite answer separates <em>cash</em> cost from <em>economic</em> cost, quantifies covenant headroom rather than asserting it, and identifies that in the unitranche the first-out lender's rights against the borrower in a default scenario are governed by an AAL the borrower never signs.
+        </div>
+      </div>
+    `,
+    questions: [
+      { id:'q1', label:'Q1 · Year-1 cash interest (€m): Option 1 vs Option 2', type:'short', placeholder:'e.g. Opt1: X.X (TLA …, TLB …, mezz cash …) | Opt2: Y.Y …' },
+      { id:'q2', label:'Q2 · Coverage: interest cover & DSCR per option + covenant verdict', type:'short', placeholder:'Opt1: cover __x, DSCR __x → … | Opt2: …' },
+      { id:'q3', label:'Q3 · Recommendation memo (≤250 words)', type:'long', placeholder:'Decision, all-in cost comparison, covenant headroom under downside, prepayment economics, AAL/intercreditor risk…' },
+    ]
+  }
+};
+
+/* =====================================================================
+   APP
+===================================================================== */
+const App = (() => {
+  const LS_KEY = 'apexDesk.v1';
+  let state = loadState();
+
+  function loadState() {
+    const s = JSON.parse(JSON.stringify(initialState));
+    try {
+      const saved = JSON.parse(localStorage.getItem(LS_KEY) || 'null');
+      if (saved && saved.stateVersion === s.stateVersion && saved.drafts) s.drafts = saved.drafts;
+    } catch (e) { /* corrupt storage — start clean */ }
+    s.drafts = s.drafts || {};
+    return s;
+  }
+  function persist() {
+    localStorage.setItem(LS_KEY, JSON.stringify({ stateVersion: state.stateVersion, drafts: state.drafts }));
+  }
+
+  const fmt = (n, d=1) => (isFinite(n) ? n.toLocaleString('en-US', {minimumFractionDigits:d, maximumFractionDigits:d}) : '—');
+  const num = id => parseFloat(document.getElementById(id).value) || 0;
+  const colorMap = { sky:'#5aa7f0', gold:'#d4a843', mint:'#3ecf8e', lav:'#a78bfa' };
+
+  /* ---------- tabs ---------- */
+  function switchTab(name) {
+    ['dashboard','workspace','calculators','reference'].forEach(t => {
+      document.getElementById('tab-'+t).classList.toggle('hidden', t !== name);
+    });
+    document.querySelectorAll('.nav-tab').forEach(b => {
+      const on = b.dataset.tab === name;
+      b.classList.toggle('tab-active', on);
+      b.classList.toggle('text-slate-400', !on);
+    });
+  }
+
+  /* ---------- dashboard ---------- */
+  function renderDashboard() {
+    const grid = document.getElementById('asset-class-grid');
+    grid.innerHTML = state.assetClasses.map(ac => {
+      const total = ac.modules.length;
+      const done = ac.modules.filter(m => m.status === 'mastered').length;
+      const pct = Math.round(100 * done / total);
+      const c = colorMap[ac.color];
+      return `
+      <div class="bg-panel border border-line rounded-xl p-4 hover:border-[${c}] transition-colors">
+        <div class="flex items-center justify-between mb-3">
+          <span class="font-semibold text-white"><span style="color:${c}">${ac.icon}</span> ${ac.name}</span>
+          <span class="kpi text-xs" style="color:${c}">${done}/${total}</span>
+        </div>
+        <div class="h-1.5 bg-ink rounded-full mb-3"><div class="h-1.5 rounded-full" style="width:${pct}%;background:${c}"></div></div>
+        <ul class="space-y-1.5">
+          ${ac.modules.map(m => {
+            const st = m.status === 'mastered' ? `<span class="badge bg-mint/15 text-mint">✓ ${m.score ?? ''}</span>`
+                     : m.status === 'active'   ? `<span class="badge bg-coral/15 text-coral">ACTIVE</span>`
+                     : `<span class="badge bg-slate-700/40 text-slate-500">🔒</span>`;
+            const cls = m.status === 'locked' ? 'text-slate-500' : 'text-slate-200';
+            const click = m.status === 'active' ? `onclick="App.switchTab('workspace')" class="cursor-pointer hover:text-gold ${cls}"` : `class="${cls}"`;
+            return `<li ${click}><div class="flex items-center justify-between text-xs gap-2"><span>${m.id} · ${m.title}</span>${st}</div></li>`;
+          }).join('')}
+        </ul>
+      </div>`;
+    }).join('');
+
+    // header KPIs
+    const all = state.assetClasses.flatMap(a => a.modules);
+    const mastered = all.filter(m => m.status === 'mastered');
+    document.getElementById('hdr-mastery').textContent = Math.round(100 * mastered.length / all.length) + '%';
+    const scores = state.evalHistory.map(e => e.score).filter(s => s != null);
+    document.getElementById('hdr-avg').textContent = scores.length ? fmt(scores.reduce((a,b)=>a+b,0)/scores.length,0) + '/100' : '—';
+    document.getElementById('hdr-level').textContent = state.level;
+
+    // eval history
+    const hist = document.getElementById('eval-history');
+    hist.innerHTML = state.evalHistory.length ? state.evalHistory.map(e => `
+      <div class="border border-line rounded-lg p-3 mb-2">
+        <div class="flex justify-between text-xs"><span class="text-slate-400">${e.date} · ${e.module}</span>
+        <span class="kpi font-bold ${e.score>=80?'text-mint':e.score>=60?'text-gold':'text-coral'}">${e.score}/100</span></div>
+        <p class="text-sm text-slate-200 mt-1">${e.verdict}</p>
+        ${e.blindSpots && e.blindSpots.length ? `<p class="text-xs text-coral mt-1">Blind spots: ${e.blindSpots.join(' · ')}</p>` : ''}
+      </div>`).join('')
+      : '<p class="text-sm text-slate-500 italic">No graded submissions yet. Complete the diagnostic in the Workspace and submit in chat.</p>';
+
+    // concept ledger
+    document.getElementById('concept-ledger').innerHTML = state.concepts.map(c => `
+      <div class="flex items-center justify-between text-xs border-b border-line/40 pb-1.5">
+        <span class="${c.mastered ? 'text-slate-200' : 'text-slate-500'}">${c.name}</span>
+        <span>${c.mastered ? '<span class="text-mint">●</span>' : '<span class="text-slate-600">○</span>'}</span>
+      </div>`).join('');
+  }
+
+  /* ---------- workspace ---------- */
+  function renderWorkspace() {
+    const c = state.activeCase;
+    document.getElementById('case-class').textContent = c.assetClass;
+    document.getElementById('case-stakes').textContent = c.stakes;
+    document.getElementById('case-title').textContent = c.title;
+    document.getElementById('case-sub').textContent = c.subtitle;
+    document.getElementById('case-body').innerHTML = c.body;
+
+    document.getElementById('answer-fields').innerHTML = c.questions.map(q => `
+      <div>
+        <label class="block text-xs font-semibold text-gold mb-1.5">${q.label}</label>
+        ${q.type === 'long'
+          ? `<textarea id="ans-${q.id}" rows="9" class="calc-input text-sm" placeholder="${q.placeholder}" oninput="App.saveDraft('${q.id}', this.value)">${state.drafts[q.id] || ''}</textarea>`
+          : `<textarea id="ans-${q.id}" rows="3" class="calc-input text-sm font-mono" placeholder="${q.placeholder}" oninput="App.saveDraft('${q.id}', this.value)">${state.drafts[q.id] || ''}</textarea>`}
+      </div>`).join('');
+  }
+
+  function saveDraft(qid, val) { state.drafts[qid] = val; persist(); }
+  function clearDraft() {
+    state.drafts = {}; persist(); renderWorkspace();
+    flash('Draft cleared.');
+  }
+  function exportAnswers() {
+    const c = state.activeCase;
+    const lines = [`=== SUBMISSION · ${c.id} · ${c.title} ===`];
+    c.questions.forEach(q => lines.push(`\n[${q.label}]\n${state.drafts[q.id] || '(blank)'}`));
+    const text = lines.join('\n');
+    navigator.clipboard.writeText(text)
+      .then(() => flash('Copied to clipboard — paste into chat for grading.'))
+      .catch(() => { // clipboard may be blocked in sandboxed contexts
+        const ta = document.createElement('textarea'); ta.value = text; document.body.appendChild(ta);
+        ta.select(); document.execCommand('copy'); ta.remove();
+        flash('Copied (fallback) — paste into chat for grading.');
+      });
+  }
+  function flash(msg) {
+    const el = document.getElementById('export-msg');
+    el.textContent = msg; setTimeout(() => el.textContent = '', 4000);
+  }
+
+  /* ---------- calculators ---------- */
+  function calcDebt() {
+    const eb = num('ds-ebitda'), conv = num('ds-conv')/100;
+    const t = [
+      { l:num('ds-l1'), r:num('ds-r1')/100, a:num('ds-a1'), pik:0 },
+      { l:num('ds-l2'), r:num('ds-r2')/100, a:num('ds-a2'), pik:0 },
+      { l:num('ds-l3'), r:num('ds-r3')/100, a:0, pik:num('ds-p3')/100 },
+    ];
+    let debt=0, cashInt=0, pikAcc=0, amort=0;
+    t.forEach(x => { const amt = x.l*eb; debt+=amt; cashInt+=amt*x.r; pikAcc+=amt*x.pik; amort+=x.a; });
+    const ocf = eb*conv;
+    const cover = cashInt>0 ? eb/cashInt : Infinity;
+    const dscr = (cashInt+amort)>0 ? ocf/(cashInt+amort) : Infinity;
+    const lev = eb>0 ? debt/eb : 0;
+    const ok = (v,thr,gte=true) => (gte ? v>=thr : v<=thr)
+      ? '<span class="text-mint">PASS</span>' : '<span class="text-coral">FAIL</span>';
+    document.getElementById('ds-out').innerHTML = `
+      Total debt: €${fmt(debt)}m (${fmt(lev,2)}x)<br>
+      Cash interest (yr 1): €${fmt(cashInt,2)}m${pikAcc>0?` · PIK accretion: €${fmt(pikAcc,2)}m`:''}<br>
+      Mandatory amort: €${fmt(amort)}m · OCF: €${fmt(ocf)}m<br>
+      <span class="text-slate-400">— Covenant tests (HDKS package) —</span><br>
+      Leverage ≤4.0x senior: ${fmt(lev,2)}x ${ok(lev,4.0,false)} <span class="text-slate-500">(total basis)</span><br>
+      Interest cover ≥2.0x: ${fmt(cover,2)}x ${ok(cover,2.0)}<br>
+      DSCR ≥1.1x: ${fmt(dscr,2)}x ${ok(dscr,1.1)}`;
+  }
+
+  function calcBridge() {
+    const ev=num('br-ev'), debt=num('br-debt'), cash=num('br-cash'), dl=num('br-dl');
+    const nwc=num('br-nwc'), peg=num('br-peg'), sh=num('br-sh');
+    const adj = nwc - peg;
+    const eq = ev - debt + cash - dl + adj;
+    document.getElementById('br-out').innerHTML = `
+      EV €${fmt(ev)} − debt €${fmt(debt)} + cash €${fmt(cash)} − debt-like €${fmt(dl)}<br>
+      NWC adjustment (actual − peg): <span class="${adj>=0?'text-mint':'text-coral'}">${adj>=0?'+':''}${fmt(adj)}</span><br>
+      <span class="text-gold font-bold">Equity value: ${fmt(eq)}</span>${sh>0?` · per share: ${fmt(eq/sh,2)}`:''}<br>
+      <span class="text-slate-500">${adj<0?'Actual NWC below peg → price reduction to buyer\'s benefit.':adj>0?'Actual NWC above peg → seller receives the excess.':'NWC delivered exactly at peg.'}</span>`;
+  }
+
+  function calcReturns() {
+    const eb0=num('rt-eb0'), eb1=num('rt-eb1'), m0=num('rt-m0'), m1=num('rt-m1');
+    const nd0=num('rt-nd0'), nd1=num('rt-nd1'), yrs=num('rt-yrs'), fees=num('rt-fees');
+    const ev0=eb0*m0, ev1=eb1*m1, eq0=ev0-nd0+fees, eq1=ev1-nd1;
+    const moic = eq0>0 ? eq1/eq0 : NaN;
+    const irr = (moic>0 && yrs>0) ? Math.pow(moic,1/yrs)-1 : NaN;
+    // attribution (sequential): EBITDA growth at entry multiple, multiple expansion at exit EBITDA, deleveraging
+    const growth = (eb1-eb0)*m0, mult = (m1-m0)*eb1, delev = nd0-nd1;
+    document.getElementById('rt-out').innerHTML = `
+      Entry equity check (incl. fee drag): ${fmt(eq0)} → Exit equity: ${fmt(eq1)}<br>
+      <span class="text-gold font-bold">MOIC: ${fmt(moic,2)}x · IRR: ${fmt(irr*100,1)}%</span><br>
+      <span class="text-slate-400">— Value creation bridge (Δ equity ${fmt(eq1-eq0)}) —</span><br>
+      EBITDA growth: ${fmt(growth)} · Multiple: ${fmt(mult)} · Deleveraging: ${fmt(delev)}`;
+  }
+
+  function calcUnit() {
+    const arpa=num('uc-arpa'), gm=num('uc-gm')/100, churn=num('uc-churn')/100, cac=num('uc-cac');
+    const life = churn>0 ? 1/churn : Infinity;
+    const ltv = arpa*gm*life;
+    const ratio = cac>0 ? ltv/cac : Infinity;
+    const paybackMo = (arpa*gm)>0 ? 12*cac/(arpa*gm) : Infinity;
+    const verdict = ratio>=3 ? '<span class="text-mint">Fundable: ≥3x threshold</span>' : '<span class="text-coral">Below 3x — unit economics challenged</span>';
+    document.getElementById('uc-out').innerHTML = `
+      Implied lifetime: ${fmt(life,1)} yrs · Annual contribution: €${fmt(arpa*gm,0)}<br>
+      <span class="text-gold font-bold">LTV: €${fmt(ltv,0)} · LTV/CAC: ${fmt(ratio,2)}x</span> · Payback: ${fmt(paybackMo,1)} mo<br>${verdict}`;
+  }
+
+  function wireCalcs() {
+    const map = { 'ds-':calcDebt, 'br-':calcBridge, 'rt-':calcReturns, 'uc-':calcUnit };
+    document.querySelectorAll('input.calc-input').forEach(inp => {
+      const fn = map[inp.id.slice(0,3)];
+      if (fn) inp.addEventListener('input', fn);
+    });
+    calcDebt(); calcBridge(); calcReturns(); calcUnit();
+  }
+
+  function init() {
+    renderDashboard();
+    renderWorkspace();
+    wireCalcs();
+  }
+
+  return { switchTab, saveDraft, clearDraft, exportAnswers, init };
+})();
+
+document.addEventListener('DOMContentLoaded', App.init);
+</script>
+</body>
+</html>
