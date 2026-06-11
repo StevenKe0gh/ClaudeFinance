@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Apex Capital Training Desk — v1.0</title>
+<title>Apex Capital Training Desk — v1.1</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <script>
   tailwind.config = {
@@ -36,7 +36,7 @@
   <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
     <div>
       <h1 class="text-lg font-bold tracking-tight text-white">APEX CAPITAL <span class="text-gold">TRAINING DESK</span></h1>
-      <p class="text-xs text-slate-400">Institutional Buy-Side Curriculum · v1.0 · Grounded in: Burger King LBO (3G, 2010) · HDKS LBO (€)</p>
+      <p class="text-xs text-slate-400">Institutional Buy-Side Curriculum · v1.1 · Grounded in: Burger King LBO (3G, 2010) · HDKS LBO (€) · IB Technical Question Bank</p>
     </div>
     <div class="flex items-center gap-6">
       <div class="text-right">
@@ -56,6 +56,7 @@
   <nav class="max-w-7xl mx-auto px-4 flex gap-6 text-sm">
     <button data-tab="dashboard" class="nav-tab py-2 tab-active" onclick="App.switchTab('dashboard')">Dashboard</button>
     <button data-tab="workspace" class="nav-tab py-2 text-slate-400 hover:text-white" onclick="App.switchTab('workspace')">Workspace <span id="ws-dot" class="inline-block w-2 h-2 rounded-full bg-coral align-middle ml-1"></span></button>
+    <button data-tab="drill" class="nav-tab py-2 text-slate-400 hover:text-white" onclick="App.switchTab('drill')">Drill Mode</button>
     <button data-tab="calculators" class="nav-tab py-2 text-slate-400 hover:text-white" onclick="App.switchTab('calculators')">Calculators</button>
     <button data-tab="reference" class="nav-tab py-2 text-slate-400 hover:text-white" onclick="App.switchTab('reference')">Deal Reference</button>
   </nav>
@@ -77,6 +78,17 @@
       <h3 class="font-semibold text-white mb-4">Concept Mastery Ledger</h3>
       <div id="concept-ledger" class="space-y-2"></div>
     </div>
+  </div>
+
+  <div class="bg-panel border border-line rounded-xl p-5 mt-4">
+    <div class="flex items-center justify-between mb-3">
+      <div>
+        <h3 class="font-semibold text-white">Technical Question Bank</h3>
+        <p class="text-xs text-slate-400">Rapid-fire interview drills distilled from your IB prep guide. A question counts as mastered after two net-correct answers.</p>
+      </div>
+      <button onclick="App.switchTab('drill')" class="bg-gold/15 border border-gold/50 text-gold text-xs font-semibold px-3 py-1.5 rounded-lg hover:bg-gold/25 shrink-0">Open Drill Mode →</button>
+    </div>
+    <div id="dash-drill" class="grid grid-cols-2 md:grid-cols-4 gap-x-6 gap-y-3"></div>
   </div>
 </section>
 
@@ -109,6 +121,29 @@
         <button onclick="App.clearDraft()" class="border border-line text-slate-300 text-sm px-4 py-2 rounded-lg hover:border-coral hover:text-coral">Clear Draft</button>
       </div>
       <p id="export-msg" class="text-xs text-mint mt-2 h-4"></p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ DRILL TAB ============ -->
+<section id="tab-drill" class="hidden">
+  <div class="flex items-center justify-between mb-4 flex-wrap gap-3">
+    <div>
+      <h2 class="text-xl font-bold text-white">Technical Drill Mode</h2>
+      <p class="text-xs text-slate-400">Interview-bank rapid fire. Missed questions are re-served more often until you've answered them correctly twice.</p>
+    </div>
+    <div class="text-right">
+      <div class="text-[10px] uppercase tracking-widest text-slate-400">Bank Mastery</div>
+      <div id="drill-kpi" class="kpi text-xl font-bold text-gold">—</div>
+    </div>
+  </div>
+  <div id="drill-cats" class="flex flex-wrap gap-2 mb-4"></div>
+  <div class="grid lg:grid-cols-3 gap-4">
+    <div class="lg:col-span-2 bg-panel border border-line rounded-xl p-6" id="drill-card"></div>
+    <div class="bg-panel border border-line rounded-xl p-5">
+      <h3 class="font-semibold text-white mb-3">Category Mastery</h3>
+      <div id="drill-statpanel" class="space-y-3"></div>
+      <button onclick="App.resetDrill()" class="mt-5 text-xs border border-line text-slate-400 px-3 py-1.5 rounded-lg hover:border-coral hover:text-coral">Reset Drill Stats</button>
     </div>
   </div>
 </section>
@@ -225,7 +260,7 @@
           <tr><td class="py-1 text-gold">Returns (7.0x exit, 2021)</td><td class="text-right text-gold">2.64x MoM · 21.4% IRR (PE hurdle &gt;20%)</td></tr>
         </tbody>
       </table>
-      <p class="text-[11px] text-slate-500 mt-3">Note: the two WSO Guide workbooks in the upload set are password-protected and could not be parsed; curriculum is grounded in Deal Files A &amp; B.</p>
+      <p class="text-[11px] text-slate-500 mt-3">Curriculum grounded in Deal Files A &amp; B; the Drill Mode question bank is distilled from the user's IB interview prep guide (condensed summary notes).</p>
     </div>
   </div>
 </section>
@@ -233,7 +268,7 @@
 </main>
 
 <footer class="max-w-7xl mx-auto px-4 py-6 text-[11px] text-slate-500 border-t border-line mt-6">
-  Apex Capital Training Desk v1.0 · State persists in localStorage (key: <span class="font-mono">apexDesk.v1</span>) · Submit exported answers in chat for elite-rigor grading; the instructor pushes v1.x with updated scores, feedback and the next unlocked module.
+  Apex Capital Training Desk v1.1 · State persists in localStorage (key: <span class="font-mono">apexDesk.v1</span>) · Drill stats and case drafts survive version upgrades · Submit exported answers in chat for elite-rigor grading; the instructor pushes v1.x with updated scores, feedback and the next unlocked module.
 </footer>
 
 <script>
@@ -244,7 +279,7 @@
    merged from localStorage.
 ===================================================================== */
 const initialState = {
-  stateVersion: '1.0.0',
+  stateVersion: '1.1.0',
   level: 'Analyst',
   assetClasses: [
     { id:'ma', name:'M&A', color:'sky', icon:'⚖', modules:[
@@ -330,6 +365,217 @@ const initialState = {
 };
 
 /* =====================================================================
+   QUESTION BANK — condensed study notes distilled from the user's
+   IB interview prep guide (paraphrased; answers are summaries).
+===================================================================== */
+const DRILL_CATS = [
+  { id:'acct', name:'Accounting' },
+  { id:'ev',   name:'EV & Equity Value' },
+  { id:'val',  name:'Valuation' },
+  { id:'dcf',  name:'DCF' },
+  { id:'mna',  name:'Merger Models' },
+  { id:'lbo',  name:'LBO Models' },
+  { id:'rx',   name:'Restructuring' },
+  { id:'bt',   name:'Brain Teasers' },
+];
+
+const QUESTION_BANK = [
+// ---------- ACCOUNTING ----------
+{id:'acct-1',cat:'acct',q:"Walk me through the 3 financial statements.",
+a:"Income Statement: revenue minus expenses down to Net Income. Balance Sheet: snapshot where Assets = Liabilities + Shareholders' Equity. Cash Flow Statement: starts at Net Income, adds back non-cash charges, adjusts for working capital, then layers in investing and financing flows to reach the net change in cash."},
+{id:'acct-2',cat:'acct',q:"How do the 3 statements link together?",
+a:"Net Income flows into both Retained Earnings (Balance Sheet) and the top of the Cash Flow Statement. Balance-sheet movements appear as working-capital changes on the CFS; investing/financing items hit PP&E, debt and equity. The CFS's ending cash becomes the Balance Sheet's cash — cash and equity act as the plugs that keep it balanced."},
+{id:'acct-3',cat:'acct',q:"Depreciation rises by $10 (40% tax rate) — walk through the impact.",
+a:"IS: operating income −$10, Net Income −$6. CFS: NI −$6, add back the $10 non-cash charge → cash +$4. BS: PP&E −$10, cash +$4 → assets −$6; equity −$6 via Net Income. Always work IS → CFS → BS so the balance check confirms your answer."},
+{id:'acct-4',cat:'acct',q:"If depreciation is non-cash, why does it change the cash balance at all?",
+a:"Because it is tax-deductible. The expense lowers pre-tax income, and taxes ARE paid in cash — so cash improves by depreciation × tax rate."},
+{id:'acct-5',cat:'acct',q:"Inventory increases $10, paid in cash. Effects?",
+a:"No income-statement impact — inventory only hits the IS as COGS when the goods are sold. CFS: cash flow from operations −$10. BS: inventory +$10, cash −$10, so assets are unchanged and everything balances."},
+{id:'acct-6',cat:'acct',q:"You can see only ONE statement to judge a company's health. Which?",
+a:"The Cash Flow Statement — it shows real cash generation, stripped of non-cash accounting noise, which is the single most important indicator of viability."},
+{id:'acct-7',cat:'acct',q:"Only two statements — which do you pick?",
+a:"Income Statement plus beginning AND ending Balance Sheets: from those you can reconstruct the Cash Flow Statement yourself."},
+{id:'acct-8',cat:'acct',q:"Can shareholders' equity be negative? What would it mean?",
+a:"Yes — typically from a dividend recap in an LBO (owner extracts equity as cash) or from sustained losses eroding retained earnings. Market equity value, by contrast, can never go below zero."},
+{id:'acct-9',cat:'acct',q:"Is negative working capital a bad sign?",
+a:"Not necessarily. Subscription businesses carry big deferred-revenue balances and retailers collect cash before paying suppliers — both efficient. But paired with slow collections and heavy debt, it can signal distress. Context decides."},
+{id:'acct-10',cat:'acct',q:"Walk through a $100 asset write-down (40% tax).",
+a:"IS: pre-tax income −$100, NI −$60. CFS: NI −$60, add back the non-cash $100 → cash +$40. BS: asset −$100, cash +$40 → assets −$60; equity −$60. Counterintuitively, a write-down helps near-term cash via the tax shield."},
+{id:'acct-11',cat:'acct',q:"Now a $100 write-down of DEBT (a liability).",
+a:"Writing down a liability is a GAIN: pre-tax income +$100, NI +$60. CFS: subtract the $100 non-cash gain → cash −$40. BS: debt −$100, equity +$60, cash −$40 — liabilities & equity down $40, matching assets."},
+{id:'acct-12',cat:'acct',q:"Accounts receivable vs. deferred revenue?",
+a:"AR: service delivered, cash not yet collected (asset — revenue waiting to become cash). Deferred revenue: cash collected, service not yet delivered (liability — cash waiting to become revenue)."},
+{id:'acct-13',cat:'acct',q:"When do you capitalize vs. expense a purchase?",
+a:"Useful life beyond one year → capitalize on the Balance Sheet and depreciate (tangible) or amortize (intangible). Consumed within the period (salaries, COGS) → expense immediately."},
+{id:'acct-14',cat:'acct',q:"Company shows positive EBITDA for a decade, then goes bankrupt. How?",
+a:"EBITDA ignores capex, interest, and one-off charges. Heavy capital spending, an unaffordable interest burden, a debt maturity wall it can't refinance, or a massive litigation charge can each kill a positive-EBITDA business."},
+{id:'acct-15',cat:'acct',q:"What are deferred tax assets and liabilities, and where do they come from?",
+a:"Timing gaps between book tax expense and cash tax paid. Recognized expense not yet paid in cash → DTL; cash paid before book recognition (or NOLs) → DTA. The classic source is M&A: asset write-ups create DTLs, write-downs create DTAs."},
+{id:'acct-16',cat:'acct',q:"When is goodwill impaired, and what does it signal?",
+a:"When the acquirer concludes the intangible value it paid for (brand, customers, IP) is worth materially less — usually an admission of overpayment, producing a large non-cash loss. Goodwill otherwise sits unamortized."},
+
+// ---------- ENTERPRISE / EQUITY VALUE ----------
+{id:'ev-1',cat:'ev',q:"State the Enterprise Value formula and the intuition for it.",
+a:"EV = Equity Value + Debt + Preferred + Minority Interest − Cash. It approximates what an acquirer truly pays: debt must be refinanced (adds to cost), while the target's cash comes with the deal (reduces it). EV is capital-structure-neutral; equity value is just the shareholders' slice."},
+{id:'ev-2',cat:'ev',q:"Why add minority interest to EV?",
+a:"Consolidation: own >50% of a subsidiary and you report 100% of its financials. Adding minority interest keeps numerator and denominator on an apples-to-apples 100% basis when building multiples."},
+{id:'ev-3',cat:'ev',q:"100 shares at $10; 10 options struck at $5. Fully diluted equity value?",
+a:"Options are in-the-money. Treasury Stock Method: exercise creates 10 shares and delivers $50 of proceeds, which buys back 5 shares at $10. Diluted count = 105 → equity value $1,050. If the strike were $15, they'd be out-of-the-money: stay at $1,000."},
+{id:'ev-4',cat:'ev',q:"How do convertible bonds enter the EV calculation?",
+a:"In-the-money (share price above conversion price): treat as dilution — converts become shares, NO Treasury Stock Method because the company receives no cash. Out-of-the-money: count face value as debt."},
+{id:'ev-5',cat:'ev',q:"$10m of converts, $1,000 par, $50 conversion price, stock at $100. New shares?",
+a:"In-the-money. $10m ÷ $1,000 = 10,000 bonds; each converts into $1,000 ÷ $50 = 20 shares → 200,000 new shares added to the diluted count."},
+{id:'ev-6',cat:'ev',q:"Can Enterprise Value be negative? Equity value?",
+a:"EV: yes — cash exceeding market cap plus debt (near-bankruptcy names, cash-rich financials). Market equity value: no — neither share price nor share count can be negative (book equity can be, though)."},
+{id:'ev-7',cat:'ev',q:"Equity value vs. shareholders' equity?",
+a:"Market value vs. book value of the same claim. For healthy companies the market number usually far exceeds book; book can even be negative while market cap stays positive."},
+{id:'ev-8',cat:'ev',q:"Why is EV/EBITDA legitimate but Equity Value/EBITDA not?",
+a:"Pairing rule: match the numerator to who the metric 'belongs' to. EBITDA is pre-interest — available to all capital providers — so it pairs with EV. Metrics after interest (net income, levered FCF) pair with equity value."},
+{id:'ev-9',cat:'ev',q:"What does the fuller, more rigorous EV bridge add?",
+a:"Beyond the basic five items: subtract NOLs and long-term/equity investments (cash-like), add capital leases and (often) pension obligations (debt-like), convert certain operating leases. The simple formula is an interview shorthand."},
+
+// ---------- VALUATION ----------
+{id:'val-1',cat:'val',q:"The three core valuation methodologies — and which prints highest?",
+a:"Trading comps, precedent transactions, DCF. Precedents usually top comps because of the control premium; the DCF is the wildcard — most assumption-sensitive, can land highest or lowest. There is no fixed ranking."},
+{id:'val-2',cat:'val',q:"When would you NOT run a DCF?",
+a:"Unstable or unforecastable cash flows (early-stage companies), or where debt and working capital are the business itself — banks and insurers get dividend discount models instead."},
+{id:'val-3',cat:'val',q:"Name the secondary methodologies.",
+a:"Liquidation value, replacement cost, LBO analysis (the PE 'floor'), sum-of-the-parts for conglomerates, M&A premiums analysis, and discounted future share price off forward P/E."},
+{id:'val-4',cat:'val',q:"Why does an LBO analysis set a valuation 'floor'?",
+a:"You fix a target IRR (~20–25%) and back-solve the maximum price a sponsor can pay. Without synergies, financial buyers can almost always pay less than strategics — hence the floor."},
+{id:'val-5',cat:'val',q:"Give industry-specific multiples and the logic behind them.",
+a:"Retail/airlines: EV/EBITDAR (rent distorts comparability). REITs: P/FFO — add back property depreciation, strip sale gains. E&P: P/NAV and reserve-based metrics. Early internet: EV per user/visitor. Each keys off the real value driver, not accounting profit."},
+{id:'val-6',cat:'val',q:"How do you select comps and precedents?",
+a:"Industry first — always — then financial size screens and geography; for precedents add recency (1–2 years). Then apply the set's median multiple to your company's metric and present a range (25th–75th percentile), never a point estimate."},
+{id:'val-7',cat:'val',q:"Why might a company trade at a premium to comps with identical growth and margins?",
+a:"An earnings beat, defensible IP or patents, market leadership, a favorable legal ruling — competitive advantages the financials don't yet capture."},
+{id:'val-8',cat:'val',q:"How does valuing a private company differ?",
+a:"Same toolkit, with an illiquidity discount (often 10–15%+) on trading-comp multiples, no premiums or future-share-price analysis (no share price), WACC estimated from public comps, and output framed as enterprise value, not per-share."},
+{id:'val-9',cat:'val',q:"Why might an investor prefer EV/EBIT over EV/EBITDA?",
+a:"EBITDA pretends capex doesn't exist. In capital-intensive industries, D&A is a real economic cost, so EBIT (which includes it) compares businesses more honestly. EBITDA suits asset-light models."},
+{id:'val-10',cat:'val',q:"Two identical vending businesses: one owns machines (depreciates them), one leases. Which gets the higher EV/EBITDA multiple?",
+a:"The lessee. Lease expense hits EBITDA, so its EBITDA is lower and its multiple optically higher; the owner's depreciation sits below EBITDA. Same EV, different optics — exactly why EBITDAR exists."},
+{id:'val-11',cat:'val',q:"How do you value a pre-revenue company (e.g., an early social network)?",
+a:"Don't fabricate a DCF on unforecastable cash flows. Use comps and precedents on operational metrics — per user, per page view — that track the actual value driver."},
+{id:'val-12',cat:'val',q:"P/E vs. EV/EBITDA vs. EV/EBIT — when does each lead?",
+a:"P/E where capital structure and interest are core (banks). EV/EBITDA where D&A is small or distorting (asset-light). EV/EBIT where fixed assets genuinely depreciate and matter (manufacturing)."},
+
+// ---------- DCF ----------
+{id:'dcf-1',cat:'dcf',q:"Walk me through a DCF.",
+a:"Project 5–10 years of unlevered free cash flow; discount at WACC. Compute terminal value via exit multiple or Gordon Growth and discount it back. PV of FCFs + PV of TV = Enterprise Value; bridge to equity and per-share if needed."},
+{id:'dcf-2',cat:'dcf',q:"Revenue down to unlevered FCF?",
+a:"Revenue − COGS − OpEx = EBIT; × (1 − tax) = NOPAT; + D&A and non-cash charges; − capex; − increase in working capital = unlevered FCF."},
+{id:'dcf-3',cat:'dcf',q:"WACC and Cost of Equity formulas?",
+a:"WACC = E/V × Ke + D/V × Kd × (1 − tax) + P/V × Kp. Cost of equity via CAPM: risk-free rate + beta × equity risk premium, optionally plus size/industry premia."},
+{id:'dcf-4',cat:'dcf',q:"Why un-lever and re-lever beta?",
+a:"Comps' observed betas embed their own leverage. Strip it out to isolate pure business risk, take the median, then re-lever to YOUR target's capital structure so the cost of equity reflects both business and financial risk."},
+{id:'dcf-5',cat:'dcf',q:"Levered FCF in the DCF instead — what changes?",
+a:"Interest is already out, so the flows belong to shareholders only: discount at the cost of equity (not WACC) and the output is equity value directly, not enterprise value."},
+{id:'dcf-6',cat:'dcf',q:"Terminal value: two methods and how to choose growth/multiples?",
+a:"Exit multiple (banking default — anchored to comps, shown as a range) or Gordon Growth: TV = FCF × (1+g)/(r − g), with g at or below long-run GDP/inflation (>5% in a mature economy is indefensible). Gordon Growth wins when comps are weak or the industry is cyclical."},
+{id:'dcf-7',cat:'dcf',q:"When is a DCF 'too dependent on the terminal value'?",
+a:"TV above ~50% of EV is normal in practice; pushing 80–90% means the projection window is doing nothing and assumptions need rethinking."},
+{id:'dcf-8',cat:'dcf',q:"$500m vs. $5bn market cap: which has higher cost of equity?",
+a:"The small cap — smaller companies carry higher expected risk and return (the size premium). WACC follows, holding capital structure constant."},
+{id:'dcf-9',cat:'dcf',q:"How does adding debt move WACC?",
+a:"U-shaped. Debt is cheaper than equity (tax-deductible, senior), so moderate leverage lowers WACC — until rising distress risk inflates both the cost of debt and the cost of equity, and WACC turns upward."},
+{id:'dcf-10',cat:'dcf',q:"Bigger valuation impact: 10% revenue change or 1% discount-rate change?",
+a:"'It depends, but usually revenue' — the revenue shift compounds through every projection year AND the terminal value. At 1% revenue vs. 1% discount rate, the rate typically dominates."},
+{id:'dcf-11',cat:'dcf',q:"What is the mid-year convention?",
+a:"Cash arrives throughout the year, not on Dec 31 — so discount periods become 0.5, 1.5, 2.5… instead of 1, 2, 3. With an exit-multiple TV you add 0.5 back to the final period (a sale happens at year-end); Gordon Growth keeps the mid-year period."},
+{id:'dcf-12',cat:'dcf',q:"Company repays large debt principal annually — where in the unlevered DCF?",
+a:"Nowhere. Principal repayment is a financing flow; unlevered FCF stops at operations minus capex. Even in a levered DCF you'd reflect declining interest, never the principal itself."},
+
+// ---------- MERGER MODELS ----------
+{id:'mna-1',cat:'mna',q:"Walk me through a merger model.",
+a:"Assume price and consideration mix (cash/stock/debt). Project both income statements, combine, then adjust: subtract foregone interest on cash and new interest on debt, add synergies, account for new shares issued. Tax at the buyer's rate, divide by the new share count → pro-forma EPS accretive or dilutive."},
+{id:'mna-2',cat:'mna',q:"The all-stock accretion rule of thumb?",
+a:"Buyer P/E above seller P/E → accretive; below → dilutive. Intuition: you're paying less per dollar of earnings than the market pays for yours. The rule dies the moment cash or debt enters the mix."},
+{id:'mna-3',cat:'mna',q:"List the complete effects of an acquisition.",
+a:"Foregone interest on cash used; new interest on debt raised; new shares if stock is issued; statements combined; goodwill and identifiable intangibles created — plus amortization of those intangibles dragging on EPS."},
+{id:'mna-4',cat:'mna',q:"Revenue vs. cost synergies — which do practitioners credit?",
+a:"Cost synergies, grudgingly — headcount and facility consolidation can at least be counted. Revenue synergies (cross-sell, new geographies) are treated as storytelling. Model cost synergies as reductions to combined COGS/OpEx flowing into pro-forma EPS."},
+{id:'mna-5',cat:'mna',q:"Why do goodwill and other intangibles get created?",
+a:"They book the premium over the seller's net asset fair value — paying for brands, relationships, IP that aren't balance-sheet assets. Goodwill = equity purchase price − seller book value, adjusted for write-ups, the seller's old goodwill, and new deferred taxes. Goodwill sits untouched unless impaired; other intangibles amortize through the IS."},
+{id:'mna-6',cat:'mna',q:"Why does an asset write-up create a DTL?",
+a:"In a stock purchase the book basis steps up but the tax basis doesn't: book depreciation rises without a matching cash-tax deduction, so you'll owe the difference over time — a deferred tax liability = write-up × tax rate. Asset purchases create none (book = tax basis)."},
+{id:'mna-7',cat:'mna',q:"Cash, stock or debt — what does a buyer with unlimited resources prefer?",
+a:"Cash. Foregone interest on cash costs less than interest on new debt, there's no financing risk, and stock is the most 'expensive' currency (cost of equity highest) plus exposes the seller to the buyer's price swings."},
+{id:'mna-8',cat:'mna',q:"Stock purchase vs. asset purchase vs. 338(h)(10)?",
+a:"Stock: buyer takes everything, seller taxed once on gains, no basis step-up, DTLs arise — the public-company default. Asset: buyer cherry-picks assets/liabilities, gets a step-up to depreciate, seller taxed twice — used for private, divestiture, distressed deals. 338(h)(10): legal stock purchase taxed like an asset deal — buyer gets the step-up, so it typically pays more for it."},
+{id:'mna-9',cat:'mna',q:"What is an earnout and why use one?",
+a:"Deferred consideration contingent on hitting targets ('extra $10m if revenue reaches $100m by year 3'). Bridges valuation gaps and locks in management — common for private/startup sellers, rare for public ones."},
+{id:'mna-10',cat:'mna',q:"What's a contribution analysis?",
+a:"Compare each side's share of combined revenue/EBITDA against its proposed ownership of the combined entity — the sanity check of choice in mergers of equals."},
+{id:'mna-11',cat:'mna',q:"Break-even synergies?",
+a:"Set EPS accretion/dilution to zero and back-solve the synergies required. A big number is a red flag that the deal only 'works' on heroic integration assumptions."},
+{id:'mna-12',cat:'mna',q:"Why do most M&A deals destroy value?",
+a:"Integration is brutally hard, synergies rarely materialize, and many deals are driven by ego or shareholder pressure rather than economics. The model is a sanity check — negotiation psychology decides deals."},
+
+// ---------- LBO MODELS ----------
+{id:'lbo-1',cat:'lbo',q:"Walk me through an LBO model.",
+a:"(1) Assumptions: price, leverage, rates, operating case. (2) Sources & Uses → required sponsor equity. (3) Adjust the balance sheet: new debt, equity wiped and replaced, goodwill plug. (4) Project statements and sweep cash to repay debt. (5) Exit on an EBITDA multiple → equity proceeds → IRR and MOIC."},
+{id:'lbo-2',cat:'lbo',q:"Why does leverage amplify returns?",
+a:"Debt isn't your money. Funding more of the price with debt shrinks the equity check; every dollar of debt paydown and value growth accrues to that smaller base. The mortgage analogy: down payment = equity, mortgage = LBO debt, sale = exit."},
+{id:'lbo-3',cat:'lbo',q:"What makes an ideal LBO candidate?",
+a:"Stable, predictable cash flow above all; low capex needs, cost-cutting headroom, hard assets to pledge, solid management, reasonable entry price."},
+{id:'lbo-4',cat:'lbo',q:"Which inputs move IRR most?",
+a:"Entry and exit multiples first, leverage second, then operating drivers (growth, margins). Hence sensitivity tables on entry × exit."},
+{id:'lbo-5',cat:'lbo',q:"Bank debt vs. high-yield — the key contrasts?",
+a:"Bank debt: lower rate, floating, amortizing, secured, MAINTENANCE covenants (keep leverage below X at all times), prepayable. High-yield: higher fixed coupon, bullet maturity, INCURRENCE covenants (don't do X), call protection. Use bank debt to keep coupon cost down or to prepay; high-yield if refinancing later or wanting freedom from maintenance tests."},
+{id:'lbo-6',cat:'lbo',q:"Rank the capital stack from cheapest to most expensive.",
+a:"Revolver → Term Loan A → Term Loan B → senior notes → subordinated notes → mezzanine → equity. Rate rises as seniority, security and amortization fall; tenor lengthens down the stack."},
+{id:'lbo-7',cat:'lbo',q:"How does a revolver work in the model?",
+a:"Drawn only when cash available for debt service falls short of mandatory repayments: draw = MAX(0, mandatory repayment − cash available). Repaid first from excess cash before any optional term-loan paydown."},
+{id:'lbo-8',cat:'lbo',q:"What is PIK interest and how does it flow through the model?",
+a:"Interest accrues to principal instead of being paid in cash — riskier, so higher rate. It hits the income statement as expense but gets added back on the CFS as non-cash; the debt balance compounds upward until maturity."},
+{id:'lbo-9',cat:'lbo',q:"What is a dividend recap, and its 3-statement impact?",
+a:"Portfolio company raises new debt purely to pay the sponsor a dividend — pulling equity out early to juice IRR. IS: unchanged. BS: debt up, equity down equally. CFS: financing inflow (debt) offsets the outflow (dividend); net cash flat."},
+{id:'lbo-10',cat:'lbo',q:"Give examples of maintenance vs. incurrence covenants.",
+a:"Maintenance: Total Debt/EBITDA ≤ 4x at all times; EBITDA/cash interest ≥ 2x; (EBITDA−capex)/interest ≥ 2x. Incurrence: no acquisitions over $200m, asset-sale proceeds must repay debt, total debt capped at $2bn."},
+{id:'lbo-11',cat:'lbo',q:"Can debt investors out-earn the sponsor in an LBO?",
+a:"Yes — more often than you'd think. High-yield coupons of 10%+ effectively lock that IRR; if multiples contract or EBITDA stalls, the sponsor's equity IRR can fall below it while the debt still gets paid."},
+{id:'lbo-12',cat:'lbo',q:"When does MORE leverage REDUCE IRR?",
+a:"When interest and mandatory amortization swallow so much cash flow the company can't operate or delever — typically high purchase multiple + weak EBITDA growth + heavy debt service. IRR rises with leverage to a point, then rolls over."},
+{id:'lbo-13',cat:'lbo',q:"How does a sponsor boost returns (in the model)?",
+a:"Pay less at entry, exit higher, lever more, grow EBITDA (organic or bolt-ons), expand margins via cost cuts — all easier in Excel than in the portfolio."},
+{id:'lbo-14',cat:'lbo',q:"What is the LBO 'tax shield'?",
+a:"Interest deductibility lowers cash taxes versus an unlevered company. It softens — but never offsets — the cash cost of carrying the debt."},
+
+// ---------- RESTRUCTURING ----------
+{id:'rx-1',cat:'rx',q:"What do restructuring bankers actually do, and who do they advise?",
+a:"Advise companies near, in, or exiting bankruptcy on fixing the capital structure — or advise the other side. Debtor mandates (the company) vs. creditor mandates (the lenders), analogous to sell-side vs. buy-side."},
+{id:'rx-2',cat:'rx',q:"What pushes a company into bankruptcy?",
+a:"Can't service debt; creditors accelerate; a failed acquisition or huge write-down; or a liquidity crunch that leaves it unable to pay suppliers."},
+{id:'rx-3',cat:'rx',q:"Options for a company that can't meet obligations — and the trade-offs?",
+a:"Refinance (least disruptive, but who lends to a dying company?); sell (creditors get paid, but fire-sale price); restructure terms out of court (fast, but lenders resist more exposure); file Chapter 11 (leverage to renegotiate and access DIP money, at the cost of disruption and likely equity wipeout)."},
+{id:'rx-4',cat:'rx',q:"Chapter 7 vs. Chapter 11?",
+a:"7 = liquidation: past saving, trustee sells the assets, creditors paid in priority order. 11 = reorganization: the business survives while debt terms are renegotiated."},
+{id:'rx-5',cat:'rx',q:"What is DIP financing?",
+a:"New money lent to a company in Chapter 11 with super-priority over existing claims and strict terms — making it safe enough to attract lenders and often the very reason a company files."},
+{id:'rx-6',cat:'rx',q:"Order of claims in bankruptcy?",
+a:"DIP lenders → secured creditors (revolver, bank debt) → unsecured (high-yield) → subordinated → mezzanine/preferred → common equity. 'Secured' means specific collateral backs the claim. Equity holders rarely see anything."},
+{id:'rx-7',cat:'rx',q:"How does valuation change for a distressed company?",
+a:"Same methodologies, lower-percentile multiples, adjusted financials (excess salaries, one-off legal fees, skewed working capital), heavier reliance on revenue multiples if EBITDA-negative, a turnaround-discounted DCF with a WACC premium, plus a liquidation analysis. In liquidation, haircut each asset: cash ~100%, AR less, inventory less still, intangibles ~0%."},
+{id:'rx-8',cat:'rx',q:"Can a falling share price itself bankrupt a company?",
+a:"Trick: market cap isn't book equity, so the price drop changes nothing mechanically. The real channel is confidence — counterparties tighten terms, lenders pull liquidity (Bear Stearns 2008), and THAT kills the company."},
+{id:'rx-9',cat:'rx',q:"In distressed M&A, who prefers an asset purchase vs. a stock purchase?",
+a:"Buyers want asset deals: cherry-pick, dodge unknown liabilities, get the tax step-up. Sellers want stock deals: shed all liabilities, single layer of tax. Distressed deals skew toward asset purchases (incl. Section 363 sales) — and unlike normal M&A they can't simply 'fail': they end in a sale, restructuring, or bankruptcy."},
+{id:'rx-10',cat:'rx',q:"Why buy back your own debt at 50 cents on the dollar?",
+a:"Excess cash earning ~0% retires debt costing ~10% at half its face — slashing interest and obligations. Accounting: cash down, debt down, and the discount books as a gain. Typical for over-levered boom-era LBOs."},
+
+// ---------- BRAIN TEASERS ----------
+{id:'bt-1',cat:'bt',q:"Drive 60 miles at 30 mph. How fast on the same 60 miles to AVERAGE 60 mph overall?",
+a:"Impossible. Averaging 60 mph over 60 miles allows 1 hour total — already spent at 30 mph. The classic wrong answers are 90 or 120."},
+{id:'bt-2',cat:'bt',q:"Angle between clock hands at 1:45?",
+a:"142.5°. Minute hand at 9 (270°); hour hand ¾ past 1: 30° + 22.5° = 52.5°. Difference 217.5°, i.e. 142.5° the short way. Forgetting the hour hand's drift (answering 120°/135°) is the trap."},
+{id:'bt-3',cat:'bt',q:"Max value in US coins without being able to make exact change for $1?",
+a:"$1.19 — 3 quarters, 4 dimes, 4 pennies. Work down from the largest coin, checking every combination: a 5th dime (with 2 quarters), any nickel (with 3 quarters + 2 dimes), or a 5th penny each enable $1.00."},
+{id:'bt-4',cat:'bt',q:"A 3L and a 5L bucket, unlimited water. Measure exactly 4L.",
+a:"Fill 3 → pour into 5. Fill 3 again → top off 5, leaving 1L in the small bucket. Empty 5, transfer the 1L, fill 3 once more and add: 4L. Key insight: the answer must live in the 5L bucket, so isolate 1L first."},
+];
+
+/* =====================================================================
    APP
 ===================================================================== */
 const App = (() => {
@@ -340,13 +586,16 @@ const App = (() => {
     const s = JSON.parse(JSON.stringify(initialState));
     try {
       const saved = JSON.parse(localStorage.getItem(LS_KEY) || 'null');
-      if (saved && saved.stateVersion === s.stateVersion && saved.drafts) s.drafts = saved.drafts;
+      // drafts and drill stats are user data — keep them across curriculum versions
+      if (saved && saved.drafts) s.drafts = saved.drafts;
+      if (saved && saved.drill) s.drill = saved.drill;
     } catch (e) { /* corrupt storage — start clean */ }
     s.drafts = s.drafts || {};
+    s.drill = s.drill || {};
     return s;
   }
   function persist() {
-    localStorage.setItem(LS_KEY, JSON.stringify({ stateVersion: state.stateVersion, drafts: state.drafts }));
+    localStorage.setItem(LS_KEY, JSON.stringify({ stateVersion: state.stateVersion, drafts: state.drafts, drill: state.drill }));
   }
 
   const fmt = (n, d=1) => (isFinite(n) ? n.toLocaleString('en-US', {minimumFractionDigits:d, maximumFractionDigits:d}) : '—');
@@ -355,7 +604,7 @@ const App = (() => {
 
   /* ---------- tabs ---------- */
   function switchTab(name) {
-    ['dashboard','workspace','calculators','reference'].forEach(t => {
+    ['dashboard','workspace','drill','calculators','reference'].forEach(t => {
       document.getElementById('tab-'+t).classList.toggle('hidden', t !== name);
     });
     document.querySelectorAll('.nav-tab').forEach(b => {
@@ -418,6 +667,16 @@ const App = (() => {
         <span class="${c.mastered ? 'text-slate-200' : 'text-slate-500'}">${c.name}</span>
         <span>${c.mastered ? '<span class="text-mint">●</span>' : '<span class="text-slate-600">○</span>'}</span>
       </div>`).join('');
+
+    // question bank summary
+    document.getElementById('dash-drill').innerHTML = DRILL_CATS.map(c => {
+      const p = catProgress(c.id);
+      const pct = p.total ? Math.round(100 * p.done / p.total) : 0;
+      return `<div>
+        <div class="flex justify-between text-xs mb-1"><span class="text-slate-300">${c.name}</span><span class="kpi text-slate-400">${p.done}/${p.total}</span></div>
+        <div class="h-1.5 bg-ink rounded-full"><div class="h-1.5 rounded-full bg-gold" style="width:${pct}%"></div></div>
+      </div>`;
+    }).join('');
   }
 
   /* ---------- workspace ---------- */
@@ -526,6 +785,116 @@ const App = (() => {
       <span class="text-gold font-bold">LTV: €${fmt(ltv,0)} · LTV/CAC: ${fmt(ratio,2)}x</span> · Payback: ${fmt(paybackMo,1)} mo<br>${verdict}`;
   }
 
+  /* ---------- drill mode ---------- */
+  let drillCat = 'all';
+  let drillCurrent = null;
+  let drillRevealed = false;
+
+  const qStats = id => state.drill[id] || { r: 0, w: 0 };
+  const isMastered = id => { const s = qStats(id); return s.r >= 2 && s.r > s.w; };
+
+  function drillPool() {
+    return QUESTION_BANK.filter(q => drillCat === 'all' || q.cat === drillCat);
+  }
+
+  function pickQuestion() {
+    const pool = drillPool();
+    if (!pool.length) return null;
+    // weight: missed > unseen > seen-unmastered > mastered; avoid immediate repeat
+    const weighted = [];
+    pool.forEach(q => {
+      if (drillCurrent && q.id === drillCurrent.id && pool.length > 1) return;
+      const s = qStats(q.id);
+      const w = (s.w > s.r) ? 5 : (s.r === 0 && s.w === 0) ? 3 : !isMastered(q.id) ? 2 : 1;
+      for (let i = 0; i < w; i++) weighted.push(q);
+    });
+    return weighted[Math.floor(Math.random() * weighted.length)];
+  }
+
+  function nextQuestion() {
+    drillCurrent = pickQuestion();
+    drillRevealed = false;
+    renderDrill();
+  }
+
+  function reveal() { drillRevealed = true; renderDrill(); }
+
+  function mark(correct) {
+    if (!drillCurrent) return;
+    const s = state.drill[drillCurrent.id] || { r: 0, w: 0 };
+    correct ? s.r++ : s.w++;
+    state.drill[drillCurrent.id] = s;
+    persist();
+    nextQuestion();
+    renderDashboard(); // keep dashboard drill panel in sync
+  }
+
+  function setDrillCat(cat) { drillCat = cat; nextQuestion(); }
+
+  function resetDrill() {
+    state.drill = {}; persist(); nextQuestion(); renderDashboard();
+  }
+
+  function catProgress(catId) {
+    const qs = QUESTION_BANK.filter(q => q.cat === catId);
+    const done = qs.filter(q => isMastered(q.id)).length;
+    return { done, total: qs.length };
+  }
+
+  function renderDrill() {
+    // category pills
+    const pills = [{ id:'all', name:'All Categories' }, ...DRILL_CATS];
+    document.getElementById('drill-cats').innerHTML = pills.map(c => {
+      const on = drillCat === c.id;
+      const p = c.id === 'all'
+        ? { done: QUESTION_BANK.filter(q => isMastered(q.id)).length, total: QUESTION_BANK.length }
+        : catProgress(c.id);
+      return `<button onclick="App.setDrillCat('${c.id}')"
+        class="text-xs px-3 py-1.5 rounded-full border ${on ? 'border-gold text-gold bg-gold/10' : 'border-line text-slate-400 hover:text-white'}">
+        ${c.name} <span class="kpi opacity-70">${p.done}/${p.total}</span></button>`;
+    }).join('');
+
+    // overall KPI
+    const total = QUESTION_BANK.length;
+    const mastered = QUESTION_BANK.filter(q => isMastered(q.id)).length;
+    document.getElementById('drill-kpi').textContent = Math.round(100 * mastered / total) + '%';
+
+    // card
+    const card = document.getElementById('drill-card');
+    if (!drillCurrent) { card.innerHTML = '<p class="text-slate-500 italic">No questions in this category.</p>'; return; }
+    const catName = DRILL_CATS.find(c => c.id === drillCurrent.cat).name;
+    const s = qStats(drillCurrent.id);
+    card.innerHTML = `
+      <div class="flex items-center justify-between mb-4">
+        <span class="badge bg-sky/15 text-sky border border-sky/40">${catName}</span>
+        <span class="text-[11px] font-mono text-slate-500">this question: <span class="text-mint">${s.r}✓</span> / <span class="text-coral">${s.w}✗</span> ${isMastered(drillCurrent.id) ? '· <span class=\"text-mint\">MASTERED</span>' : ''}</span>
+      </div>
+      <p class="text-lg text-white font-medium leading-snug mb-6">${drillCurrent.q}</p>
+      ${drillRevealed
+        ? `<div class="bg-ink border border-line rounded-lg p-4 text-sm text-slate-200 leading-relaxed mb-5">${drillCurrent.a}</div>
+           <div class="flex gap-3">
+             <button onclick="App.mark(true)" class="bg-mint/15 border border-mint/50 text-mint font-semibold text-sm px-4 py-2 rounded-lg hover:bg-mint/25">✓ Got it</button>
+             <button onclick="App.mark(false)" class="bg-coral/15 border border-coral/50 text-coral font-semibold text-sm px-4 py-2 rounded-lg hover:bg-coral/25">✗ Missed it</button>
+             <button onclick="App.nextQuestion()" class="ml-auto border border-line text-slate-400 text-sm px-4 py-2 rounded-lg hover:text-white">Skip →</button>
+           </div>`
+        : `<div class="flex gap-3">
+             <button onclick="App.reveal()" class="bg-gold text-ink font-bold text-sm px-5 py-2 rounded-lg hover:opacity-90">Reveal Answer</button>
+             <button onclick="App.nextQuestion()" class="border border-line text-slate-400 text-sm px-4 py-2 rounded-lg hover:text-white">Skip →</button>
+           </div>
+           <p class="text-[11px] text-slate-500 mt-4">Answer out loud (or on paper) in full interview form before revealing — structure first, then detail.</p>`}
+    `;
+
+    // side stats
+    document.getElementById('drill-statpanel').innerHTML = DRILL_CATS.map(c => {
+      const p = catProgress(c.id);
+      const pct = p.total ? Math.round(100 * p.done / p.total) : 0;
+      return `<div>
+        <div class="flex justify-between text-xs mb-1"><span class="text-slate-300">${c.name}</span><span class="kpi text-slate-400">${p.done}/${p.total}</span></div>
+        <div class="h-1.5 bg-ink rounded-full"><div class="h-1.5 rounded-full bg-gold" style="width:${pct}%"></div></div>
+      </div>`;
+    }).join('');
+  }
+
   function wireCalcs() {
     const map = { 'ds-':calcDebt, 'br-':calcBridge, 'rt-':calcReturns, 'uc-':calcUnit };
     document.querySelectorAll('input.calc-input').forEach(inp => {
@@ -538,10 +907,12 @@ const App = (() => {
   function init() {
     renderDashboard();
     renderWorkspace();
+    nextQuestion();
     wireCalcs();
   }
 
-  return { switchTab, saveDraft, clearDraft, exportAnswers, init };
+  return { switchTab, saveDraft, clearDraft, exportAnswers, init,
+           setDrillCat, nextQuestion, reveal, mark, resetDrill };
 })();
 
 document.addEventListener('DOMContentLoaded', App.init);
