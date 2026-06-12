@@ -3,81 +3,131 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Apex Capital Training Desk — v1.2</title>
+<title>Apex Capital Training Desk — v2.0</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.tailwindcss.com"></script>
 <script>
   tailwind.config = {
     theme: {
       extend: {
         colors: {
-          ink: '#0b1020', panel: '#111831', panel2: '#16203f', line: '#26335c',
-          gold: '#d4a843', mint: '#3ecf8e', coral: '#f0635c', sky: '#5aa7f0', lav: '#a78bfa'
+          ink: '#070a12', panel: '#0c111d', panel2: '#121829', line: '#1d2438',
+          gold: '#c8a96a', mint: '#5fbf94', coral: '#d97a72', sky: '#7da9d8', lav: '#a392d8'
         },
-        fontFamily: { mono: ['ui-monospace','SFMono-Regular','Menlo','monospace'] }
+        fontFamily: { mono: ['ui-monospace','SFMono-Regular','Menlo','monospace'], sans: ['Inter','system-ui','sans-serif'] }
       }
     }
   }
 </script>
 <style>
-  body { background:#0b1020; color:#dce3f5; }
-  ::-webkit-scrollbar { width:8px; height:8px; } ::-webkit-scrollbar-thumb { background:#26335c; border-radius:4px; }
-  .tab-active { border-bottom:2px solid #d4a843; color:#d4a843; }
-  .calc-input { background:#0b1020; border:1px solid #26335c; border-radius:6px; padding:6px 10px; width:100%; color:#dce3f5; font-family:ui-monospace,monospace; }
-  .calc-input:focus { outline:none; border-color:#d4a843; }
+  body { background:#070a12; color:#c9d1e6; font-family:'Inter',system-ui,sans-serif;
+         background-image: radial-gradient(1100px 500px at 75% -10%, rgba(200,169,106,.05), transparent 60%),
+                           radial-gradient(900px 600px at -10% 110%, rgba(125,169,216,.04), transparent 55%); }
+  ::-webkit-scrollbar { width:7px; height:7px; } ::-webkit-scrollbar-thumb { background:#1d2438; border-radius:4px; }
+  .font-display, section h2, .brand { font-family:'Cormorant Garamond', Georgia, serif; }
+  section h2.text-xl { font-size:1.7rem; line-height:1.15; font-weight:600; letter-spacing:.01em; }
+  .bg-panel { background-image: linear-gradient(180deg, rgba(255,255,255,.022), rgba(0,0,0,.14)); }
+  .rounded-xl.border-line { box-shadow: inset 0 1px 0 rgba(255,255,255,.035), 0 18px 40px -28px rgba(0,0,0,.9); }
+  .nav-tab { display:flex; align-items:center; gap:.6rem; width:100%; padding:.55rem 1rem; border-left:2px solid transparent;
+             font-size:.8rem; letter-spacing:.02em; transition:color .15s, background .15s, border-color .15s; white-space:nowrap; }
+  .nav-tab:hover { color:#e9edf8; background:rgba(255,255,255,.025); }
+  .tab-active { border-left-color:#c8a96a; color:#c8a96a !important; background:linear-gradient(90deg, rgba(200,169,106,.09), transparent 70%); }
+  .nav-icon { width:1.1rem; text-align:center; opacity:.85; font-size:.78rem; }
+  .calc-input { background:#070a12; border:1px solid #1d2438; border-radius:6px; padding:6px 10px; width:100%; color:#dce3f5; font-family:ui-monospace,monospace; transition:border-color .15s; }
+  .calc-input:focus { outline:none; border-color:#c8a96a; }
   textarea.calc-input { font-family:inherit; }
-  .badge { font-size:10px; letter-spacing:.08em; text-transform:uppercase; padding:2px 8px; border-radius:9999px; font-weight:600; }
+  .badge { font-size:10px; letter-spacing:.1em; text-transform:uppercase; padding:2px 9px; border-radius:9999px; font-weight:600; }
   .kpi { font-family:ui-monospace,monospace; }
-  .lesson p { margin-bottom:.75rem; color:#cbd5e8; font-size:.875rem; line-height:1.65; }
-  .lesson h4 { color:#d4a843; font-weight:600; margin:1.4rem 0 .5rem; font-size:.95rem; }
-  .lesson ul, .lesson ol { margin:0 0 .85rem 1.25rem; color:#cbd5e8; font-size:.875rem; }
+  .hair { border-top:1px solid rgba(255,255,255,.05); }
+  .lesson p { margin-bottom:.75rem; color:#c4cde2; font-size:.875rem; line-height:1.7; }
+  .lesson h4 { color:#c8a96a; font-weight:600; margin:1.5rem 0 .5rem; font-size:.95rem; letter-spacing:.02em; }
+  .lesson ul, .lesson ol { margin:0 0 .85rem 1.25rem; color:#c4cde2; font-size:.875rem; }
   .lesson ul { list-style:disc; } .lesson ol { list-style:decimal; }
-  .lesson li { margin-bottom:.4rem; line-height:1.55; }
-  .lesson .ex { background:#0b1020; border:1px solid #26335c; border-radius:.5rem; padding:.9rem 1rem; font-size:.8rem; margin:.85rem 0; font-family:ui-monospace,monospace; color:#dce3f5; line-height:1.7; }
-  .lesson .tip { border-left:2px solid #d4a843; padding-left:.8rem; font-size:.8rem; color:#94a3c0; margin:.85rem 0; }
-  .lesson b, .lesson strong { color:#fff; }
+  .lesson li { margin-bottom:.4rem; line-height:1.6; }
+  .lesson .ex { background:#070a12; border:1px solid #1d2438; border-left:2px solid #c8a96a; border-radius:.5rem; padding:.9rem 1rem; font-size:.8rem; margin:.85rem 0; font-family:ui-monospace,monospace; color:#dce3f5; line-height:1.75; }
+  .lesson .tip { border-left:2px solid #c8a96a; padding-left:.85rem; font-size:.8rem; color:#93a0bd; margin:.9rem 0; font-style:italic; }
+  .lesson b, .lesson strong { color:#fff; font-weight:600; }
   .lesson table { width:100%; font-size:.74rem; font-family:ui-monospace,monospace; margin:.85rem 0; border-collapse:collapse; }
-  .lesson th { text-align:left; color:#94a3c0; border-bottom:1px solid #26335c; padding:.3rem .4rem; font-weight:600; }
-  .lesson td { border-bottom:1px solid rgba(38,51,92,.45); padding:.3rem .4rem; color:#cbd5e8; }
+  .lesson th { text-align:left; color:#93a0bd; border-bottom:1px solid #1d2438; padding:.32rem .4rem; font-weight:600; }
+  .lesson td { border-bottom:1px solid rgba(29,36,56,.5); padding:.32rem .4rem; color:#c4cde2; }
 </style>
 </head>
 <body class="min-h-screen">
 
-<!-- ============ HEADER ============ -->
-<header class="border-b border-line bg-panel/80 backdrop-blur sticky top-0 z-20">
-  <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
-    <div>
-      <h1 class="text-lg font-bold tracking-tight text-white">APEX CAPITAL <span class="text-gold">TRAINING DESK</span></h1>
-      <p class="text-xs text-slate-400">Institutional Buy-Side Curriculum · v1.2 · Library + Drills + Live Cases · Grounded in: Burger King LBO (3G, 2010) · HDKS LBO (€)</p>
+<div class="md:flex min-h-screen">
+
+<!-- ============ SIDEBAR ============ -->
+<aside class="md:w-60 shrink-0 border-b md:border-b-0 md:border-r border-line bg-panel/70 backdrop-blur md:sticky md:top-0 md:h-screen md:overflow-y-auto z-30 flex md:flex-col">
+  <div class="px-5 pt-5 pb-4 hidden md:block">
+    <div class="brand text-2xl text-white leading-none">Apex <span class="text-gold italic">Capital</span></div>
+    <div class="text-[9px] uppercase tracking-[.25em] text-slate-500 mt-1.5">Training Desk · v2.0</div>
+  </div>
+  <nav class="flex md:flex-col md:mt-2 overflow-x-auto md:overflow-x-visible w-full text-slate-400">
+    <button data-tab="dashboard" class="nav-tab tab-active" onclick="App.switchTab('dashboard')"><span class="nav-icon">◈</span>Dashboard</button>
+    <button data-tab="learn" class="nav-tab" onclick="App.switchTab('learn')"><span class="nav-icon">✦</span>The Library</button>
+    <button data-tab="workspace" class="nav-tab" onclick="App.switchTab('workspace')"><span class="nav-icon">▤</span>Live Case <span id="ws-dot" class="inline-block w-1.5 h-1.5 rounded-full bg-coral ml-1"></span></button>
+    <button data-tab="vault" class="nav-tab" onclick="App.switchTab('vault')"><span class="nav-icon">◆</span>Case Vault</button>
+    <button data-tab="lab" class="nav-tab" onclick="App.switchTab('lab')"><span class="nav-icon">∑</span>Paper LBO Lab</button>
+    <button data-tab="drill" class="nav-tab" onclick="App.switchTab('drill')"><span class="nav-icon">◉</span>Drill Mode</button>
+    <button data-tab="calculators" class="nav-tab" onclick="App.switchTab('calculators')"><span class="nav-icon">÷</span>Calculators</button>
+    <button data-tab="glossary" class="nav-tab" onclick="App.switchTab('glossary')"><span class="nav-icon">Aa</span>Glossary</button>
+    <button data-tab="formulas" class="nav-tab" onclick="App.switchTab('formulas')"><span class="nav-icon">ƒ</span>Formula Sheet</button>
+    <button data-tab="reference" class="nav-tab" onclick="App.switchTab('reference')"><span class="nav-icon">☰</span>Deal Reference</button>
+  </nav>
+  <div class="hidden md:block mt-auto px-5 py-4 text-[10px] text-slate-600 leading-relaxed hair">
+    Grounded in:<br>Burger King LBO (3G, 2010)<br>Project HDKS (€) · IB Q-Bank
+  </div>
+</aside>
+
+<!-- ============ CONTENT COLUMN ============ -->
+<div class="flex-1 min-w-0">
+
+<header class="border-b border-line bg-panel/70 backdrop-blur sticky top-0 z-20">
+  <div class="px-4 md:px-8 py-3 flex items-center gap-6 md:gap-10 overflow-x-auto">
+    <div class="shrink-0">
+      <div class="text-[9px] uppercase tracking-[.2em] text-slate-500">Modules</div>
+      <div id="hdr-mastery" class="kpi text-lg font-bold text-gold leading-tight">—</div>
     </div>
-    <div class="flex items-center gap-6">
-      <div class="text-right">
-        <div class="text-[10px] uppercase tracking-widest text-slate-400">Overall Mastery</div>
-        <div id="hdr-mastery" class="kpi text-xl font-bold text-gold">—</div>
-      </div>
-      <div class="text-right">
-        <div class="text-[10px] uppercase tracking-widest text-slate-400">Avg Eval Score</div>
-        <div id="hdr-avg" class="kpi text-xl font-bold text-mint">—</div>
-      </div>
-      <div class="text-right">
-        <div class="text-[10px] uppercase tracking-widest text-slate-400">Level</div>
-        <div id="hdr-level" class="kpi text-xl font-bold text-sky">—</div>
-      </div>
+    <div class="shrink-0">
+      <div class="text-[9px] uppercase tracking-[.2em] text-slate-500">Avg Eval</div>
+      <div id="hdr-avg" class="kpi text-lg font-bold text-mint leading-tight">—</div>
+    </div>
+    <div class="shrink-0">
+      <div class="text-[9px] uppercase tracking-[.2em] text-slate-500">Library</div>
+      <div id="hdr-lib" class="kpi text-lg font-bold text-lav leading-tight">—</div>
+    </div>
+    <div class="shrink-0">
+      <div class="text-[9px] uppercase tracking-[.2em] text-slate-500">Q-Bank</div>
+      <div id="hdr-bank" class="kpi text-lg font-bold text-sky leading-tight">—</div>
+    </div>
+    <div class="shrink-0">
+      <div class="text-[9px] uppercase tracking-[.2em] text-slate-500">Lab Hit-Rate</div>
+      <div id="hdr-lab" class="kpi text-lg font-bold text-coral leading-tight">—</div>
+    </div>
+    <div class="shrink-0 ml-auto text-right hidden sm:block">
+      <div class="text-[9px] uppercase tracking-[.2em] text-slate-500">Level</div>
+      <div id="hdr-level" class="kpi text-lg font-bold text-white leading-tight">—</div>
     </div>
   </div>
-  <nav class="max-w-7xl mx-auto px-4 flex gap-6 text-sm">
-    <button data-tab="dashboard" class="nav-tab py-2 tab-active" onclick="App.switchTab('dashboard')">Dashboard</button>
-    <button data-tab="learn" class="nav-tab py-2 text-slate-400 hover:text-white" onclick="App.switchTab('learn')">Learn</button>
-    <button data-tab="workspace" class="nav-tab py-2 text-slate-400 hover:text-white" onclick="App.switchTab('workspace')">Workspace <span id="ws-dot" class="inline-block w-2 h-2 rounded-full bg-coral align-middle ml-1"></span></button>
-    <button data-tab="drill" class="nav-tab py-2 text-slate-400 hover:text-white" onclick="App.switchTab('drill')">Drill Mode</button>
-    <button data-tab="calculators" class="nav-tab py-2 text-slate-400 hover:text-white" onclick="App.switchTab('calculators')">Calculators</button>
-    <button data-tab="reference" class="nav-tab py-2 text-slate-400 hover:text-white" onclick="App.switchTab('reference')">Deal Reference</button>
-  </nav>
 </header>
 
-<main class="max-w-7xl mx-auto px-4 py-6">
+<main class="px-4 md:px-8 py-6 max-w-6xl">
 
 <!-- ============ DASHBOARD TAB ============ -->
 <section id="tab-dashboard">
+  <div class="bg-panel border border-line rounded-xl p-5 mb-4">
+    <div class="flex items-center justify-between mb-3">
+      <div>
+        <h3 class="font-semibold text-white">The Ascension Path</h3>
+        <p class="text-xs text-slate-400">The ordered route from analyst to S-tier. Steps complete themselves as you work.</p>
+      </div>
+      <div class="kpi text-xl font-bold text-gold" id="path-kpi">—</div>
+    </div>
+    <div id="path-steps" class="grid md:grid-cols-2 gap-x-8 gap-y-1.5"></div>
+  </div>
+
   <div class="grid md:grid-cols-2 xl:grid-cols-4 gap-4" id="asset-class-grid"></div>
 
   <div class="grid lg:grid-cols-3 gap-4 mt-6">
@@ -187,6 +237,75 @@
       <button onclick="App.resetDrill()" class="mt-5 text-xs border border-line text-slate-400 px-3 py-1.5 rounded-lg hover:border-coral hover:text-coral">Reset Drill Stats</button>
     </div>
   </div>
+</section>
+
+<!-- ============ CASE VAULT TAB ============ -->
+<section id="tab-vault" class="hidden">
+  <div class="flex items-center justify-between mb-4 flex-wrap gap-3">
+    <div>
+      <h2 class="text-xl font-bold text-white">The Case Vault</h2>
+      <p class="text-xs text-slate-400">Self-contained mini-cases with full model solutions. Work each one on paper before revealing — then grade yourself honestly.</p>
+    </div>
+    <div class="text-right">
+      <div class="text-[10px] uppercase tracking-widest text-slate-400">Vault Progress</div>
+      <div id="vault-kpi" class="kpi text-xl font-bold text-gold">—</div>
+    </div>
+  </div>
+  <div class="grid lg:grid-cols-4 gap-4">
+    <div class="space-y-2" id="vault-nav"></div>
+    <div class="lg:col-span-3 bg-panel border border-line rounded-xl p-6 overflow-y-auto" style="max-height:78vh" id="vault-pane"></div>
+  </div>
+</section>
+
+<!-- ============ PAPER LBO LAB TAB ============ -->
+<section id="tab-lab" class="hidden">
+  <div class="flex items-center justify-between mb-4 flex-wrap gap-3">
+    <div>
+      <h2 class="text-xl font-bold text-white">Paper LBO Laboratory</h2>
+      <p class="text-xs text-slate-400">Randomized paper LBOs — the PE interview staple. No calculator, no Excel: estimate the MOIC in your head, then check your work step by step.</p>
+    </div>
+    <div class="text-right">
+      <div class="text-[10px] uppercase tracking-widest text-slate-400">Hit Rate (±0.25x)</div>
+      <div id="lab-kpi" class="kpi text-xl font-bold text-gold">—</div>
+    </div>
+  </div>
+  <div class="grid lg:grid-cols-3 gap-4">
+    <div class="lg:col-span-2 bg-panel border border-line rounded-xl p-6" id="lab-card"></div>
+    <div class="bg-panel border border-line rounded-xl p-5">
+      <h3 class="font-semibold text-white mb-3">Mental-Math Armory</h3>
+      <div class="text-xs text-slate-300 space-y-3 leading-relaxed">
+        <p><span class="text-gold font-semibold">MOIC → IRR (5-yr hold):</span></p>
+        <table class="w-full font-mono text-[11px]">
+          <tr class="text-slate-500"><td>1.5x</td><td>2.0x</td><td>2.5x</td><td>3.0x</td><td>4.0x</td></tr>
+          <tr class="text-mint"><td>~8%</td><td>~15%</td><td>~20%</td><td>~25%</td><td>~32%</td></tr>
+        </table>
+        <p><span class="text-gold font-semibold">Rule of 72:</span> years to double ≈ 72 ÷ rate. A 2x in 5 yrs ⇒ 72/5 ≈ 14.4% ≈ 15%.</p>
+        <p><span class="text-gold font-semibold">Compounding shortcut:</span> growth g over n years ≈ 1 + n·g + small upward nudge (e.g. 7% × 5y ≈ 1.40 vs exact 1.403).</p>
+        <p><span class="text-gold font-semibold">Sequence:</span> entry EV → debt/equity split → exit EBITDA → exit EV → subtract remaining debt → MOIC → map to IRR. Say it in that order, always.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ GLOSSARY TAB ============ -->
+<section id="tab-glossary" class="hidden">
+  <div class="flex items-center justify-between mb-4 flex-wrap gap-3">
+    <div>
+      <h2 class="text-xl font-bold text-white">The Glossary</h2>
+      <p class="text-xs text-slate-400">The working vocabulary of the deal world. Search anything.</p>
+    </div>
+    <input id="gloss-search" class="calc-input text-sm" style="max-width:280px" placeholder="Search terms… (e.g. unitranche, peg, DIP)" oninput="App.renderGlossary()">
+  </div>
+  <div id="gloss-list" class="grid md:grid-cols-2 gap-3"></div>
+</section>
+
+<!-- ============ FORMULA SHEET TAB ============ -->
+<section id="tab-formulas" class="hidden">
+  <div class="mb-4">
+    <h2 class="text-xl font-bold text-white">The Formula Sheet</h2>
+    <p class="text-xs text-slate-400">Every formula on the desk, one page. If it isn't here, derive it from something that is.</p>
+  </div>
+  <div id="formula-grid" class="grid md:grid-cols-2 gap-4"></div>
 </section>
 
 <!-- ============ CALCULATORS TAB ============ -->
@@ -308,9 +427,12 @@
 
 </main>
 
-<footer class="max-w-7xl mx-auto px-4 py-6 text-[11px] text-slate-500 border-t border-line mt-6">
-  Apex Capital Training Desk v1.2 · State persists in localStorage (key: <span class="font-mono">apexDesk.v1</span>) · Lessons read, drill stats and case drafts survive version upgrades · Loop: read a primer → drill the topic → apply it in the Workspace → submit in chat for grading; the instructor pushes v1.x with updated scores, feedback and the next unlocked module.
+<footer class="px-4 md:px-8 py-6 text-[11px] text-slate-600 border-t border-line mt-6 max-w-6xl">
+  Apex Capital Training Desk v2.0 · State persists locally (<span class="font-mono">apexDesk.v1</span>) — lessons, drills, lab stats, vault marks and drafts all survive version upgrades · The loop: <span class="text-slate-400">read → drill → lab → vault → live case → graded in chat</span> · The instructor pushes v2.x with scores, feedback and newly unlocked modules.
 </footer>
+
+</div><!-- /content column -->
+</div><!-- /flex shell -->
 
 <script>
 'use strict';
@@ -320,7 +442,7 @@
    merged from localStorage.
 ===================================================================== */
 const initialState = {
-  stateVersion: '1.2.0',
+  stateVersion: '2.0.0',
   level: 'Analyst',
   assetClasses: [
     { id:'ma', name:'M&A', color:'sky', icon:'⚖', modules:[
@@ -416,6 +538,8 @@ const DRILL_CATS = [
   { id:'dcf',  name:'DCF' },
   { id:'mna',  name:'Merger Models' },
   { id:'lbo',  name:'LBO Models' },
+  { id:'pc',   name:'Private Credit' },
+  { id:'ge',   name:'Growth Equity' },
   { id:'rx',   name:'Restructuring' },
   { id:'bt',   name:'Brain Teasers' },
 ];
@@ -604,6 +728,46 @@ a:"Trick: market cap isn't book equity, so the price drop changes nothing mechan
 a:"Buyers want asset deals: cherry-pick, dodge unknown liabilities, get the tax step-up. Sellers want stock deals: shed all liabilities, single layer of tax. Distressed deals skew toward asset purchases (incl. Section 363 sales) — and unlike normal M&A they can't simply 'fail': they end in a sale, restructuring, or bankruptcy."},
 {id:'rx-10',cat:'rx',q:"Why buy back your own debt at 50 cents on the dollar?",
 a:"Excess cash earning ~0% retires debt costing ~10% at half its face — slashing interest and obligations. Accounting: cash down, debt down, and the discount books as a gain. Typical for over-levered boom-era LBOs."},
+
+// ---------- PRIVATE CREDIT ----------
+{id:'pc-1',cat:'pc',q:"What is a unitranche, and what does the borrower give up vs. gain?",
+a:"One blended-rate facility replacing a senior/junior stack: one document, fast certainty of execution, usually a single springing covenant. The borrower pays a higher blended coupon and inherits an invisible risk — the lender's internal first-out/last-out split via an AAL it never signs."},
+{id:'pc-2',cat:'pc',q:"What is an AAL and why should a borrower care about a contract it isn't party to?",
+a:"The Agreement Among Lenders divides the unitranche into first-out and last-out economics and governs voting, standstills and acceleration between those lenders. In a default, who can pull the trigger — and when — is decided by terms the borrower never negotiated."},
+{id:'pc-3',cat:'pc',q:"Define a springing covenant.",
+a:"A leverage test that activates only when the revolver is drawn past a threshold (say 35%). Undrawn revolver → no test at all. It's the signature of cov-lite structures: maintenance protection in name, incurrence-like in practice."},
+{id:'pc-4',cat:'pc',q:"Why does credit analysis run on CFADS rather than EBITDA?",
+a:"EBITDA ignores tax, capex and working capital — three real cash claims that rank ahead of lenders' coupons in practice. CFADS measures what's actually available for debt service; a 4x leveraged credit at 50% cash conversion is more levered in cash terms than a 5x credit at 90%."},
+{id:'pc-5',cat:'pc',q:"State the DSCR and fixed-charge coverage formulas and the difference in spirit.",
+a:"DSCR = operating cash flow ÷ (cash interest + mandatory amortization). FCCR = (EBITDA − capex) ÷ fixed charges including scheduled principal and leases. FCCR is the harsher test — it treats capex as non-negotiable."},
+{id:'pc-6',cat:'pc',q:"A loan is issued at 98 OID with a 7.25% coupon, 7-year tenor. Approximate all-in yield?",
+a:"Coupon plus discount amortized over the life: 7.25% + 2/7 ≈ 7.25% + 0.29% ≈ 7.5%, before fees. OID is real yield to the lender and real cost to the borrower even though the coupon never changes."},
+{id:'pc-7',cat:'pc',q:"What is an equity cure and why do lenders cap it?",
+a:"A sponsor right to inject equity that counts as EBITDA or debt reduction for a covenant test, curing a breach. Uncapped, it becomes an option to mask deterioration with periodic cash drips — so agreements limit consecutive uses and total uses, and ban over-curing."},
+{id:'pc-8',cat:'pc',q:"Why do lenders audit EBITDA definitions so aggressively?",
+a:"Addbacks — one-offs, 'run-rate synergies', pro-forma adjustments — inflate covenant EBITDA, deflating measured leverage and loosening every test that keys off it. The definition page of the credit agreement is where true leverage is hidden."},
+{id:'pc-9',cat:'pc',q:"First-out vs. last-out economics in one breath?",
+a:"First-out accepts a lower yield for priority of repayment; last-out earns a higher yield and stands behind. The blended coupon the borrower pays is the weighted average of the two — the split is the lenders' private business."},
+{id:'pc-10',cat:'pc',q:"What makes a breach contagious across a capital structure?",
+a:"Acceleration (lenders can demand the full balance on an Event of Default) plus cross-default clauses that trip other facilities, hedges and sometimes leases automatically. One missed test can unravel the whole stack — hence breaches are negotiated before certificate dates."},
+
+// ---------- GROWTH EQUITY ----------
+{id:'ge-1',cat:'ge',q:"Build the LTV formula from first principles.",
+a:"Expected lifetime = 1 ÷ annual churn. Annual contribution = ARPA × gross margin. LTV = contribution × lifetime. Example: €12k × 78% × (1/12%) ≈ €78k."},
+{id:'ge-2',cat:'ge',q:"What's a fundable LTV/CAC, and what nuance does payback add?",
+a:"≥3x is the standard bar. But payback (12 × CAC ÷ annual contribution) times the answer: a 4x LTV/CAC with a 30-month payback still needs cheap capital to bridge the gap — value that arrives late is worth less and riskier."},
+{id:'ge-3',cat:'ge',q:"NRR vs. gross churn — why do you need both?",
+a:"Net revenue retention >100% can hide serious logo churn if surviving accounts expand fast. Gross churn shows the leak; NRR shows whether upsell outruns it. Diligence reads cohorts, not blended averages."},
+{id:'ge-4',cat:'ge',q:"State the Rule of 40 and the burn multiple, and what each polices.",
+a:"Rule of 40: revenue growth % + FCF margin % ≥ 40 — the growth/profitability trade-off. Burn multiple: net burn ÷ net new ARR, ≤1.5x is efficient — how much cash each dollar of growth costs."},
+{id:'ge-5',cat:'ge',q:"1x non-participating vs. participating preferred — the mechanical difference?",
+a:"Non-participating: take the preference back OR convert to ownership, whichever is greater. Participating: take the preference AND the pro-rata share of the rest — the double dip, which beats conversion at every exit until ownership × exit alone exceeds it (usually an enormous number)."},
+{id:'ge-6',cat:'ge',q:"Broad-based weighted average vs. full ratchet anti-dilution?",
+a:"Both reprice the pref's conversion after a down round. Weighted average adjusts proportionally to the size and price of the new round (market standard). Full ratchet reprices to the new round's price as if the entire old round had been done there — punitive to founders in even a small down round."},
+{id:'ge-7',cat:'ge',q:"Why does minority-stake investing rely on the security rather than the board?",
+a:"Without control you can't force the exit or the strategy, so downside protection is engineered into the instrument: liquidation preference, anti-dilution, redemption rights, pre-emptive rights, drag/tag, consent over senior securities. The term sheet IS the risk management."},
+{id:'ge-8',cat:'ge',q:"A higher post-money valuation made the founders worse off. How?",
+a:"Structure beats price: a richer headline paired with participation, ratchet anti-dilution or multiple-X redemption shifts more value to the investor at every realistic exit than a clean 1x non-participating deal at a lower valuation. Model the waterfall, not the press release."},
 
 // ---------- BRAIN TEASERS ----------
 {id:'bt-1',cat:'bt',q:"Drive 60 miles at 30 mph. How fast on the same 60 miles to AVERAGE 60 mph overall?",
@@ -808,7 +972,7 @@ Burger King ($m): USD TL 1,510 @6.82% + EUR TL 334 @7.11% + sr. notes 800 @10.19
 <div class="tip">Sizing discipline: leverage capacity comes from debt comps — what did similar credits in this industry support? Anyone proposing 8x on a cyclical with 60% cash conversion hasn't read a downside case.</div>
 `},
 
-{ id:'L8', group:'Asset Classes', title:'Private Credit — Unitranche, AALs & Lender Protections', drill:null, body:`
+{ id:'L8', group:'Asset Classes', title:'Private Credit — Unitranche, AALs & Lender Protections', drill:'pc', body:`
 <p>Private credit replaced the bank syndicate with a single fund (or club) that can hold the whole loan. The product menu prices <b>certainty and flexibility</b>, not just risk.</p>
 <h4>Unitranche vs. Senior/Mezz</h4>
 <p>A unitranche blends what would have been senior + junior into one instrument at one blended rate — one document, one lender relationship, fast execution, usually a single <b>springing covenant</b> (tested only when the revolver is drawn past a threshold) instead of a full maintenance package.</p>
@@ -830,7 +994,7 @@ But all-in club cost adds PIK accretion + warrant dilution + tighter covenants</
 <div class="tip">One-line worldview: equity asks "how good can this get?"; credit asks "how bad can this get and do I still get paid?" Write every credit memo from the second question.</div>
 `},
 
-{ id:'L9', group:'Asset Classes', title:'Growth Equity — Unit Economics & Structured Minority', drill:null, body:`
+{ id:'L9', group:'Asset Classes', title:'Growth Equity — Unit Economics & Structured Minority', drill:'ge', body:`
 <p>Growth equity buys minority stakes in companies that have product-market fit but not yet durable profits. The diligence question shifts from "what are the cash flows?" to <b>"does each new customer create or destroy value, and does that improve with scale?"</b></p>
 <h4>The Unit-Economics Stack</h4>
 <div class="ex">LTV = ARPA × gross margin × (1 / annual churn)<br>
@@ -933,6 +1097,334 @@ The pref is a put option on weak exits; participation would pay 50 + 87.5 = €1
 </ul>
 <div class="tip">Meta-rule: every answer under 90 seconds unless walking through your story or a model. Interviewers reward density, not coverage.</div>
 `},
+
+{ id:'L13', group:'Career Craft', title:'Paper LBOs & Investor Mental Math', drill:'lbo', body:`
+<p>The paper LBO is the PE interview's stress test: a full deal, no Excel, five minutes. It rewards <b>sequence discipline</b> — the order in which you say things matters as much as the arithmetic.</p>
+<h4>The Canonical Sequence</h4>
+<ol>
+<li><b>Entry</b>: EV = entry multiple × EBITDA. State the debt/equity split immediately ("5x leverage on 10 of EBITDA → 50 debt; EV 80 → 30 equity check").</li>
+<li><b>EBITDA path</b>: compound the growth. Mental shortcut: n·g plus a nudge (7% over 5 years ≈ ×1.40).</li>
+<li><b>Debt paydown</b>: free cash flow per year × years (or sum a simple ramp). Subtract from opening debt.</li>
+<li><b>Exit</b>: exit multiple × exit EBITDA → EV; minus remaining debt → exit equity.</li>
+<li><b>Returns</b>: MOIC = exit equity ÷ entry check; translate to IRR from memory.</li>
+</ol>
+<div class="ex">MOIC → IRR over 5 years (burn these in):<br>
+1.5x ≈ 8% · 2.0x ≈ 15% · 2.5x ≈ 20% · 3.0x ≈ 25% · 4.0x ≈ 32%<br>
+4-yr hold: 2x ≈ 19% · 3x ≈ 32% &nbsp;|&nbsp; 3-yr hold: 2x ≈ 26%</div>
+<h4>The Shortcuts That Carry You</h4>
+<ul>
+<li><b>Rule of 72</b>: years to double ≈ 72 ÷ rate. Doubling in 5 → ~14–15%.</li>
+<li><b>Growth compounding</b>: (1+g)^n ≈ 1 + n·g + [n(n−1)/2]·g² — in practice, "n·g plus a bit". 6% × 5y: 30% + ~4% ≈ ×1.35.</li>
+<li><b>Round brutally, then true up</b>: do the whole problem in round numbers first; only refine the step the interviewer probes.</li>
+<li><b>Keep units honest</b>: say "of EBITDA", "of equity" after every number. Most paper-LBO crashes are unit confusion, not arithmetic.</li>
+</ul>
+<h4>What They're Actually Grading</h4>
+<p>Composure, sequence, and whether you sanity-check the answer ("2.7x with no multiple expansion and one turn of paydown — plausible"). An exact decimal delivered out of order scores worse than a clean approximation delivered in the canonical sequence.</p>
+<div class="tip">Train in the Paper LBO Lab until your hit rate stabilizes above 80% — then start doing them aloud, standing up. The mouth is slower than the mind under pressure.</div>
+`},
+
+{ id:'L14', group:'Deal Execution', title:'NWC Pegs, Locked Box & Purchase-Price Mechanics', drill:'mna', body:`
+<p>Headline price is where negotiation starts; <b>price mechanics are where money actually moves</b>. Two regimes govern the gap between signing and closing:</p>
+<h4>Completion Accounts (the US default)</h4>
+<p>Price adjusts at closing for actual cash, debt and working capital delivered. The fight has two fronts:</p>
+<ul>
+<li><b>The peg level</b> — the "normal" NWC the buyer is entitled to receive. Market anchor: trailing-twelve-month monthly average. Every euro of closing NWC above the peg is paid to the seller; every euro below comes off the price, dollar-for-dollar.</li>
+<li><b>The definition</b> — what counts as NWC at all. Disputed payables, deferred revenue, overdue receivables: moving an item in or out of the definition moves real money exactly like moving the peg. The professional rule is <b>symmetry</b>: whatever the definition, apply it identically to peg and closing balance.</li>
+</ul>
+<div class="ex">Seasonality trap: TTM average NWC €72m, December trough €58m, December close.<br>
+A trough-based peg lets the seller keep ~€14m and hands the buyer<br>
+a business that must rebuild that working capital by spring.<br>
+Peg = the normalized level needed to OPERATE, not the prettiest snapshot.</div>
+<h4>Locked Box (the European favorite)</h4>
+<p>Price is fixed off a historical, audited balance sheet date. No closing adjustment at all — instead the seller covenants <b>no leakage</b> (dividends, management fees, asset transfers, above-market related-party payments) between the box date and closing, with permitted-leakage carve-outs listed exhaustively. Buyer typically pays a "value accrual" (interest-like ticker) on the equity price for the gap period.</p>
+<p>Trade-off: locked box buys certainty and a clean auction comparison (every bid is on identical numbers) at the cost of buying a balance sheet a few months blind; completion accounts buy precision at the cost of a post-closing fight nobody enjoys.</p>
+<h4>The Rest of the Bridge</h4>
+<ul>
+<li><b>Cash-free, debt-free</b> is a convention, not a fact — "debt-like items" (pension deficits, earnouts owed, overdue capex, factoring) are the second negotiation.</li>
+<li><b>Escrows & holdbacks</b> secure indemnity claims; <b>W&I insurance</b> increasingly replaces them in competitive processes.</li>
+<li>The QoE report is where every one of these numbers gets manufactured — read it like a hostile witness statement.</li>
+</ul>
+<div class="tip">Negotiation instinct: every mechanical term has a price. A seller conceding the peg but winning the definition may have conceded nothing.</div>
+`},
+
+{ id:'L15', group:'Foundations', title:'Advanced Accounting — Deferred Taxes, NOLs & Leases', drill:'acct', body:`
+<p>Three topics separate "knows the statements" from "can run a model unsupervised."</p>
+<h4>1 · Deferred Taxes, Properly</h4>
+<p>Book accounting (GAAP/IFRS, accrual, straight-line depreciation) and tax accounting (cash-oriented, accelerated depreciation) measure income differently. Temporary gaps create balance-sheet IOUs:</p>
+<ul>
+<li>Book expense recognized before cash tax benefit → <b>DTA</b> (you've prepaid, relief comes later).</li>
+<li>Cash tax deferred relative to book expense → <b>DTL</b> (you owe it eventually).</li>
+</ul>
+<div class="ex">M&A factory: write-up of assets in a stock deal → book D&A rises,<br>
+tax basis doesn't → DTL = write-up × tax rate.<br>
+Asset deals & 338(h)(10): book = tax basis → no DTL, real cash tax shield instead.</div>
+<p>In projections, run a book-vs-cash tax schedule: when cash tax &lt; book tax, the DTL grows (cash saved now); the reversal drains it later.</p>
+<h4>2 · NOLs</h4>
+<p>Losses carried forward shield future taxable income. Standalone: offset income until exhausted (modern regimes often cap usage at ~80% of each year's income). In a change of control, <b>Section 382</b> caps annual usage ≈ equity purchase price × the long-term tax-exempt rate — which is why a target "with $250m of NOLs" is rarely worth anything close to $250m × tax rate. Value NOLs as the PV of the tax savings they can legally deliver, on their actual usage schedule.</p>
+<h4>3 · Leases</h4>
+<ul>
+<li><b>Operating lease</b> — a rental: expense through operating income, no asset ownership. (Modern standards put a right-of-use asset and lease liability on the balance sheet anyway — read EV bridges carefully.)</li>
+<li><b>Finance/capital lease</b> — ownership in substance: asset depreciates, liability accrues interest, counts as debt.</li>
+<li>Comparability fix where lease intensity differs: EV/EBITDAR, or capitalize rents consistently across the comp set.</li>
+</ul>
+<h4>Bonus: The Add-back Discipline</h4>
+<p>For EBITDA normalization, an add-back must be (i) genuinely non-recurring or non-cash AND (ii) sitting <i>inside</i> operating income. Restructuring charges, impairments, disaster costs — yes. Anything below the operating line — it was never in EBITDA to begin with. And "run-rate synergies from initiatives we haven't started" is not an add-back; it's a wish.</p>
+<div class="tip">Modeling habit: any time book and cash diverge — depreciation, NOLs, PIK, deferred revenue — ask which statement is lying to you the least for the question at hand.</div>
+`},
+
+{ id:'L16', group:'Deal Execution', title:'Reading the Documents — SPA & Credit Agreement Anatomy', drill:'pc', body:`
+<p>Models estimate value; <b>documents allocate it</b>. The professionals who get paid most are fluent in both. Two documents matter above all.</p>
+<h4>The SPA (Sale & Purchase Agreement)</h4>
+<ul>
+<li><b>Price & mechanics</b> — headline, consideration mix, completion accounts vs. locked box, the NWC peg and definitions (see L14).</li>
+<li><b>Structure</b> — stock vs. asset vs. 338(h)(10): tax, liability and step-up consequences flow from one line.</li>
+<li><b>Reps & warranties</b> — the seller's sworn picture of the business; survival periods, caps and baskets size the real risk transfer. W&I insurance moves this risk to an insurer.</li>
+<li><b>Covenants & conditions</b> — interim operating covenants, regulatory conditions, financing conditions (or the absence: "certain funds"), the MAC clause as the buyer's narrow exit.</li>
+<li><b>Deal protection</b> — no-shop vs. go-shop, break fees in both directions, treatment of options and management rollover.</li>
+</ul>
+<h4>The Credit Agreement</h4>
+<ul>
+<li><b>Facilities & pricing</b> — tranches, margins over the base rate, pricing grids that step margin with leverage, OID and fees (the all-in cost lives here, not in the coupon).</li>
+<li><b>Mandatory prepayments</b> — excess-cash-flow sweeps, asset-sale and insurance proceeds, change-of-control puts.</li>
+<li><b>Covenants</b> — maintenance tests and their definitions; the <b>EBITDA definition</b> is the single most negotiated page in leveraged finance (addbacks, caps on addbacks, look-forward synergy windows).</li>
+<li><b>Baskets & negative covenants</b> — permitted debt, liens, investments, restricted payments. "Builder baskets" grow with retained earnings; sponsors mine these for dividend capacity.</li>
+<li><b>Events of Default</b> — payment, covenant, rep breaches, cross-default, insolvency; then acceleration mechanics and required-lender thresholds.</li>
+<li><b>Intercreditor / AAL</b> — who controls enforcement, payment waterfalls, standstill periods for juniors, voting on amendments.</li>
+</ul>
+<div class="ex">Reading order for any credit doc, 30 minutes:<br>
+1. Definitions: "EBITDA", "Fixed Charges", "Permitted Indebtedness"<br>
+2. The covenant levels & step-downs vs. your downside case<br>
+3. Mandatory prepays & baskets (where cash is trapped or escapes)<br>
+4. EoD + cross-default + who can accelerate with what %</div>
+<div class="tip">The asymmetry to remember: in good times nobody opens these documents; in bad times nothing else matters. Negotiate them for the bad year.</div>
+`},
+];
+
+/* =====================================================================
+   GLOSSARY — working vocabulary, original concise definitions.
+===================================================================== */
+const GLOSSARY = [
+["AAL (Agreement Among Lenders)","Private contract splitting a unitranche into first-out/last-out economics — signed between lenders, invisible to the borrower."],
+["Accretion / Dilution","Whether pro-forma EPS rises or falls after a deal; the buyer board's headline test."],
+["Anti-dilution","Pref-holder protection repricing their conversion if a later round is cheaper. Broad-based weighted average is market; full ratchet is hostile."],
+["ARR","Annual recurring revenue — the contracted, repeating revenue base of a subscription business."],
+["Bake-off","Competitive pitch where banks present to win a mandate."],
+["Basis point (bp)","1/100th of a percent. 150bp = 1.5%."],
+["Bullet maturity","All principal due at the end of the loan; nothing amortizes along the way."],
+["Burn multiple","Net cash burned ÷ net new ARR. Under ~1.5x is efficient growth."],
+["CAC","Fully-loaded cost to acquire one customer: sales + marketing + onboarding."],
+["Call protection","Restrictions or premiums on early repayment, guaranteeing lenders a minimum run of coupons (e.g. NC-1, then 102/101)."],
+["Carried interest","The GP's share (classically 20%) of fund profits above a hurdle."],
+["CFADS","Cash flow available for debt service — the credit world's real denominator, after tax, capex and working capital."],
+["CIM / OM","Confidential Information Memorandum — the long-form marketing document in a sale process."],
+["Club deal","Small group of lenders or sponsors sharing one deal without broad syndication."],
+["Control premium","Extra price paid over market to own the decision rights — why precedents print above trading comps."],
+["Cov-lite","Loan with no maintenance covenants — lenders only get protections triggered by actions (incurrence-style)."],
+["Cross-default","Default on one instrument automatically triggers default on others — the clause that turns a breach into a cascade."],
+["Data room","Controlled repository of diligence documents in a deal process."],
+["Debt comps","Recent leveraged deals used to calibrate how much debt, at what terms, a credit can support."],
+["Deferred revenue","Cash collected before the service is delivered — a liability that becomes revenue over time."],
+["DIP financing","Super-priority new money lent to a company in Chapter 11; often the reason to file at all."],
+["Dividend recap","New debt raised solely to pay the sponsor a dividend — equity recovered early, fragility added."],
+["Drag-along","Majority can force minority holders to sell on the same terms — guarantees a clean exit."],
+["Dry powder","Committed but un-deployed fund capital."],
+["DSCR","Debt service coverage ratio: operating cash flow ÷ (interest + mandatory amortization). Tested in bad years by design."],
+["Earnout","Contingent deferred consideration tied to post-close performance — bridges valuation gaps, handcuffs management."],
+["EBITDA addbacks","Adjustments (one-offs, run-rate synergies, 'pro-forma' items) that inflate covenant EBITDA — audit them ruthlessly."],
+["EBITDAR","EBITDA before rent — comparability metric where lease structures differ (retail, airlines)."],
+["Equity check","The sponsor's cash contribution in the sources & uses."],
+["Equity cure","Sponsor right to inject equity that counts as EBITDA/debt reduction to cure a covenant breach — usually capped in number and frequency."],
+["ERP","Equity risk premium — expected excess return of stocks over the risk-free rate; the β multiplier in CAPM."],
+["Exchange ratio","Stock-deal consideration fixed as shares-for-shares rather than dollars — reallocates market risk between buyer and seller."],
+["Fairness opinion","Bank's formal letter that a deal price is financially fair — board liability insurance, in practice."],
+["First-out / last-out","Internal unitranche split: first-out takes lower yield for priority; last-out earns more and waits."],
+["Fixed-charge coverage","(EBITDA − capex) ÷ (interest + scheduled principal + leases) — the strictest standard coverage test."],
+["Football field","One-page chart of valuation ranges across methodologies; deals get framed inside it."],
+["Fulcrum security","The layer of the capital structure where value runs out — its holders typically own the reorganized company."],
+["Goodwill","Purchase price above the fair value of identifiable net assets; sits unamortized until impaired."],
+["Gordon Growth","Terminal value as a growing perpetuity: FCF×(1+g)/(r−g)."],
+["Hurdle rate","Minimum return before the GP earns carry (classically 8%)."],
+["Incurrence covenant","Tested only when the borrower acts (raise debt, sell assets, acquire) — bond-style protection."],
+["IOI","Indication of Interest — non-binding first-round bid with price range and assumptions."],
+["IRR","Annualized compounded return; for a single in/out: MOIC^(1/years) − 1."],
+["Leveraged loan","Floating-rate, senior-secured loan to a sub-investment-grade borrower — the LBO workhorse."],
+["Liquidation preference","Pref-holder's right to get paid first at exit: '1x non-participating' = your money back or convert, whichever is greater."],
+["Locked box","Price fixed off a historical balance sheet date; seller covenants no value 'leakage' after it. Alternative to completion accounts."],
+["LTM / TTM","Last/trailing twelve months: latest FY + new stub − old stub."],
+["LTV (credit)","Loan-to-value: net debt ÷ enterprise value — the cushion below the lender."],
+["Maintenance covenant","Financial test the borrower must pass every quarter regardless of actions — bank-debt-style protection."],
+["Management presentation","Round-2 meeting where the target's leadership pitches buyers directly."],
+["MAC / MAE clause","Material adverse change — buyer's narrow escape hatch between signing and closing."],
+["Mezzanine","Junior debt with equity-like economics: high cash + PIK coupon, often warrants; sits just above equity."],
+["Minority interest","The slice of a consolidated subsidiary the parent doesn't own — added back in the EV bridge."],
+["MOIC","Multiple of invested capital: equity out ÷ equity in. Time-blind — that's IRR's job."],
+["NDA","Confidentiality agreement gating access to deal information."],
+["Net debt","Total debt − cash; the standard EV bridge component and leverage numerator."],
+["NOL","Net operating loss carryforward — shields future taxable income; usage in M&A is capped by Section 382."],
+["NRR","Net revenue retention: existing-cohort revenue this year ÷ last year, including upsell. >100% means the base grows by itself."],
+["NWC peg","Negotiated 'normal' working-capital level at close; actual above peg → price up, below → price down, dollar-for-dollar."],
+["OID","Original issue discount — issuing debt below par (e.g. 98); amortizes into yield, raising the all-in cost above the coupon."],
+["Pari passu","Equal rank, equal rights — claims sharing the same priority."],
+["PIK","Payment-in-kind: interest accrues to principal instead of being paid in cash; compounding, expensive, cash-friendly."],
+["Pitch book","Credentials → alternatives → valuation → buyers/targets → recommendation. Table stakes for a mandate."],
+["Pro forma","'As if the deal had happened' — combined financials including all transaction adjustments."],
+["QoE (Quality of Earnings)","Accounting diligence report separating sustainable earnings from noise; where addbacks go to die."],
+["Reps & warranties","Contractual statements of fact in an SPA; breaches drive indemnity claims and escrows."],
+["Revolver","Committed credit line drawn as needed — the corporate credit card backstopping liquidity."],
+["Roadshow","Management + underwriters marketing an offering to institutional investors before pricing."],
+["Rule of 40","Growth% + FCF margin% ≥ 40 — software's balance test of growth vs. profitability."],
+["S-1 / Registration statement","The disclosure document for a public offering, iterated with the regulator until effective."],
+["Section 363 sale","Court-supervised asset sale in bankruptcy — fast, liability-clean, subject to overbid."],
+["Springing covenant","Leverage test that only activates when the revolver is drawn past a threshold — the cov-lite signature."],
+["SPA","Sale and purchase agreement — price, consideration, structure, peg, reps, indemnities, no-shop, MAC."],
+["Sponsor","The private equity firm writing the equity check."],
+["Step-up basis","Re-marking acquired assets to fair value for tax, creating depreciable/amortizable shield — the prize of asset deals and 338(h)(10)."],
+["Sum-of-the-parts","Valuing each division on its own comps and adding — the conglomerate method."],
+["Syndication","Arranger parcels a loan out to institutional investors after committing."],
+["Tag-along","Minority right to join a majority sale on the same terms."],
+["Teaser","One-to-two page anonymous deal summary that opens a sale process."],
+["Tenor","Stated life of a debt instrument."],
+["Terminal value","Value of all cash flows beyond the projection window — usually most of a DCF."],
+["Treasury Stock Method","Diluted share math: in-the-money options create shares, exercise proceeds buy some back at the current price."],
+["Unitranche","Single blended-rate facility replacing senior + junior; one document for the borrower, an AAL behind the curtain."],
+["WACC","Blended, tax-adjusted cost of all capital — the unlevered DCF discount rate."],
+["Waterfall","The strict priority order in which proceeds flow through a capital structure."],
+["Working capital","Current assets − current liabilities; operating WC excludes cash and debt."],
+];
+
+/* =====================================================================
+   FORMULA SHEET
+===================================================================== */
+const FORMULAS = [
+{ group:"Statements & Accounting", rows:[
+["Retained earnings (roll-forward)","prior RE + net income − dividends"],
+["Operating working capital","(curr. assets − cash) − (curr. liabilities − debt)"],
+["Cash impact of a non-cash charge","+ charge × tax rate (the tax shield)"],
+["DTL from a write-up","asset write-up × tax rate"],
+["Statement walk order","IS → CFS → BS, then check the balance"],
+]},
+{ group:"EV & Equity Value", rows:[
+["Enterprise value","equity value + debt + pref + minority int. − cash"],
+["Diluted shares (TSM)","basic + options − (options × strike ÷ price)"],
+["Convert shares (if ITM)","(face ÷ par) × (par ÷ conversion price)"],
+["Per-share equity value","(EV + cash − debt − pref − MI) ÷ diluted shares"],
+]},
+{ group:"Valuation", rows:[
+["Implied EV from comps","median multiple × company metric"],
+["Calendarization (TTM)","last FY + new stub − old stub"],
+["Illiquidity discount (private)","≈ 10–15% off trading-comp multiples"],
+["Premiums analysis","offer price ÷ unaffected price (1d / 20d / 60d prior)"],
+]},
+{ group:"DCF", rows:[
+["Unlevered FCF","EBIT(1−t) + D&A − capex − ΔNWC"],
+["WACC","E/V·Ke + D/V·Kd(1−t) + P/V·Kp"],
+["CAPM","Ke = rf + β × ERP (+ size premium)"],
+["Un-lever β","β / (1 + (1−t)(D/E))"],
+["Gordon terminal value","FCF×(1+g) ÷ (WACC−g), g ≤ long-run GDP"],
+["Mid-year convention","discount periods 0.5, 1.5, 2.5… (+0.5 on exit-multiple TV)"],
+]},
+{ group:"M&A", rows:[
+["All-stock accretion test","buyer P/E > seller acquisition P/E → accretive"],
+["Cash/debt accretion test","seller pre-tax income vs. foregone + new interest"],
+["Goodwill (simplified)","equity price − seller book equity − write-ups + old goodwill + new DTL"],
+["Break-even synergies","back-solve synergies for EPS Δ = 0"],
+["Allowed NOL usage / yr (§382)","equity purchase price × long-term tax-exempt rate"],
+]},
+{ group:"LBO", rows:[
+["Sources = Uses","debt + equity (+cash) = price + refi + fees (+min cash)"],
+["MOIC","exit equity ÷ entry equity check"],
+["IRR (single flow)","MOIC^(1/years) − 1"],
+["MOIC→IRR @5y","1.5x≈8% · 2x≈15% · 2.5x≈20% · 3x≈25% · 4x≈32%"],
+["Revolver draw","MAX(0, mandatory repayment − cash available)"],
+["Value-creation bridge","ΔEBITDA×entry mult + Δmult×exit EBITDA + net-debt paydown − fee drag"],
+]},
+{ group:"Credit", rows:[
+["Leverage","net debt ÷ EBITDA"],
+["Interest coverage","EBITDA ÷ cash interest"],
+["DSCR","operating CF ÷ (cash interest + mandatory amortization)"],
+["Fixed-charge coverage","(EBITDA − capex) ÷ fixed charges"],
+["All-in yield (approx)","coupon + OID ÷ tenor (+ fees ÷ tenor)"],
+["LTV","net debt ÷ enterprise value"],
+]},
+{ group:"Growth Equity", rows:[
+["Customer lifetime","1 ÷ annual gross churn"],
+["LTV","ARPA × gross margin × lifetime"],
+["LTV / CAC","≥ 3x = fundable"],
+["CAC payback (months)","12 × CAC ÷ (ARPA × gross margin)"],
+["Rule of 40","revenue growth % + FCF margin % ≥ 40"],
+["Burn multiple","net burn ÷ net new ARR (≤1.5x efficient)"],
+]},
+];
+
+/* =====================================================================
+   CASE VAULT — self-graded mini-cases with model solutions.
+===================================================================== */
+const VAULT = [
+{ id:'V1', tag:'M&A', title:'The NWC Peg Standoff', est:'25 min',
+prompt:`
+<p>You advise the buyer of <b>Confectis</b>, a seasonal consumer business (revenue €800m), at €1,000m on a cash-free, debt-free basis. Working capital swings hard with the season: the trailing-twelve-month <b>monthly average NWC is €72m</b>, but the December trough — when inventory has been sold down and customer prepayments peak — is <b>€58m</b>. The deal closes in December.</p>
+<p>The seller proposes a peg of <b>€58m</b> ("that's what the business actually holds at close"). You believe the peg should be the <b>€72m TTM average</b>.</p>
+<ol>
+<li>Closing NWC comes in at €60m. Compute the purchase-price adjustment under each peg — direction and amount.</li>
+<li>What is the total value at stake between the two peg proposals, and which side does a December close structurally favor?</li>
+<li>Make the buyer's argument for the average-based peg in three sharp points.</li>
+<li>The seller's QoE proposes adding back €4m of "overdue but disputed" payables from the NWC definition. Who does that help, and why?</li>
+</ol>`,
+solution:`
+<p><b>1 — Mechanics.</b> The adjustment is dollar-for-dollar: price moves by (closing NWC − peg). Against a €58m peg: 60 − 58 = <b>+€2m to the seller</b>. Against a €72m peg: 60 − 72 = <b>−€12m, a price reduction to the buyer</b>.</p>
+<p><b>2 — Stakes.</b> The gap between pegs is €72m − €58m = <b>€14m of headline price</b>, before the closing-balance lottery. A December close structurally favors the <b>seller</b> under a trough-based peg: the business will always "deliver" near-trough NWC at that date, so the seller keeps the price and hands over a business that needs ~€14m of working capital re-injected by Easter — the buyer funds the seasonal rebuild.</p>
+<p><b>3 — The buyer's argument.</b> (i) The peg's purpose is the <i>normalized</i> capital the business needs to operate through a full cycle, not a snapshot at its most flattering date — that's why market practice anchors to a TTM monthly average. (ii) Anything below the average is a disguised price increase: the buyer must refund the working capital the seller harvested. (iii) The cash-free/debt-free headline price already assumes a normally capitalized business; a trough peg double-counts the seasonal benefit the seller already enjoys via the December cash sweep.</p>
+<p><b>4 — The payables addback.</b> Removing €4m of payables from the NWC <i>definition</i> raises measured NWC by €4m at close (fewer liabilities counted). With any peg fixed, higher measured closing NWC means a higher adjustment in the <b>seller's</b> favor — definitional games move real money exactly like the peg does. Response: keep the payables in, or exclude them from BOTH the peg and the closing calculation symmetrically.</p>
+<p class="text-slate-400 text-xs mt-2">Marking guide: (1) both directions and amounts correct · (2) the €14m and the seasonal-funding logic · (3) "normalized level needed to operate" is the load-bearing idea · (4) symmetry is the professional answer.</p>`},
+
+{ id:'V2', tag:'M&A', title:'The Two-Minute Accretion Check', est:'15 min',
+prompt:`
+<p>Your MD turns around on the desk: "<b>Anchor</b> (net income $500m, 500m shares, stock at $15) wants to buy <b>Pearl</b> (net income $100m) for <b>$2,250m</b>. No synergies, no intangibles amortization. Two minutes."</p>
+<ol>
+<li>All-stock: accretive or dilutive, and by roughly what percent?</li>
+<li>All-cash from the balance sheet (cash earns 4% pre-tax; 25% tax rate): accretive or dilutive?</li>
+<li>State the rule both answers illustrate, and the boundary where the cash answer flips.</li>
+</ol>`,
+solution:`
+<p><b>1 — All-stock.</b> Anchor's EPS = $1.00; P/E = 15x. It pays 2,250 ÷ 100 = <b>22.5x</b> for Pearl's earnings. Buyer P/E (15x) &lt; price paid (22.5x) → dilutive before any math. Size it: shares issued = 2,250 ÷ 15 = 150m. Pro-forma EPS = (500+100) ÷ 650 = $0.923 → <b>≈ 7.7% dilutive</b>.</p>
+<p><b>2 — All-cash.</b> Foregone after-tax interest = 2,250 × 4% × (1−25%) = <b>$67.5m</b> vs. $100m of acquired net income. Pro-forma EPS = (500 + 100 − 67.5) ÷ 500 = $1.065 → <b>≈ 6.5% accretive</b>.</p>
+<p><b>3 — The rule.</b> Every deal is a swap of yields: the earnings yield you acquire vs. the cost of the currency you pay with. Pearl's earnings yield = 1/22.5 ≈ 4.4%. Stock costs Anchor its own earnings yield (1/15 ≈ 6.7% > 4.4% → dilutive); cash costs 3% after tax (&lt; 4.4% → accretive). The cash answer flips when after-tax cash yield exceeds the target's earnings yield — i.e. cash earning &gt; 4.4% after tax, or a price above 2,250 × (4.4/3.0) ≈ $3.3bn at the same income.</p>
+<p class="text-slate-400 text-xs mt-2">Marking guide: the yield-swap framing in part 3 is what separates an S-tier answer from arithmetic.</p>`},
+
+{ id:'V3', tag:'Private Credit', title:'Covenant Breach at HDKS', est:'25 min',
+prompt:`
+<p>Two years into the HDKS deal, a key customer insources. The 2020 forecast drops to <b>EBITDA €11.0m</b> (model: €17.0m). Balance sheet at test date: Facility A €12m, Facility B €36m, cash €1.1m. Covenants: senior net leverage ≤ <b>4.0x</b>, interest cover ≥ <b>2.0x</b>, DSCR ≥ <b>1.1x</b>. Cash interest ≈ €1.9m; mandatory amortization €3.0m; operating cash flow ≈ 78% of EBITDA.</p>
+<ol>
+<li>Test all three covenants. Which breach?</li>
+<li>You're the sponsor. Draft the waiver/amendment ask and the package you expect lenders to extract.</li>
+<li>Explain the equity-cure route: mechanics, why lenders cap it, and what a typical cap looks like.</li>
+<li>Why is "we'll just skip the test — it's only a forecast" not an option? Name the two contractual mechanisms that make a breach contagious.</li>
+</ol>`,
+solution:`
+<p><b>1 — Tests.</b> Net debt = 12 + 36 − 1.1 = €46.9m → leverage 46.9 ÷ 11.0 = <b>4.26x → BREACH</b> (≤4.0x). Interest cover = 11.0 ÷ 1.9 = <b>5.8x → pass</b>. DSCR = (11.0 × 78%) ÷ (1.9 + 3.0) = 8.58 ÷ 4.9 = <b>1.75x → pass</b>. Classic single-trigger: leverage covenants snap first because the numerator (EBITDA) is the volatile part.</p>
+<p><b>2 — The amendment.</b> Sponsor asks: waiver of the leverage test for 2 quarters or a reset to ≤4.75x stepping back down over 18 months, plus headroom on baskets while trading recovers. Lender package: amendment fee (~25–50bp), margin uplift (+50–100bp or PIK toggle), tightened reporting (13-week cash flow, monthly covenants certificate), restricted payments blocked (no dividends), possibly an excess-cash-flow sweep step-up and a board observer. Price of admission: a credible reforecast and sponsor support signal.</p>
+<p><b>3 — Equity cure.</b> Sponsor injects equity that the credit agreement deems either additional EBITDA or net-debt reduction for the test. Here, as debt paydown: need net debt ≤ 4.0 × 11.0 = 44.0 → inject ≥ <b>€2.9m</b>. Lenders cap cures (typically max 2 consecutive / 4–5 over the life, no over-cure) because uncapped cures convert a maintenance covenant into a sponsor option to mask deterioration with periodic cash drips.</p>
+<p><b>4 — Contagion.</b> A certified breach is an Event of Default: (i) <b>acceleration</b> rights let lenders demand the full balance; (ii) <b>cross-default</b> clauses trip the other facilities (and often leases/hedges) automatically. That's why breaches get negotiated weeks before the certificate date — surprise is the one unforgivable sin.</p>
+<p class="text-slate-400 text-xs mt-2">Marking guide: the 4.26x number, a two-sided amendment package, the €2.9m cure math, and naming acceleration + cross-default.</p>`},
+
+{ id:'V4', tag:'Growth Equity', title:'Term Sheet Duel', est:'20 min',
+prompt:`
+<p><b>Velora</b> (SaaS, €12m ARR) is raising €30m. Two term sheets:</p>
+<ul>
+<li><b>TS-A:</b> €150m post-money (20.0%), 1x <b>non-participating</b> preference, broad-based weighted-average anti-dilution, no redemption right.</li>
+<li><b>TS-B:</b> €165m post-money (18.2%), 1x <b>participating</b> preference, full-ratchet anti-dilution, 2x redemption right after year 5.</li>
+</ul>
+<ol>
+<li>Compute investor proceeds under both at exits of €100m, €200m, and €500m.</li>
+<li>Find (approximately) the exit value where TS-A and TS-B pay the investor the same.</li>
+<li>Which should the founders sign, and what's the one-line lesson?</li>
+</ol>`,
+solution:`
+<p><b>1 — Payouts.</b> TS-A (greater of €30m pref or 20% converted): €100m → max(30, 20) = <b>30</b>. €200m → max(30, 40) = <b>40</b>. €500m → max(30, 100) = <b>100</b>.<br>
+TS-B (pref + 18.2% of the rest): €100m → 30 + 0.182×70 = <b>42.7</b>. €200m → 30 + 0.182×170 = <b>60.9</b>. €500m → 30 + 0.182×470 = <b>115.5</b>.</p>
+<p><b>2 — Crossover.</b> TS-B pays more at every exit shown — participation means it never converts away its pref. Set 0.20·X = 30 + 0.182·(X−30): 0.20X = 24.54 + 0.182X → 0.018X = 24.54 → X ≈ <b>€1.36bn</b>. Only beyond that does TS-A's higher ownership overtake the double dip. For any realistic outcome, TS-B is the more expensive money despite the prettier headline valuation.</p>
+<p><b>3 — Verdict.</b> Sign <b>TS-A</b>. The €15m of extra post-money in TS-B is an optical gift that costs the founders real money at every plausible exit, layers on full-ratchet anti-dilution (brutal in a down round) and a 2x redemption that can force a sale of the company at year 5. <b>Lesson: structure beats price — read the waterfall, not the headline.</b></p>
+<p class="text-slate-400 text-xs mt-2">Marking guide: correct max() vs. participation mechanics, a crossover in the right order of magnitude, and the structure-beats-price conclusion.</p>`},
 ];
 
 /* =====================================================================
@@ -950,14 +1442,18 @@ const App = (() => {
       if (saved && saved.drafts) s.drafts = saved.drafts;
       if (saved && saved.drill) s.drill = saved.drill;
       if (saved && saved.read) s.read = saved.read;
+      if (saved && saved.vault) s.vault = saved.vault;
+      if (saved && saved.lab) s.lab = saved.lab;
     } catch (e) { /* corrupt storage — start clean */ }
     s.drafts = s.drafts || {};
     s.drill = s.drill || {};
     s.read = s.read || {};
+    s.vault = s.vault || {};
+    s.lab = s.lab || { n: 0, hits: 0, streak: 0 };
     return s;
   }
   function persist() {
-    localStorage.setItem(LS_KEY, JSON.stringify({ stateVersion: state.stateVersion, drafts: state.drafts, drill: state.drill, read: state.read }));
+    localStorage.setItem(LS_KEY, JSON.stringify({ stateVersion: state.stateVersion, drafts: state.drafts, drill: state.drill, read: state.read, vault: state.vault, lab: state.lab }));
   }
 
   const fmt = (n, d=1) => (isFinite(n) ? n.toLocaleString('en-US', {minimumFractionDigits:d, maximumFractionDigits:d}) : '—');
@@ -966,7 +1462,7 @@ const App = (() => {
 
   /* ---------- tabs ---------- */
   function switchTab(name) {
-    ['dashboard','learn','workspace','drill','calculators','reference'].forEach(t => {
+    ['dashboard','learn','workspace','vault','lab','drill','calculators','glossary','formulas','reference'].forEach(t => {
       document.getElementById('tab-'+t).classList.toggle('hidden', t !== name);
     });
     document.querySelectorAll('.nav-tab').forEach(b => {
@@ -1011,6 +1507,33 @@ const App = (() => {
     const scores = state.evalHistory.map(e => e.score).filter(s => s != null);
     document.getElementById('hdr-avg').textContent = scores.length ? fmt(scores.reduce((a,b)=>a+b,0)/scores.length,0) + '/100' : '—';
     document.getElementById('hdr-level').textContent = state.level;
+    document.getElementById('hdr-lib').textContent = `${lessonsRead()}/${LIBRARY.length}`;
+    const bMastered = QUESTION_BANK.filter(q => isMastered(q.id)).length;
+    document.getElementById('hdr-bank').textContent = Math.round(100 * bMastered / QUESTION_BANK.length) + '%';
+    document.getElementById('hdr-lab').textContent = state.lab.n ? Math.round(100 * state.lab.hits / state.lab.n) + '%' : '—';
+
+    // ascension path
+    const catMasteryPct = ids => {
+      const qs = QUESTION_BANK.filter(q => ids.includes(q.cat));
+      return qs.length ? qs.filter(q => isMastered(q.id)).length / qs.length : 0;
+    };
+    const readAll = ids => ids.every(id => state.read[id]);
+    const steps = [
+      { label:'Read the Foundations (L1–L4, L15)', done: readAll(['L1','L2','L3','L4','L15']) },
+      { label:'Foundation drills ≥ 50% mastered (Acct · EV · Val · DCF)', done: catMasteryPct(['acct','ev','val','dcf']) >= 0.5 },
+      { label:'Read Deal Execution (L5–L7, L11, L14, L16)', done: readAll(['L5','L6','L7','L11','L14','L16']) },
+      { label:'Paper LBO Lab: 5 hits', done: state.lab.hits >= 5 },
+      { label:'Read the Asset Classes (L8–L10) + PC/GE drills ≥ 50%', done: readAll(['L8','L9','L10']) && catMasteryPct(['pc','ge']) >= 0.5 },
+      { label:'Clear the Case Vault (all four marked)', done: VAULT.every(v => state.vault[v.id]) },
+      { label:'Submit the live HDKS case for grading', done: state.evalHistory.length > 0 },
+      { label:'Question bank ≥ 80% mastered', done: bMastered / QUESTION_BANK.length >= 0.8 },
+    ];
+    const doneSteps = steps.filter(s => s.done).length;
+    document.getElementById('path-kpi').textContent = `${doneSteps}/${steps.length}`;
+    document.getElementById('path-steps').innerHTML = steps.map((s, i) => `
+      <div class="flex items-center gap-2.5 text-xs py-1 ${s.done ? 'text-slate-200' : 'text-slate-500'}">
+        <span class="${s.done ? 'text-mint' : 'text-slate-600'} font-mono">${s.done ? '✓' : String(i+1).padStart(2,'0')}</span>${s.label}
+      </div>`).join('');
 
     // eval history
     const hist = document.getElementById('eval-history');
@@ -1214,6 +1737,160 @@ const App = (() => {
       </div>`;
   }
 
+  /* ---------- case vault ---------- */
+  let currentVault = VAULT[0].id;
+  let vaultRevealed = false;
+
+  function openVault(id) { currentVault = id; vaultRevealed = !!state.vault[id]; renderVault(); }
+  function revealVault() { vaultRevealed = true; renderVault(); }
+  function markVault(grade) { // 'clean' | 'review'
+    state.vault[currentVault] = grade; persist(); renderVault(); renderDashboard();
+  }
+
+  function renderVault() {
+    document.getElementById('vault-nav').innerHTML = VAULT.map(v => {
+      const active = v.id === currentVault;
+      const st = state.vault[v.id];
+      const dot = st === 'clean' ? '<span class="text-mint">●</span>' : st === 'review' ? '<span class="text-coral">●</span>' : '<span class="text-slate-600">○</span>';
+      return `<button onclick="App.openVault('${v.id}')" class="w-full text-left p-3 rounded-xl border ${active ? 'border-gold/50 bg-gold/5' : 'border-line hover:border-slate-500/50'}">
+        <div class="flex items-center justify-between"><span class="badge bg-lav/15 text-lav border border-lav/40">${v.tag}</span>${dot}</div>
+        <div class="text-sm ${active ? 'text-gold' : 'text-slate-200'} font-medium mt-2">${v.id} · ${v.title}</div>
+        <div class="text-[10px] text-slate-500 mt-1">${v.est}</div></button>`;
+    }).join('');
+
+    const done = VAULT.filter(v => state.vault[v.id]).length;
+    document.getElementById('vault-kpi').textContent = `${done}/${VAULT.length}`;
+
+    const v = VAULT.find(x => x.id === currentVault);
+    const st = state.vault[v.id];
+    document.getElementById('vault-pane').innerHTML = `
+      <div class="flex items-start justify-between gap-4 mb-3">
+        <div><span class="badge bg-lav/15 text-lav border border-lav/40">${v.tag} · ${v.est}</span>
+        <h3 class="font-display text-2xl text-white mt-2">${v.id} · ${v.title}</h3></div>
+        ${st ? `<span class="badge ${st==='clean' ? 'bg-mint/15 text-mint border border-mint/40' : 'bg-coral/15 text-coral border border-coral/40'}">${st === 'clean' ? 'Solved cleanly' : 'Needs review'}</span>` : ''}
+      </div>
+      <div class="lesson">${v.prompt}</div>
+      ${vaultRevealed
+        ? `<div class="hair mt-5 pt-5"><div class="text-[10px] uppercase tracking-widest text-gold mb-3">Model Solution</div>
+           <div class="lesson">${v.solution}</div>
+           <div class="flex gap-3 mt-5">
+             <button onclick="App.markVault('clean')" class="bg-mint/15 border border-mint/50 text-mint font-semibold text-sm px-4 py-2 rounded-lg hover:bg-mint/25">I solved it cleanly</button>
+             <button onclick="App.markVault('review')" class="bg-coral/15 border border-coral/50 text-coral font-semibold text-sm px-4 py-2 rounded-lg hover:bg-coral/25">Needs another pass</button>
+           </div></div>`
+        : `<div class="hair mt-5 pt-5 flex items-center gap-4">
+             <button onclick="App.revealVault()" class="bg-gold text-ink font-bold text-sm px-5 py-2 rounded-lg hover:opacity-90">Reveal Model Solution</button>
+             <span class="text-[11px] text-slate-500">Work it fully on paper first — the value is in the struggle, not the read.</span>
+           </div>`}`;
+  }
+
+  /* ---------- paper LBO lab ---------- */
+  let labDeal = null;
+  let labResult = null; // {guess, exact, hit}
+
+  const rnd = arr => arr[Math.floor(Math.random() * arr.length)];
+
+  function newLabDeal() {
+    const ebitda = rnd([40, 50, 60, 80, 100, 120, 150, 200]);
+    const entry = rnd([6, 6.5, 7, 7.5, 8, 8.5, 9]);
+    const lev = rnd([3.5, 4, 4.5, 5, 5.5]);
+    const growth = rnd([0.04, 0.05, 0.06, 0.07, 0.08, 0.10]);
+    const conv = rnd([0.35, 0.40, 0.45, 0.50]); // FCF available for paydown, % of EBITDA
+    const exitDelta = rnd([-0.5, 0, 0, 0, 0.5]); // exit multiple vs entry
+    labDeal = { ebitda, entry, lev, growth, conv, exit: entry + exitDelta, hold: 5 };
+    labResult = null;
+    renderLab();
+  }
+
+  function solveLab(d) {
+    const ev0 = d.entry * d.ebitda, debt0 = d.lev * d.ebitda, eq0 = ev0 - debt0;
+    let cum = 0, eb = d.ebitda;
+    const path = [];
+    for (let t = 1; t <= d.hold; t++) { eb = eb * (1 + d.growth); cum += eb * d.conv; path.push(eb); }
+    const debtN = Math.max(0, debt0 - cum);
+    const ev1 = d.exit * eb, eq1 = ev1 - debtN;
+    const moic = eq1 / eq0, irr = Math.pow(moic, 1 / d.hold) - 1;
+    return { ev0, debt0, eq0, ebN: eb, cum, debtN, ev1, eq1, moic, irr, path };
+  }
+
+  function submitLab() {
+    const guess = parseFloat(document.getElementById('lab-guess').value);
+    if (!labDeal || isNaN(guess)) return;
+    const s = solveLab(labDeal);
+    const hit = Math.abs(guess - s.moic) <= 0.25;
+    labResult = { guess, s, hit };
+    state.lab.n++; if (hit) { state.lab.hits++; state.lab.streak++; } else { state.lab.streak = 0; }
+    persist(); renderLab(); renderDashboard();
+  }
+
+  function renderLab() {
+    const L = state.lab;
+    document.getElementById('lab-kpi').textContent = L.n ? `${Math.round(100 * L.hits / L.n)}% · ${L.n} deals` : '—';
+    const card = document.getElementById('lab-card');
+    if (!labDeal) { card.innerHTML = `<button onclick="App.newLabDeal()" class="bg-gold text-ink font-bold text-sm px-5 py-2.5 rounded-lg hover:opacity-90">Deal me a paper LBO →</button>`; return; }
+    const d = labDeal;
+    card.innerHTML = `
+      <div class="flex items-center justify-between mb-4">
+        <span class="badge bg-sky/15 text-sky border border-sky/40">Paper LBO · 5-yr hold</span>
+        <span class="text-[11px] font-mono text-slate-500">streak: <span class="text-gold">${L.streak}</span></span>
+      </div>
+      <div class="font-display text-xl text-white mb-4 leading-snug">A sponsor acquires a business at <span class="text-gold">${d.entry.toFixed(1)}x</span> × €${d.ebitda}m EBITDA, financed with <span class="text-gold">${d.lev.toFixed(1)}x</span> leverage.</div>
+      <ul class="text-sm text-slate-300 space-y-1.5 mb-5">
+        <li>· EBITDA grows <b class="text-white">${(d.growth*100).toFixed(0)}%</b> per year</li>
+        <li>· Free cash flow available for debt paydown ≈ <b class="text-white">${(d.conv*100).toFixed(0)}% of each year's EBITDA</b></li>
+        <li>· Exit after 5 years at <b class="text-white">${d.exit.toFixed(1)}x</b></li>
+      </ul>
+      ${labResult ? renderLabResult() : `
+      <div class="flex items-center gap-3">
+        <span class="text-sm text-slate-400">MOIC ≈</span>
+        <input id="lab-guess" class="calc-input" style="max-width:110px" type="number" step="0.1" placeholder="e.g. 2.4">
+        <span class="text-sm text-slate-500">x</span>
+        <button onclick="App.submitLab()" class="bg-gold text-ink font-bold text-sm px-4 py-2 rounded-lg hover:opacity-90">Check</button>
+      </div>
+      <p class="text-[11px] text-slate-500 mt-3">No calculator. Talk yourself through the canonical sequence (entry → debt/equity → exit EBITDA → exit EV → net debt → MOIC). Within ±0.25x counts as a hit.</p>`}`;
+  }
+
+  function renderLabResult() {
+    const { guess, s, hit } = labResult; const d = labDeal;
+    return `
+      <div class="rounded-lg border ${hit ? 'border-mint/50 bg-mint/5' : 'border-coral/50 bg-coral/5'} p-4 mb-4">
+        <span class="font-bold ${hit ? 'text-mint' : 'text-coral'}">${hit ? '✓ HIT' : '✗ MISS'}</span>
+        <span class="text-sm text-slate-300 ml-2">your ${guess.toFixed(2)}x vs exact <b class="text-white">${s.moic.toFixed(2)}x</b> (IRR ${(s.irr*100).toFixed(1)}%)</span>
+      </div>
+      <div class="font-mono text-xs bg-ink border border-line rounded-lg p-4 leading-relaxed text-slate-300">
+        Entry: EV ${s.ev0.toFixed(0)} = ${d.entry.toFixed(1)}x × ${d.ebitda} · debt ${s.debt0.toFixed(0)} · <span class="text-gold">equity ${s.eq0.toFixed(0)}</span><br>
+        EBITDA yr5: ${d.ebitda} × (1+${(d.growth*100).toFixed(0)}%)^5 = <span class="text-white">${s.ebN.toFixed(1)}</span><br>
+        Cum. paydown: ${(d.conv*100).toFixed(0)}% × ΣEBITDA = ${s.cum.toFixed(0)} → debt left ${s.debtN.toFixed(0)}<br>
+        Exit: ${d.exit.toFixed(1)}x × ${s.ebN.toFixed(1)} = ${s.ev1.toFixed(0)} − ${s.debtN.toFixed(0)} = <span class="text-gold">equity ${s.eq1.toFixed(0)}</span><br>
+        <span class="text-white font-bold">MOIC ${s.moic.toFixed(2)}x · IRR ${(s.irr*100).toFixed(1)}%</span>
+      </div>
+      <button onclick="App.newLabDeal()" class="mt-4 bg-gold text-ink font-bold text-sm px-5 py-2 rounded-lg hover:opacity-90">Next deal →</button>`;
+  }
+
+  /* ---------- glossary ---------- */
+  function renderGlossary() {
+    const q = (document.getElementById('gloss-search').value || '').toLowerCase();
+    const hits = GLOSSARY.filter(([t, d]) => !q || t.toLowerCase().includes(q) || d.toLowerCase().includes(q));
+    document.getElementById('gloss-list').innerHTML = hits.length ? hits.map(([t, d]) => `
+      <div class="bg-panel border border-line rounded-xl px-4 py-3">
+        <div class="text-sm font-semibold text-gold">${t}</div>
+        <div class="text-xs text-slate-300 leading-relaxed mt-1">${d}</div>
+      </div>`).join('')
+      : '<p class="text-sm text-slate-500 italic">No matches — try a shorter fragment.</p>';
+  }
+
+  /* ---------- formula sheet ---------- */
+  function renderFormulas() {
+    document.getElementById('formula-grid').innerHTML = FORMULAS.map(g => `
+      <div class="bg-panel border border-line rounded-xl p-5">
+        <h3 class="font-semibold text-white mb-3">${g.group}</h3>
+        <table class="w-full text-xs">
+          ${g.rows.map(([k, v]) => `<tr class="border-b border-line/40">
+            <td class="py-1.5 pr-3 text-slate-400 align-top" style="width:42%">${k}</td>
+            <td class="py-1.5 font-mono text-slate-200">${v}</td></tr>`).join('')}
+        </table>
+      </div>`).join('');
+  }
+
   /* ---------- drill mode ---------- */
   let drillCat = 'all';
   let drillCurrent = null;
@@ -1338,13 +2015,19 @@ const App = (() => {
     renderDashboard();
     renderLearn();
     renderWorkspace();
+    renderVault();
+    renderLab();
+    renderGlossary();
+    renderFormulas();
     nextQuestion();
     wireCalcs();
   }
 
   return { switchTab, saveDraft, clearDraft, exportAnswers, init,
            setDrillCat, nextQuestion, reveal, mark, resetDrill,
-           openLesson, openLessonTab, toggleRead };
+           openLesson, openLessonTab, toggleRead,
+           openVault, revealVault, markVault,
+           newLabDeal, submitLab, renderGlossary };
 })();
 
 document.addEventListener('DOMContentLoaded', App.init);
