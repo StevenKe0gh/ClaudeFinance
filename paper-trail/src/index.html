@@ -1,0 +1,39 @@
+<title>Paper Trail</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@125,800&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>/*__CSS__*/</style>
+
+<div class="app" id="app">
+  <header class="topbar">
+    <div class="mark" aria-hidden="true">
+      <svg width="22" height="22" viewBox="0 0 22 22"><rect x="1" y="1" width="20" height="20" rx="3" fill="none" stroke="#4C8DFF" stroke-width="1.6"/><path d="M6 15.5V6.5h5a3 3 0 0 1 0 6H6" fill="none" stroke="#E4EAF0" stroke-width="1.8" stroke-linejoin="round"/><circle cx="15.5" cy="15.5" r="1.6" fill="#1FA874"/></svg>
+    </div>
+    <div class="brand"><b>Paper Trail</b><span>Disclosure intelligence</span></div>
+    <div class="crumbs" id="crumbs"><span>Workspace</span><span>›</span><b>Signals</b></div>
+    <button class="omni" id="omni" type="button" aria-label="Search tickers, members, insiders and commands">
+      <svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true"><circle cx="7" cy="7" r="5" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M11 11l3.5 3.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+      <span>Search tickers, members, insiders…</span><kbd>⌘K</kbd>
+    </button>
+    <span class="feed" id="feed" data-s="wait"><i></i><span class="feed-t" id="feed-t">Connecting</span></span>
+  </header>
+
+  <nav class="rail" id="rail" aria-label="Views"></nav>
+
+  <main class="main" id="main" tabindex="-1"></main>
+
+  <footer class="statusbar" id="statusbar">
+    <span id="sb-conn">Connector: <b>pending</b></span>
+    <span id="sb-model"></span>
+    <span id="sb-rows"></span>
+    <span class="sep"></span>
+    <span id="sb-sync"></span>
+    <button type="button" id="sb-keys"><kbd>?</kbd> Shortcuts</button>
+  </footer>
+</div>
+<div id="overlays"></div>
+<div class="toasts" id="toasts" aria-live="polite"></div>
+<div class="tip" id="tip" hidden></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
+<script>/*__JS__*/</script>

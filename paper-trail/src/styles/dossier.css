@@ -1,0 +1,29 @@
+.dz-head { display: flex; flex-wrap: wrap; gap: 14px 24px; align-items: flex-end; justify-content: space-between; padding: 14px 16px; }
+.dz-id { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.dz-id h1 { font: 600 var(--t-xxl)/1 var(--f-mono); letter-spacing: -.01em; }
+.dz-id .co { color: var(--fg-1); font-size: var(--t-lg); margin-top: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 48ch; }
+.dz-metrics { display: flex; gap: 22px; flex-wrap: wrap; }
+.dz-metric { display: flex; flex-direction: column; gap: 3px; }
+.dz-metric b { font: 500 var(--t-xl)/1.1 var(--f-ui); }
+.dz-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+.subtabs { display: flex; gap: 2px; border-bottom: 1px solid var(--line); padding: 0 12px; overflow-x: auto; }
+.subtabs button { border: 0; background: none; color: var(--fg-2); padding: 9px 10px 8px; font: 500 var(--t-sm) var(--f-ui); border-bottom: 2px solid transparent; margin-bottom: -1px; cursor: pointer; white-space: nowrap; }
+.subtabs button:hover { color: var(--fg-0); }
+.subtabs button[aria-selected="true"] { color: var(--fg-0); border-bottom-color: var(--accent); }
+.subtabs .n { font: 400 10px var(--f-mono); color: var(--fg-3); margin-left: 4px; }
+.dz-grid { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: var(--gap); }
+.span-12 { grid-column: span 12; }
+.span-8 { grid-column: span 8; }
+.span-7 { grid-column: span 7; }
+.span-6 { grid-column: span 6; }
+.span-5 { grid-column: span 5; }
+.span-4 { grid-column: span 4; }
+@media (max-width: 1100px) { .span-8, .span-7, .span-5, .span-4 { grid-column: span 12; } }
+@media (max-width: 860px) { .span-6 { grid-column: span 12; } }
+.chips { display: flex; flex-wrap: wrap; gap: 4px; }
+.netbar { display: flex; height: 8px; border-radius: 1px; overflow: hidden; gap: 2px; background: var(--bg-3); }
+.netbar i { display: block; height: 100%; }
+.netbar i.b { background: var(--buy); }
+.netbar i.s { background: var(--sell); }
+.member-h { display: flex; gap: 14px; align-items: center; }
+.avatar { width: 46px; height: 46px; border-radius: 4px; display: grid; place-items: center; background: var(--bg-3); border: 1px solid var(--line-3); font: 600 var(--t-lg) var(--f-mono); color: var(--fg-1); flex: none; }

@@ -1,0 +1,1057 @@
+<title>Paper Trail</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@125,800&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>/* Layout: an operations console. Fixed command bar, icon rail, scrolling
+   work area of hairline-ruled panels, status bar. Dense 13px UI with mono
+   figures. Single dark theme by design: this is a tool for long sessions. */
+:root {
+  color-scheme: dark;
+
+  /* Surfaces, darkest to lightest. Slight blue bias, matched to the accent. */
+  --bg-0: #090C10;
+  --bg-1: #0F141A;
+  --bg-2: #131A22;
+  --bg-3: #18212B;
+  --bg-4: #1F2A36;
+  --line: #222D38;
+  --line-2: #19212A;
+  --line-3: #2F3C4A;
+
+  /* Ink */
+  --fg-0: #E4EAF0;
+  --fg-1: #B3BFCB;
+  --fg-2: #8593A2;
+  --fg-3: #5E6A77;
+
+  /* Accent and semantic */
+  --accent: #4C8DFF;
+  --accent-hi: #7DABFF;
+  --accent-bg: rgba(76, 141, 255, .13);
+  --accent-line: rgba(76, 141, 255, .42);
+  --on-accent: #05101F;
+  --buy: #1FA874;
+  --buy-bg: rgba(31, 168, 116, .14);
+  --sell: #F0563F;
+  --sell-bg: rgba(240, 86, 63, .14);
+  --warn: #D9A13B;
+  --warn-bg: rgba(217, 161, 59, .13);
+  --info: #8C9CB0;
+  --info-bg: rgba(140, 156, 176, .12);
+
+  /* Entities (validated for CVD on --bg-1). Teal = insiders, amber = Congress everywhere. */
+  --ent-ticker: #4C8DFF;
+  --ent-member: #C98420;
+  --ent-insider: #1F9E90;
+  --ent-fund: #8C6CF0;
+  --grp-insider: var(--ent-insider);
+  --grp-congress: var(--ent-member);
+  --grp-cross: var(--ent-fund);
+
+  /* Type */
+  --f-ui: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --f-cond: "IBM Plex Sans Condensed", "Arial Narrow", "IBM Plex Sans", sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --f-mark: "Archivo", "Arial Black", "IBM Plex Sans", sans-serif;
+  --t-xs: 11px;
+  --t-sm: 12px;
+  --t-md: 13px;
+  --t-lg: 15px;
+  --t-xl: 20px;
+  --t-xxl: 30px;
+
+  /* Geometry */
+  --r: 4px;
+  --top: 44px;
+  --rail: 56px;
+  --status: 26px;
+  --gap: 12px;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin: 0;
+  background: var(--bg-0);
+  color: var(--fg-0);
+  font: 400 var(--t-md)/1.45 var(--f-ui);
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+}
+a { color: var(--accent-hi); text-decoration: none; }
+a:hover { text-decoration: underline; }
+button, input, select, textarea { font: inherit; color: inherit; }
+::selection { background: var(--accent-bg); }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+h1, h2, h3, h4 { margin: 0; font-weight: 600; text-wrap: balance; }
+p { margin: 0; }
+.mono, .num, td.num, th.num { font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
+.muted { color: var(--fg-2); }
+.dim { color: var(--fg-3); }
+.small { font-size: var(--t-sm); }
+.xs { font-size: var(--t-xs); }
+.nowrap { white-space: nowrap; }
+.label {
+  font: 600 var(--t-xs)/1.2 var(--f-cond);
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--fg-2);
+}
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+* { scrollbar-width: thin; scrollbar-color: var(--line-3) transparent; }
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-thumb { background: var(--line-3); border-radius: 6px; border: 2px solid var(--bg-1); }
+::-webkit-scrollbar-track { background: transparent; }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
+
+.app {
+  height: 100%;
+  display: grid;
+  grid-template-columns: var(--rail) minmax(0, 1fr);
+  grid-template-rows: var(--top) minmax(0, 1fr) var(--status);
+  grid-template-areas: "top top" "rail main" "status status";
+}
+
+/* ---------- Command bar ---------- */
+.topbar {
+  grid-area: top;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 0 12px 0 0;
+  background: var(--bg-1);
+  border-bottom: 1px solid var(--line);
+  min-width: 0;
+}
+.mark {
+  width: var(--rail);
+  height: 100%;
+  display: grid;
+  place-items: center;
+  border-right: 1px solid var(--line);
+  flex: none;
+}
+.mark svg { display: block; }
+.brand { display: flex; align-items: baseline; gap: 10px; min-width: 0; white-space: nowrap; }
+.brand b {
+  font: 800 14px/1 var(--f-mark);
+  font-variation-settings: "wdth" 125;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+.brand span { font: 500 var(--t-sm) var(--f-cond); color: var(--fg-2); letter-spacing: .04em; }
+.crumbs { display: flex; align-items: center; gap: 6px; color: var(--fg-2); font-size: var(--t-sm); min-width: 0; white-space: nowrap; overflow: hidden; }
+.crumbs b { color: var(--fg-0); font-weight: 600; overflow: hidden; text-overflow: ellipsis; }
+.omni {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: min(360px, 34vw);
+  height: 30px;
+  padding: 0 8px 0 10px;
+  border: 1px solid var(--line-3);
+  border-radius: var(--r);
+  background: var(--bg-2);
+  color: var(--fg-2);
+  cursor: pointer;
+  text-align: left;
+}
+.omni:hover { border-color: var(--accent-line); color: var(--fg-1); }
+.omni span { flex: 1; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.feed {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 28px;
+  padding: 0 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  font: 500 var(--t-xs) var(--f-mono);
+  color: var(--fg-1);
+  white-space: nowrap;
+}
+.feed i { width: 7px; height: 7px; border-radius: 50%; background: var(--fg-3); flex: none; }
+.feed[data-s="live"] i { background: var(--buy); box-shadow: 0 0 0 3px var(--buy-bg); }
+.feed[data-s="running"] i { background: var(--accent); animation: pulse 1.1s ease-in-out infinite; }
+.feed[data-s="error"] i { background: var(--sell); }
+@keyframes pulse { 50% { opacity: .35; } }
+
+/* ---------- Rail ---------- */
+.rail {
+  grid-area: rail;
+  background: var(--bg-1);
+  border-right: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  padding: 6px 0;
+  gap: 2px;
+}
+.rail button {
+  position: relative;
+  height: 44px;
+  border: 0;
+  background: none;
+  color: var(--fg-2);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+}
+.rail button:hover { color: var(--fg-0); background: var(--bg-2); }
+.rail button[aria-current="page"] { color: var(--fg-0); }
+.rail button[aria-current="page"]::before { content: ""; position: absolute; left: 0; top: 8px; bottom: 8px; width: 2px; background: var(--accent); }
+.rail .rail-label { display: none; }
+.rail .spacer { flex: 1; }
+
+/* ---------- Main ---------- */
+.main { grid-area: main; min-width: 0; min-height: 0; overflow: auto; position: relative; }
+.view { padding: 14px 16px 24px; display: flex; flex-direction: column; gap: var(--gap); min-width: 0; }
+.view-h { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 10px 16px; }
+.view-h h1 { font: 600 var(--t-xl)/1.15 var(--f-ui); letter-spacing: -.01em; }
+.view-h p { color: var(--fg-2); font-size: var(--t-sm); margin-top: 3px; max-width: 80ch; }
+.view-h .tools { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+
+/* ---------- Status bar ---------- */
+.statusbar {
+  grid-area: status;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 0 12px;
+  background: var(--bg-1);
+  border-top: 1px solid var(--line);
+  font: 400 var(--t-xs) var(--f-mono);
+  color: var(--fg-2);
+  white-space: nowrap;
+  overflow: hidden;
+}
+.statusbar .sep { flex: 1; }
+.statusbar b { color: var(--fg-1); font-weight: 500; }
+.statusbar button { border: 0; background: none; color: var(--fg-2); font: inherit; cursor: pointer; padding: 0; }
+.statusbar button:hover { color: var(--fg-0); }
+
+/* ---------- Narrow screens: rail becomes a bottom bar ---------- */
+@media (max-width: 760px) {
+  .app {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: var(--top) minmax(0, 1fr) calc(52px + env(safe-area-inset-bottom, 0px));
+    grid-template-areas: "top" "main" "rail";
+  }
+  .statusbar { display: none; }
+  .rail { flex-direction: row; padding: 0 0 env(safe-area-inset-bottom, 0px); border-right: 0; border-top: 1px solid var(--line); overflow-x: auto; }
+  .rail button { flex: 1 0 52px; height: 52px; }
+  .rail button[aria-current="page"]::before { left: 10px; right: 10px; top: 0; bottom: auto; width: auto; height: 2px; }
+  .rail .spacer { display: none; }
+  .brand, .crumbs { display: none; }
+  .topbar { gap: 8px; padding-right: 8px; overflow: hidden; }
+  .omni { width: auto; flex: 1; margin-left: 4px; }
+  .omni kbd { display: none; }
+  .feed .feed-t { display: none; }
+  .view { padding: 12px 16px 20px; }
+}
+
+/* ---------- Panels ---------- */
+.panel { background: var(--bg-1); border: 1px solid var(--line); border-radius: var(--r); min-width: 0; display: flex; flex-direction: column; }
+.panel-h {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 34px;
+  padding: 0 12px;
+  border-bottom: 1px solid var(--line);
+  background: var(--bg-2);
+  border-radius: var(--r) var(--r) 0 0;
+}
+.panel-h h2, .panel-h h3 { font: 600 var(--t-xs)/1.2 var(--f-cond); letter-spacing: .09em; text-transform: uppercase; color: var(--fg-1); }
+.panel-h .src { font: 400 var(--t-xs) var(--f-mono); color: var(--fg-3); }
+.panel-h .grow { flex: 1; }
+.panel-b { padding: 12px; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.panel-b.flush { padding: 0; }
+
+/* ---------- Buttons and inputs ---------- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 10px;
+  border: 1px solid var(--line-3);
+  border-radius: var(--r);
+  background: var(--bg-3);
+  color: var(--fg-0);
+  font: 500 var(--t-sm) var(--f-ui);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.btn:hover { border-color: var(--fg-3); background: var(--bg-4); }
+.btn:disabled { opacity: .45; cursor: default; }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); font-weight: 600; }
+.btn.primary:hover { background: var(--accent-hi); border-color: var(--accent-hi); }
+.btn.ghost { background: none; border-color: transparent; color: var(--fg-1); }
+.btn.ghost:hover { background: var(--bg-3); color: var(--fg-0); }
+.btn.on { background: var(--accent-bg); border-color: var(--accent-line); color: var(--accent-hi); }
+.btn.sm { height: 24px; padding: 0 8px; font-size: var(--t-xs); }
+.btn svg { flex: none; }
+.seg { display: inline-flex; border: 1px solid var(--line-3); border-radius: var(--r); overflow: hidden; }
+.seg button { border: 0; background: var(--bg-2); color: var(--fg-2); font: 500 var(--t-xs) var(--f-mono); height: 26px; padding: 0 10px; cursor: pointer; white-space: nowrap; }
+.seg button + button { border-left: 1px solid var(--line-3); }
+.seg button:hover { color: var(--fg-0); }
+.seg button[aria-pressed="true"] { background: var(--accent-bg); color: var(--accent-hi); }
+.input, select.input {
+  height: 28px;
+  padding: 0 8px;
+  border: 1px solid var(--line-3);
+  border-radius: var(--r);
+  background: var(--bg-0);
+  color: var(--fg-0);
+  min-width: 0;
+}
+.input:focus { border-color: var(--accent); outline: none; }
+textarea.input { height: auto; padding: 6px 8px; resize: vertical; line-height: 1.45; }
+.check { display: flex; align-items: center; gap: 8px; color: var(--fg-1); cursor: pointer; font-size: var(--t-sm); }
+.check input { accent-color: var(--accent); width: 14px; height: 14px; margin: 0; }
+input[type=range] { accent-color: var(--accent); width: 100%; }
+kbd {
+  font: 500 10px/1 var(--f-mono);
+  color: var(--fg-2);
+  border: 1px solid var(--line-3);
+  border-bottom-width: 2px;
+  border-radius: 3px;
+  padding: 2px 4px;
+  background: var(--bg-2);
+}
+
+/* ---------- Chips ---------- */
+.tier {
+  display: inline-grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 3px;
+  font: 700 11px/1 var(--f-mono);
+  flex: none;
+}
+.tier[data-t="A"] { background: var(--accent); color: var(--on-accent); }
+.tier[data-t="B"] { background: var(--accent-bg); color: var(--accent-hi); box-shadow: inset 0 0 0 1px var(--accent-line); }
+.tier[data-t="C"] { background: var(--bg-3); color: var(--fg-1); box-shadow: inset 0 0 0 1px var(--line-3); }
+.tier[data-t="D"] { background: none; color: var(--fg-3); box-shadow: inset 0 0 0 1px var(--line); }
+.tier.lg { width: 30px; height: 30px; font-size: 15px; border-radius: 4px; }
+.flags { display: flex; flex-wrap: wrap; gap: 4px; min-width: 0; }
+.flag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 20px;
+  padding: 0 7px;
+  border-radius: 3px;
+  font: 500 var(--t-xs)/1 var(--f-ui);
+  white-space: nowrap;
+  cursor: help;
+}
+.flag::before { content: ""; width: 5px; height: 5px; border-radius: 1px; flex: none; }
+.flag[data-tone="pos"] { background: var(--buy-bg); color: #8FE3C0; }
+.flag[data-tone="pos"]::before { background: var(--buy); }
+.flag[data-tone="warn"] { background: var(--warn-bg); color: #F1CB86; }
+.flag[data-tone="warn"]::before { background: var(--warn); transform: rotate(45deg); }
+.flag[data-tone="info"] { background: var(--info-bg); color: var(--fg-1); }
+.flag[data-tone="info"]::before { background: var(--info); border-radius: 50%; }
+.flag.more { background: none; color: var(--fg-2); padding: 0 2px; }
+.flag.more::before { display: none; }
+.role {
+  display: inline-block;
+  font: 600 10px/1 var(--f-cond);
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  padding: 3px 5px;
+  border-radius: 2px;
+  background: var(--bg-3);
+  color: var(--fg-1);
+  white-space: nowrap;
+}
+.role[data-r="csuite"] { background: rgba(31, 158, 144, .18); color: #7FDDD1; }
+.role[data-r="fund"], .role[data-r="holder"] { background: rgba(140, 108, 240, .16); color: #C2B2FB; }
+.party { display: inline-grid; place-items: center; width: 16px; height: 16px; border-radius: 2px; font: 700 10px/1 var(--f-mono); background: var(--bg-3); color: var(--fg-1); flex: none; }
+.new-badge { font: 700 9px/1 var(--f-mono); letter-spacing: .06em; color: var(--on-accent); background: var(--accent); padding: 2px 4px; border-radius: 2px; }
+.side { display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; }
+
+/* ---------- KPI strip ---------- */
+.kpis { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); background: var(--bg-1); border: 1px solid var(--line); border-radius: var(--r); }
+.kpi { padding: 10px 14px 11px; display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.kpi + .kpi { border-left: 1px solid var(--line); }
+.kpi .v { font: 500 var(--t-xl)/1.1 var(--f-ui); letter-spacing: -.01em; }
+.kpi .s { font-size: var(--t-xs); color: var(--fg-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+@media (max-width: 1100px) {
+  .kpis { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .kpi:nth-child(4) { border-left: 0; }
+  .kpi:nth-child(n+4) { border-top: 1px solid var(--line); }
+}
+@media (max-width: 560px) {
+  .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .kpi:nth-child(odd) { border-left: 0; }
+  .kpi:nth-child(4) { border-left: 1px solid var(--line); }
+  .kpi:nth-child(n+3) { border-top: 1px solid var(--line); }
+}
+
+/* ---------- Tables ---------- */
+.table-wrap { overflow: auto; min-width: 0; }
+table.grid { width: 100%; border-collapse: separate; border-spacing: 0; font-size: var(--t-sm); }
+.grid th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--bg-2);
+  text-align: left;
+  font: 600 10.5px/1.2 var(--f-cond);
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--fg-2);
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--line);
+  white-space: nowrap;
+  user-select: none;
+}
+.grid th.sortable { cursor: pointer; }
+.grid th.sortable:hover { color: var(--fg-0); }
+.grid th[aria-sort] { color: var(--accent-hi); }
+.grid th.num, .grid td.num { text-align: right; }
+.grid td { padding: 7px 9px; border-bottom: 1px solid var(--line-2); vertical-align: middle; }
+.score-mix { display: flex; flex-direction: column; gap: 5px; }
+.act { display: flex; align-items: center; gap: 8px; white-space: nowrap; }
+.grid tbody tr { cursor: default; }
+.grid tbody tr:hover td { background: var(--bg-2); }
+.grid tbody tr[aria-selected="true"] td { background: var(--accent-bg); }
+.grid tbody tr[aria-selected="true"] td:first-child { box-shadow: inset 2px 0 0 var(--accent); }
+.grid .tk { font: 600 var(--t-md) var(--f-mono); color: var(--fg-0); background: none; border: 0; padding: 0; cursor: pointer; text-align: left; }
+.grid .tk:hover { color: var(--accent-hi); }
+.grid .co { font-size: var(--t-xs); color: var(--fg-2); max-width: 17ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.grid .co:empty { display: none; }
+.grid .two { display: flex; flex-direction: column; align-items: flex-start; gap: 1px; min-width: 0; }
+.grid .two .sub { font-size: var(--t-xs); color: var(--fg-2); white-space: nowrap; max-width: 20ch; overflow: hidden; text-overflow: ellipsis; }
+.cell-row { display: flex; align-items: center; gap: 8px; min-width: 0; }
+
+/* ---------- Meter / score ---------- */
+.score { display: inline-flex; align-items: center; gap: 8px; }
+.score b { font: 600 var(--t-md) var(--f-mono); min-width: 2ch; text-align: right; }
+.meter { position: relative; width: 56px; height: 4px; background: var(--bg-4); border-radius: 2px; overflow: hidden; flex: none; }
+.meter i { position: absolute; inset: 0 auto 0 0; background: var(--accent); border-radius: 2px; }
+.stackbar { display: flex; width: 96px; height: 6px; gap: 1px; background: var(--bg-4); border-radius: 1px; overflow: hidden; flex: none; }
+.stackbar i { display: block; height: 100%; }
+.stackbar i[data-g="insider"] { background: var(--grp-insider); }
+.stackbar i[data-g="congress"] { background: var(--grp-congress); }
+.stackbar i[data-g="cross"] { background: var(--grp-cross); }
+
+/* ---------- States ---------- */
+.empty { padding: 28px 18px; display: flex; flex-direction: column; gap: 6px; color: var(--fg-1); max-width: 70ch; }
+.empty h3 { font: 600 var(--t-lg) var(--f-ui); color: var(--fg-0); }
+.alert { display: flex; gap: 10px; padding: 10px 12px; border-radius: var(--r); border: 1px solid; font-size: var(--t-sm); }
+.alert b { display: block; font-weight: 600; }
+.alert[data-tone="error"] { background: var(--sell-bg); border-color: rgba(240, 86, 63, .35); color: #FFC2B8; }
+.alert[data-tone="warn"] { background: var(--warn-bg); border-color: rgba(217, 161, 59, .35); color: #F1CB86; }
+.alert[data-tone="info"] { background: var(--accent-bg); border-color: var(--accent-line); color: var(--fg-0); }
+.skel { height: 10px; border-radius: 2px; background: linear-gradient(90deg, var(--bg-3), var(--bg-4), var(--bg-3)); background-size: 200% 100%; animation: shimmer 1.3s linear infinite; }
+@keyframes shimmer { to { background-position: -200% 0; } }
+
+/* ---------- Lists ---------- */
+.rows { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.rows li { display: flex; align-items: center; gap: 10px; padding: 7px 0; border-bottom: 1px solid var(--line-2); min-width: 0; }
+.rows li:last-child { border-bottom: 0; }
+.rows .grow { flex: 1; min-width: 0; }
+.rows .t1 { font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rows .t2 { font-size: var(--t-xs); color: var(--fg-2); }
+.kv { display: grid; grid-template-columns: auto 1fr; gap: 4px 14px; font-size: var(--t-sm); }
+.kv dt { color: var(--fg-2); }
+.kv dd { margin: 0; font-family: var(--f-mono); text-align: right; }
+.linkish { border: 0; background: none; padding: 0; color: var(--fg-0); cursor: pointer; text-align: left; font: inherit; }
+.linkish:hover { color: var(--accent-hi); text-decoration: underline; }
+
+/* ---------- Overlays ---------- */
+.scrim { position: fixed; inset: 0; background: rgba(4, 6, 9, .62); z-index: 40; }
+.palette {
+  position: fixed;
+  z-index: 41;
+  top: 12vh;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(620px, calc(100vw - 32px));
+  background: var(--bg-2);
+  border: 1px solid var(--line-3);
+  border-radius: 6px;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, .5);
+  overflow: hidden;
+}
+.palette input { width: 100%; height: 46px; border: 0; border-bottom: 1px solid var(--line); background: none; padding: 0 14px; font-size: var(--t-lg); outline: none; }
+.palette ul { list-style: none; margin: 0; padding: 6px; max-height: 50vh; overflow: auto; }
+.palette li { display: flex; align-items: center; gap: 10px; padding: 7px 8px; border-radius: 3px; cursor: pointer; }
+.palette li[aria-selected="true"] { background: var(--accent-bg); }
+.palette li .k { font: 600 10px var(--f-cond); letter-spacing: .08em; text-transform: uppercase; color: var(--fg-3); width: 64px; flex: none; }
+.palette li .m { flex: 1; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.palette li .h { color: var(--fg-2); font-size: var(--t-xs); }
+.palette .foot { display: flex; gap: 14px; padding: 7px 12px; border-top: 1px solid var(--line); font-size: var(--t-xs); color: var(--fg-2); }
+.drawer {
+  position: fixed;
+  z-index: 41;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: min(560px, 100vw);
+  background: var(--bg-1);
+  border-left: 1px solid var(--line-3);
+  box-shadow: -24px 0 60px rgba(0, 0, 0, .45);
+  display: flex;
+  flex-direction: column;
+  padding-top: env(safe-area-inset-top, 0px);
+}
+.drawer .panel-h { border-radius: 0; min-height: 44px; }
+.drawer .body { flex: 1; overflow: auto; padding: 16px; }
+.modal { position: fixed; z-index: 41; top: 50%; left: 50%; transform: translate(-50%, -50%); width: min(560px, calc(100vw - 32px)); max-height: 80vh; overflow: auto; background: var(--bg-2); border: 1px solid var(--line-3); border-radius: 6px; }
+.shortcuts { display: grid; grid-template-columns: auto 1fr; gap: 8px 16px; padding: 16px; font-size: var(--t-sm); }
+.shortcuts dt { display: flex; gap: 4px; justify-content: flex-end; }
+.shortcuts dd { margin: 0; color: var(--fg-1); }
+
+/* ---------- Toast and tooltip ---------- */
+.toasts { position: fixed; z-index: 50; right: 16px; bottom: calc(var(--status) + 12px); display: flex; flex-direction: column; gap: 8px; pointer-events: none; }
+.toast { pointer-events: auto; min-width: 220px; max-width: 360px; padding: 9px 12px; background: var(--bg-3); border: 1px solid var(--line-3); border-left: 3px solid var(--accent); border-radius: var(--r); box-shadow: 0 10px 30px rgba(0, 0, 0, .4); font-size: var(--t-sm); }
+.toast[data-tone="error"] { border-left-color: var(--sell); }
+.toast[data-tone="ok"] { border-left-color: var(--buy); }
+.tip { position: fixed; z-index: 60; pointer-events: none; max-width: 300px; padding: 7px 9px; background: #E4EAF0; color: #0B0F14; border-radius: 3px; font: 400 var(--t-sm)/1.4 var(--f-ui); white-space: pre-line; box-shadow: 0 6px 18px rgba(0, 0, 0, .35); }
+
+/* ---------- Markdown output (Claude) ---------- */
+.md { font-size: var(--t-md); line-height: 1.6; color: var(--fg-0); max-width: 76ch; }
+.md h4 { font: 600 var(--t-xs)/1.2 var(--f-cond); letter-spacing: .09em; text-transform: uppercase; color: var(--accent-hi); margin: 16px 0 6px; }
+.md h4:first-child { margin-top: 0; }
+.md p { margin: 0 0 8px; }
+.md ul { margin: 0 0 8px; padding-left: 18px; }
+.md li { margin: 3px 0; }
+.md strong { color: #fff; font-weight: 600; }
+.thinking { color: var(--fg-2); font-style: italic; }
+
+.chart { position: relative; min-width: 0; }
+.chart svg { display: block; width: 100%; height: auto; overflow: visible; }
+.ax { font: 400 10.5px var(--f-mono); fill: var(--fg-3); }
+.ax-l { font: 600 10.5px var(--f-cond); letter-spacing: .08em; text-transform: uppercase; fill: var(--fg-2); }
+.vl { font: 500 11px var(--f-mono); fill: var(--fg-1); }
+.gl { stroke: var(--line-2); stroke-width: 1; }
+.bl { stroke: var(--line-3); stroke-width: 1; }
+.m-buy { fill: var(--buy); }
+.m-sell { fill: var(--sell); }
+.m-acc { fill: var(--accent); }
+.m-ins { fill: var(--grp-insider); }
+.m-cong { fill: var(--grp-congress); }
+.m-cross { fill: var(--grp-cross); }
+.m-dim { fill: var(--bg-4); }
+.ring { stroke: var(--bg-1); stroke-width: 2; stroke-linejoin: round; }
+.hit { fill: transparent; cursor: pointer; }
+.brush { fill: var(--accent-bg); stroke: var(--accent-line); stroke-width: 1; }
+.legend { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: var(--t-xs); color: var(--fg-2); align-items: center; }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.sw { display: inline-block; width: 10px; height: 10px; border-radius: 2px; flex: none; }
+.sw[data-g="insider"] { background: var(--grp-insider); }
+.sw[data-g="congress"] { background: var(--grp-congress); }
+.sw[data-g="cross"] { background: var(--grp-cross); }
+.spark { display: block; }
+.spark rect { fill: var(--fg-3); }
+.spark rect.on { fill: var(--accent); }
+
+/* Factor waterfall (HTML) */
+.wf { display: flex; flex-direction: column; gap: 5px; }
+.wf-row { display: grid; grid-template-columns: 112px minmax(0, 1fr) 40px; align-items: center; gap: 8px; font-size: var(--t-xs); }
+.wf-row .n { color: var(--fg-1); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.wf-row .track { position: relative; height: 10px; background: var(--bg-3); border-radius: 1px; }
+.wf-row .track i { position: absolute; top: 0; bottom: 0; border-radius: 1px; }
+.wf-row .track i[data-g="insider"] { background: var(--grp-insider); }
+.wf-row .track i[data-g="congress"] { background: var(--grp-congress); }
+.wf-row .track i[data-g="cross"] { background: var(--grp-cross); }
+.wf-row .track u { position: absolute; top: -2px; bottom: -2px; width: 1px; background: var(--fg-3); text-decoration: none; }
+.wf-row .v { font-family: var(--f-mono); text-align: right; color: var(--fg-0); }
+.wf-row.total { border-top: 1px solid var(--line); padding-top: 6px; margin-top: 2px; font-weight: 600; }
+.wf-notes { display: flex; flex-direction: column; gap: 3px; font-size: var(--t-xs); color: #F1CB86; }
+
+.sig-grid {
+  display: grid;
+  grid-template-columns: 184px minmax(0, 1fr) 316px;
+  grid-template-areas: "facets table inspector" "facets activity inspector";
+  grid-template-rows: minmax(420px, auto) auto;
+  gap: var(--gap);
+  align-items: start;
+}
+.sig-facets { grid-area: facets; position: sticky; top: 0; }
+.sig-table { grid-area: table; }
+.sig-activity { grid-area: activity; }
+.sig-inspector { grid-area: inspector; position: sticky; top: 0; max-height: calc(100vh - var(--top) - var(--status) - 28px); overflow: auto; }
+@media (max-width: 1360px) {
+  .sig-grid { grid-template-columns: 184px minmax(0, 1fr); grid-template-areas: "facets table" "facets activity" "inspector inspector"; }
+  .sig-inspector { position: static; max-height: none; }
+}
+@media (max-width: 900px) {
+  .sig-grid { grid-template-columns: minmax(0, 1fr); grid-template-areas: "facets" "table" "inspector" "activity"; grid-template-rows: auto; }
+  .sig-facets { position: static; }
+}
+.sig-table .table-wrap { max-height: 640px; }
+.facet { display: flex; flex-direction: column; gap: 7px; padding: 10px 12px; border-bottom: 1px solid var(--line-2); }
+.facet:last-child { border-bottom: 0; }
+.facet .label { margin-bottom: 1px; }
+.facet .tiers { display: flex; gap: 4px; }
+.facet .tiers button { border: 0; padding: 0; background: none; cursor: pointer; opacity: .35; }
+.facet .tiers button[aria-pressed="true"] { opacity: 1; }
+.facet .count { margin-left: auto; font: 400 var(--t-xs) var(--f-mono); color: var(--fg-3); }
+@media (max-width: 900px) {
+  .sig-facets .panel-b.flush { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); }
+  .facet { border-bottom: 0; border-right: 1px solid var(--line-2); }
+}
+.table-foot { display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-top: 1px solid var(--line); font-size: var(--t-xs); color: var(--fg-2); }
+.ins-h { display: flex; align-items: center; gap: 10px; }
+.ins-h .tk { font: 600 var(--t-xl) var(--f-mono); }
+.ins-h .co { color: var(--fg-2); font-size: var(--t-sm); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ins-score { display: flex; align-items: baseline; gap: 8px; }
+.ins-score b { font: 500 var(--t-xxl)/1 var(--f-ui); letter-spacing: -.02em; }
+.ins-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+
+.graph-grid { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: var(--gap); align-items: start; }
+@media (max-width: 1000px) { .graph-grid { grid-template-columns: minmax(0, 1fr); } }
+.graph-stage { position: relative; height: min(70vh, 720px); min-height: 420px; background: var(--bg-0); border-radius: 0 0 var(--r) var(--r); overflow: hidden; }
+.graph-stage svg { display: block; width: 100%; height: 100%; cursor: grab; touch-action: none; }
+.graph-stage svg:active { cursor: grabbing; }
+.g-link { stroke: var(--line-3); stroke-opacity: .9; fill: none; }
+.g-link[data-k="congress"] { stroke: rgba(201, 132, 32, .55); }
+.g-link[data-k="insider"] { stroke: rgba(31, 158, 144, .5); }
+.g-link.hl { stroke: var(--accent-hi); stroke-opacity: 1; }
+.g-node { cursor: pointer; }
+.g-node .shape { stroke: var(--bg-0); stroke-width: 2; }
+.g-node[data-type="ticker"] .shape { fill: var(--bg-3); stroke: var(--ent-ticker); stroke-width: 1.5; }
+.g-node[data-type="ticker"][data-tier="A"] .shape { fill: var(--accent); }
+.g-node[data-type="ticker"][data-tier="B"] .shape { fill: rgba(76, 141, 255, .35); }
+.g-node[data-type="member"] .shape { fill: var(--ent-member); }
+.g-node[data-type="insider"] .shape { fill: var(--ent-insider); }
+.g-node[data-type="fund"] .shape { fill: var(--ent-fund); }
+.g-node text { font: 500 10.5px var(--f-mono); fill: var(--fg-1); paint-order: stroke; stroke: var(--bg-0); stroke-width: 3px; pointer-events: none; }
+.g-node[data-type="ticker"] text { font-weight: 600; fill: var(--fg-0); font-size: 11.5px; }
+.g-node.dim { opacity: .18; }
+.g-node.sel .shape { stroke: #fff; stroke-width: 2.5; }
+.graph-legend { position: absolute; left: 10px; bottom: 10px; display: flex; flex-wrap: wrap; gap: 6px 12px; padding: 6px 10px; background: rgba(9, 12, 16, .85); border: 1px solid var(--line); border-radius: var(--r); font-size: var(--t-xs); color: var(--fg-1); }
+.graph-legend span { display: inline-flex; align-items: center; gap: 6px; }
+.graph-legend i { width: 10px; height: 10px; display: inline-block; flex: none; }
+.graph-hint { position: absolute; right: 10px; top: 10px; font-size: var(--t-xs); color: var(--fg-3); }
+
+.dz-head { display: flex; flex-wrap: wrap; gap: 14px 24px; align-items: flex-end; justify-content: space-between; padding: 14px 16px; }
+.dz-id { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.dz-id h1 { font: 600 var(--t-xxl)/1 var(--f-mono); letter-spacing: -.01em; }
+.dz-id .co { color: var(--fg-1); font-size: var(--t-lg); margin-top: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 48ch; }
+.dz-metrics { display: flex; gap: 22px; flex-wrap: wrap; }
+.dz-metric { display: flex; flex-direction: column; gap: 3px; }
+.dz-metric b { font: 500 var(--t-xl)/1.1 var(--f-ui); }
+.dz-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+.subtabs { display: flex; gap: 2px; border-bottom: 1px solid var(--line); padding: 0 12px; overflow-x: auto; }
+.subtabs button { border: 0; background: none; color: var(--fg-2); padding: 9px 10px 8px; font: 500 var(--t-sm) var(--f-ui); border-bottom: 2px solid transparent; margin-bottom: -1px; cursor: pointer; white-space: nowrap; }
+.subtabs button:hover { color: var(--fg-0); }
+.subtabs button[aria-selected="true"] { color: var(--fg-0); border-bottom-color: var(--accent); }
+.subtabs .n { font: 400 10px var(--f-mono); color: var(--fg-3); margin-left: 4px; }
+.dz-grid { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: var(--gap); }
+.span-12 { grid-column: span 12; }
+.span-8 { grid-column: span 8; }
+.span-7 { grid-column: span 7; }
+.span-6 { grid-column: span 6; }
+.span-5 { grid-column: span 5; }
+.span-4 { grid-column: span 4; }
+@media (max-width: 1100px) { .span-8, .span-7, .span-5, .span-4 { grid-column: span 12; } }
+@media (max-width: 860px) { .span-6 { grid-column: span 12; } }
+.chips { display: flex; flex-wrap: wrap; gap: 4px; }
+.netbar { display: flex; height: 8px; border-radius: 1px; overflow: hidden; gap: 2px; background: var(--bg-3); }
+.netbar i { display: block; height: 100%; }
+.netbar i.b { background: var(--buy); }
+.netbar i.s { background: var(--sell); }
+.member-h { display: flex; gap: 14px; align-items: center; }
+.avatar { width: 46px; height: 46px; border-radius: 4px; display: grid; place-items: center; background: var(--bg-3); border: 1px solid var(--line-3); font: 600 var(--t-lg) var(--f-mono); color: var(--fg-1); flex: none; }
+
+/* Model, Portfolio and Lineage views */
+.two-col { display: grid; grid-template-columns: 360px minmax(0, 1fr); gap: var(--gap); align-items: start; }
+@media (max-width: 1000px) { .two-col { grid-template-columns: minmax(0, 1fr); } }
+.slider { display: grid; grid-template-columns: minmax(0, 1fr) 46px; gap: 2px 10px; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--line-2); }
+.slider:last-child { border-bottom: 0; }
+.slider .name { display: flex; align-items: center; gap: 7px; font-size: var(--t-sm); color: var(--fg-0); }
+.slider .val { font: 500 var(--t-sm) var(--f-mono); text-align: right; color: var(--fg-1); }
+.slider .desc { grid-column: 1 / -1; font-size: var(--t-xs); color: var(--fg-2); }
+.slider input { grid-column: 1 / -1; }
+.delta-up { color: var(--buy); }
+.delta-down { color: var(--sell); }
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 12px; }
+.form-grid .field { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+.form-grid .field.full { grid-column: 1 / -1; }
+.form-grid .hint { font-size: var(--t-xs); color: var(--fg-2); }
+.alloc { display: block; height: 8px; background: var(--bg-3); border-radius: 1px; min-width: 70px; }
+.alloc i { display: block; height: 100%; background: var(--accent); border-radius: 1px; }
+.note-input { width: 100%; min-width: 180px; }
+.stages { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 0; }
+.stage { padding: 12px 14px; border-right: 1px solid var(--line-2); display: flex; flex-direction: column; gap: 4px; }
+.stage:last-child { border-right: 0; }
+.stage .st { display: flex; align-items: center; gap: 7px; font: 600 var(--t-xs) var(--f-cond); letter-spacing: .08em; text-transform: uppercase; color: var(--fg-1); }
+.stage .st i { width: 8px; height: 8px; border-radius: 50%; background: var(--fg-3); }
+.stage[data-s="done"] .st i { background: var(--buy); }
+.stage[data-s="running"] .st i { background: var(--accent); animation: pulse 1.1s ease-in-out infinite; }
+.stage[data-s="error"] .st i { background: var(--sell); }
+.stage[data-s="partial"] .st i { background: var(--warn); }
+.stage .v { font: 500 var(--t-lg) var(--f-mono); }
+.status-ok { color: var(--buy); }
+.status-err { color: var(--sell); }
+.status-pend { color: var(--accent-hi); }
+.code { font: 400 var(--t-xs)/1.4 var(--f-mono); color: var(--fg-1); white-space: pre-wrap; word-break: break-word; }
+</style>
+
+<div class="app" id="app">
+  <header class="topbar">
+    <div class="mark" aria-hidden="true">
+      <svg width="22" height="22" viewBox="0 0 22 22"><rect x="1" y="1" width="20" height="20" rx="3" fill="none" stroke="#4C8DFF" stroke-width="1.6"/><path d="M6 15.5V6.5h5a3 3 0 0 1 0 6H6" fill="none" stroke="#E4EAF0" stroke-width="1.8" stroke-linejoin="round"/><circle cx="15.5" cy="15.5" r="1.6" fill="#1FA874"/></svg>
+    </div>
+    <div class="brand"><b>Paper Trail</b><span>Disclosure intelligence</span></div>
+    <div class="crumbs" id="crumbs"><span>Workspace</span><span>›</span><b>Signals</b></div>
+    <button class="omni" id="omni" type="button" aria-label="Search tickers, members, insiders and commands">
+      <svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true"><circle cx="7" cy="7" r="5" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M11 11l3.5 3.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+      <span>Search tickers, members, insiders…</span><kbd>⌘K</kbd>
+    </button>
+    <span class="feed" id="feed" data-s="wait"><i></i><span class="feed-t" id="feed-t">Connecting</span></span>
+  </header>
+
+  <nav class="rail" id="rail" aria-label="Views"></nav>
+
+  <main class="main" id="main" tabindex="-1"></main>
+
+  <footer class="statusbar" id="statusbar">
+    <span id="sb-conn">Connector: <b>pending</b></span>
+    <span id="sb-model"></span>
+    <span id="sb-rows"></span>
+    <span class="sep"></span>
+    <span id="sb-sync"></span>
+    <button type="button" id="sb-keys"><kbd>?</kbd> Shortcuts</button>
+  </footer>
+</div>
+<div id="overlays"></div>
+<div class="toasts" id="toasts" aria-live="polite"></div>
+<div class="tip" id="tip" hidden></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
+<script>(()=>{var He={name:"Paper Trail",version:"2.0.0",model:"conviction-2"},it="Quiver Quant",fe=Object.freeze({congress:"get_congress_trades",insider:"get_insider_trading",contracts:"get_gov_contracts",lobbying:"get_lobbying",darkpool:"get_dark_pool",news:"get_quiver_newsfeed",ownership:"get_ticker_ownership",politician:"get_congress_politician"}),Pe=Object.freeze({insider:150,congress:150,aggregate:200}),lt=[7,14,30,60,90],$t=90,zt=15,Ut=4,Ge=864e5;function qt(e){let t=e,s=new Set;return{get:()=>t,set(n){let a=typeof n=="function"?n(t):n,d=Object.keys(a).filter(f=>a[f]!==t[f]);if(d.length){t={...t,...a};for(let f of s)f(t,d)}},subscribe(n){return s.add(n),()=>s.delete(n)}}}var ke=(e,t,s)=>Math.max(t,Math.min(s,e)),jt=e=>new Promise(t=>setTimeout(t,e));function Xe(e){let t=e.filter(n=>Number.isFinite(n)).sort((n,a)=>n-a);if(!t.length)return null;let s=t.length>>1;return t.length%2?t[s]:(t[s-1]+t[s])/2}function ce(e,t){let s=new Map;for(let n of e){let a=t(n),d=s.get(a);d?d.push(n):s.set(a,[n])}return s}function ye(e=new Date){return new Date(e.getTime()-e.getTimezoneOffset()*6e4).toISOString().slice(0,10)}function te(e){return e?Date.parse(String(e).slice(0,10)+"T00:00:00Z"):NaN}function ne(e,t){return new Date(te(e)+t*Ge).toISOString().slice(0,10)}function Ne(e,t){return Math.round((te(t)-te(e))/Ge)}function Be(e,t){let s=[];for(let n=te(e),a=te(t);n<=a;n+=Ge)s.push(new Date(n).toISOString().slice(0,10));return s}function W(e,{sign:t=!1}={}){if(e==null||!Number.isFinite(+e))return"—";e=+e;let s=Math.abs(e),n=e<0?"−":t&&e>0?"+":"";return s>=1e9?`${n}$${(s/1e9).toFixed(s>=1e10?0:1)}B`:s>=1e6?`${n}$${(s/1e6).toFixed(s>=1e7?0:1)}M`:s>=1e3?`${n}$${(s/1e3).toFixed(s>=1e4?0:1)}K`:`${n}$${Math.round(s).toLocaleString("en-US")}`}var L=e=>Number.isFinite(+e)?Math.round(+e).toLocaleString("en-US"):"—",et=e=>"$"+Math.round(+e||0).toLocaleString("en-US");function xe(e,t=0){return e==null||!Number.isFinite(+e)?"—":`${(+e).toFixed(t)}%`}var Ws=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];function G(e,{year:t=!0}={}){let s=te(e);if(!Number.isFinite(s))return"—";let n=new Date(s),a=`${Ws[n.getUTCMonth()]} ${n.getUTCDate()}`;return t?`${a}, ${n.getUTCFullYear()}`:a}function Qt(e,t){let s=Ne(e,t);return Number.isFinite(s)?s<=0?"today":s===1?"1d":s<60?`${s}d`:`${Math.round(s/30)}mo`:"—"}function ze(e){return new Date(e).toLocaleTimeString("en-US",{hour:"numeric",minute:"2-digit"})}function Ue(e,t){let s=0,n=(...a)=>{clearTimeout(s),s=setTimeout(()=>e(...a),t)};return n.flush=(...a)=>{clearTimeout(s),e(...a)},n}function Wt(e){let t=0,s=[],n=()=>{if(t>=e||!s.length)return;t++;let{fn:a,resolve:d,reject:f}=s.shift();Promise.resolve().then(a).then(d,f).finally(()=>{t--,n()})};return a=>new Promise((d,f)=>{s.push({fn:a,resolve:d,reject:f}),n()})}function Vt(e){let t=String(e||"").replace(/[,.]/g," ").split(/\s+/).filter(Boolean);return(t[0]?.[0]||"?").toUpperCase()+(t.length>1?t[t.length-1][0].toUpperCase():"")}function Vs(e){return String(e||"").toLowerCase().replace(/\b([a-z])/g,t=>t.toUpperCase())}function $e(e){let t=String(e||"").replace(/\s*[-–]\s*(class [a-z] )?(common|ordinary|depositary|american depositary).*$/i,"").replace(/\s+(common stock|cmn|common shares|ordinary shares)\b.*$/i,"").replace(/\s{2,}/g," ").trim();return t?t===t.toUpperCase()?Vs(t):t:""}var Hs=["items","results","result","rows","data"];function vt(e){if(!e||typeof e!="object"||Array.isArray(e))return null;for(let t of Hs)if(Array.isArray(e[t]))return e[t];return null}function wt(e){return{truncated:e.truncated===!0,original:Number.isFinite(e.original_item_count)?e.original_item_count:null,returned:Number.isFinite(e.returned_item_count)?e.returned_item_count:null,message:typeof e.message=="string"?e.message:null}}function Ht(e){let t={truncated:!1,original:null,returned:null,message:null};if(!e)return{rows:[],object:null,meta:t};let s=e.structuredContent;if(Array.isArray(s))return{rows:s,object:null,meta:t};if(s&&typeof s=="object"){let f=vt(s);return f?{rows:f,object:null,meta:{...t,...wt(s)}}:{rows:[s],object:s,meta:t}}let n=[],a=null,d=0;for(let f of e.content||[]){if(!f||f.type!=="text"||typeof f.text!="string")continue;let $;try{$=JSON.parse(f.text)}catch{continue}if(d++,Array.isArray($)){n.push(...$);continue}if(!$||typeof $!="object")continue;let b=vt($);if(b&&("truncated"in $||"count"in $||"returned_item_count"in $||"items"in $||"results"in $)){n.push(...b),Object.assign(t,wt($));continue}n.push($),d===1&&(a=$)}if(d===0&&e.payload!=null){let f=e.payload;if(Array.isArray(f))return{rows:f,object:null,meta:t};if(f&&typeof f=="object"){let $=vt(f);return $?{rows:$,object:null,meta:{...t,...wt(f)}}:{rows:[f],object:f,meta:t}}}return{rows:n,object:n.length===1?a:null,meta:t}}function Gt({getMcp:e,maxLog:t=400}){let s=Wt(Ut),n=[],a=new Set,d=0,f=()=>{for(let i of a)i(n)};async function $(i,c,y){let k=e();if(!k)throw{code:"not_granted",message:"Live data needs the claude.ai viewer with the Quiver Quant connector."};let S=y.refresh?{staleTime:3e5,gcTime:36e5,refresh:!0}:{staleTime:3e5,gcTime:36e5};try{return await k.callTool(it,i,c,{cache:S,signal:y.signal})}catch(C){if(C&&C.retryable&&!y.retried)return await jt(Math.min(C.retryAfterMs||900,8e3)+Math.random()*700),$(i,c,{...y,retried:!0});throw C}}async function b(i,c={},y={}){let k={id:++d,tool:i,input:c,stage:y.stage||"",at:Date.now(),status:"pending",rows:0,ms:0,cached:!1,truncated:!1};n.unshift(k),n.length>t&&(n.length=t),f();let S=performance.now();try{let C=await s(()=>$(i,c,y)),M=Ht(C);return Object.assign(k,{status:"ok",rows:M.rows.length,ms:Math.round(performance.now()-S),cached:!!(C&&C.cache),storedAt:C&&C.cache?C.cache.storedAt:Date.now(),truncated:M.meta.truncated}),f(),{...M,res:C}}catch(C){throw Object.assign(k,{status:"error",ms:Math.round(performance.now()-S),code:C&&C.code||"upstream_error",message:C&&C.message}),f(),C}}async function p(i,c,{pageSize:y,maxPages:k=10,...S}={}){let C=[],M=0,o=0,r=!1;for(;o<k;){let{rows:g,meta:m}=await b(i,{...c,limit:y,offset:M},S);if(C.push(...g),o++,m.truncated){let x=m.returned||g.length;if(!x||m.original!=null&&m.original<y){r=!0;break}M+=x;continue}if(g.length<y){r=!0;break}M+=g.length}return{rows:C,pages:o,complete:r}}async function l(i,c,{from:y,to:k,shardDays:S=7,...C}){let M=[];for(let r=y;te(r)<=te(k);r=ne(r,S)){let g=ne(r,S-1);M.push([r,te(g)>te(k)?k:g])}let o=await Promise.all(M.map(([r,g])=>p(i,{...c,date_from:r,date_to:g},C)));return{rows:o.flatMap(r=>r.rows),pages:o.reduce((r,g)=>r+g.pages,0),complete:o.every(r=>r.complete),shards:M.length}}return{call:b,paged:p,sharded:l,log:n,onLog(i){return a.add(i),()=>a.delete(i)}}}function Yt(e){let t=e&&e.code||"upstream_error",s=e&&e.message?String(e.message):"";switch(t){case"needs_reauth":return{title:"Quiver Quant needs to reconnect",body:"Reconnect Quiver Quant in claude.ai Settings → Connectors, then reload.",code:t};case"server_not_connected":case"server_not_found":return{title:"Quiver Quant is not connected",body:"Add the Quiver Quant connector in claude.ai Settings → Connectors, then reload.",code:t};case"selection_required":return{title:"Choose a Quiver Quant connector",body:"You have more than one Quiver Quant connector. Pick one when claude.ai asks, then refresh.",code:t};case"not_in_manifest":case"consent_required":return{title:"Quiver access is off for this page",body:"Allow Quiver Quant in this page’s Permissions menu, then refresh.",code:t};case"blocked_by_policy":return{title:"Blocked by your organization",body:"Your organization does not allow this Quiver Quant tool.",code:t};case"approval_required":return{title:"Approval needed",body:"Approve the Quiver Quant request when claude.ai asks, then refresh.",code:t};case"tool_error":return{title:"Quiver rejected the request",body:s||"Check your Quiver subscription level.",code:t};case"server_unavailable":case"rate_limited":return{title:"Quiver did not answer in time",body:"Refresh to try again in a moment.",code:t};case"not_granted":case"capability_disabled":case"capability_removed":return{title:"Live data is not available in this view",body:"Open this page on claude.ai, signed in to the account with the Quiver Quant connector.",code:t};default:return{title:"Could not reach Quiver",body:(s?s+" ":"")+"Refresh to try again.",code:t}}}function Jt(e){return{insiderPurchases:({from:t,to:s,refresh:n})=>e.sharded(fe.insider,{transaction_code:"P",sort_by:"transaction_date",sort_order:"desc"},{from:t,to:s,shardDays:7,pageSize:Pe.insider,maxPages:14,refresh:n,stage:"ingest"}),congressTrades:({from:t,to:s,refresh:n})=>e.paged(fe.congress,{date_from:t,date_to:s,date_field:"filed",sort_by:"filed",sort_order:"desc"},{pageSize:Pe.congress,maxPages:10,refresh:n,stage:"ingest"}),congressByTicker:({from:t,to:s,refresh:n})=>e.paged(fe.congress,{agg_type:"ticker",date_from:t,date_to:s,sort_by:"purchase_count",sort_order:"desc"},{pageSize:Pe.aggregate,maxPages:6,refresh:n,stage:"ingest"}),tickerInsider:(t,{from:s,to:n,refresh:a,maxPages:d=3,stage:f="dossier"})=>e.paged(fe.insider,{ticker:t,date_from:s,date_to:n,sort_by:"transaction_date",sort_order:"desc"},{pageSize:Pe.insider,maxPages:d,refresh:a,stage:f}),tickerCongress:(t,{from:s,refresh:n})=>e.paged(fe.congress,{ticker:t,date_from:s,date_field:"traded",sort_by:"traded",sort_order:"desc"},{pageSize:Pe.congress,maxPages:4,refresh:n,stage:"dossier"}),contracts:(t,{from:s,to:n,refresh:a})=>e.paged(fe.contracts,{ticker:t,date_from:s,date_to:n,sort_by:"action_date",sort_order:"desc"},{pageSize:Pe.aggregate,maxPages:2,refresh:a,stage:"dossier"}),lobbying:(t,{yearFrom:s,refresh:n})=>e.call(fe.lobbying,{ticker:t,year_from:s,sort_by:"date",sort_order:"desc",limit:60},{refresh:n,stage:"dossier"}),darkPool:(t,{from:s,refresh:n})=>e.call(fe.darkpool,{ticker:t,date_from:s,sort_by:"date",sort_order:"desc",limit:120},{refresh:n,stage:"dossier"}),news:(t,{refresh:s})=>e.call(fe.news,{ticker:t,limit:10},{refresh:s,stage:"dossier"}),ownership:(t,{refresh:s})=>e.call(fe.ownership,{ticker:t,limit:8},{refresh:s,stage:"dossier"}),politician:({bioguideId:t,name:s,refresh:n})=>e.call(fe.politician,t?{bioguide_id:t}:{politician:s},{refresh:n,stage:"member"}),memberTrades:(t,{from:s,refresh:n})=>e.paged(fe.congress,{politician:t,date_from:s,date_field:"traded",sort_by:"traded",sort_order:"desc"},{pageSize:Pe.congress,maxPages:3,refresh:n,stage:"member"})}}var Gs=/^[A-Z][A-Z0-9.\-]{0,7}$/,Ys=2e9,Js=/\b(CEO|CFO|COO|Chief Executive|Chief Financial|Chief Operating|Chair(?:man|woman|person)?|(?<!Vice[ -])President)\b/i,Ks=/\b(officer|vp|vice president|treasurer|secretary|counsel|controller|pao|pfo)\b/i,Zs=/\b(LLC|L\.L\.C\.|LP|L\.P\.|INC|CORP|CORPORATION|FUND|CAPITAL|ADVISORS|ADVISERS|HOLDINGS|PARTNERS|MANAGEMENT|TRUST|LTD|LIMITED|PLC|INSURANCE|BANK|GROUP|INVESTMENTS?|S\.A\.|SE|AG|N\.V\.)\b/i;function Xs(e){let t=String(e.officer_title||""),s=String(e.owner||"");return Zs.test(s)?"fund":Js.test(t)?"csuite":e.is_officer||Ks.test(t)?"officer":e.is_director||/director/i.test(t)?"director":"holder"}var Oe={csuite:"C-suite",officer:"Officer",director:"Director",fund:"Fund / entity",holder:"10% owner / other"};function ct(e){let t=String(e??"").toUpperCase().trim().replace(/^\$/,"");return Gs.test(t)?t:null}function en(e){let t=String(e||"").match(/\d[\d,]*/g);if(!t)return{lo:0,hi:0,mid:0};let s=t.map(d=>+d.replace(/,/g,"")),n=s[0],a=s.length>1?s[1]:s[0];return{lo:n,hi:a,mid:(n+a)/2}}function kt(e){let t=String(e||"").toUpperCase();return t.startsWith("D")?"D":t.startsWith("R")?"R":t?"I":""}var xt=()=>({noTicker:0,mutualFund:0,badDate:0,nonPositive:0,subPenny:0,outlier:0,duplicate:0}),tn=.05,Kt=e=>/^[A-Z]{4}X$/.test(e);function tt(e,{from:t=null,to:s=null}={}){let n=xt(),a=new Set,d=[];for(let f of e||[]){if(!f||typeof f!="object")continue;let $=ct(f.ticker);if(!$){n.noTicker++;continue}if(Kt($)){n.mutualFund++;continue}let b=String(f.date||"").slice(0,10);if(!Number.isFinite(te(b))||s&&b>s||t&&b<t){n.badDate++;continue}let p=+f.shares,l=+f.price;if(!(p>0)||!(l>0)){n.nonPositive++;continue}if(l<tn){n.subPenny++;continue}let i=p*l;if(i>Ys){n.outlier++;continue}let c=[$,b,f.owner,p,l,f.transaction_type,f.shares_owned_after].join("|");if(a.has(c)){n.duplicate++;continue}a.add(c);let y=+f.shares_owned_after,k=f.transaction_type==="S"||f.acquired_disposed==="D"?-1:1,S=Number.isFinite(y)?y-k*p:null;d.push({...f,ticker:$,date:b,shares:p,price:l,value:i,role:Xs(f),before:S,newPosition:k>0&&S!=null&&S<=0,stakePct:k>0&&S>0?p/S*100:null,lateDays:f.file_date?Ne(b,f.file_date):null})}return{rows:d,dropped:n}}function Ye(e){let t=xt(),s=[];for(let a of e||[]){if(!a||typeof a!="object")continue;let d=ct(a.ticker);if(!d){t.noTicker++;continue}if(Kt(d)){t.mutualFund++;continue}if(!Number.isFinite(te(a.traded))&&!Number.isFinite(te(a.filed))){t.badDate++;continue}let f=String(a.transaction||""),$=/purchase/i.test(f)?"buy":/sale/i.test(f)?"sell":"other",b=en(a.amount);s.push({...a,ticker:d,kind:$,party:kt(a.party),lo:b.lo,hi:b.hi,mid:b.mid,lagDays:a.traded&&a.filed?Ne(a.traded,a.filed):null,wash:!1})}let n=new Map;for(let a of s){let d=`${a.representative}|${a.ticker}|${a.traded}`,f=n.get(d)||{buy:!1,sell:!1,rows:[]};f[a.kind]=!0,f.rows.push(a),n.set(d,f)}for(let a of n.values())if(a.buy&&a.sell)for(let d of a.rows)d.wash=!0;return{rows:s,dropped:t}}function Zt(...e){let t=xt();for(let s of e)for(let n of Object.keys(t))t[n]+=s&&s[n]||0;return t}function Xt(e){let t=new Set(e.map(p=>p.owner)),s=p=>Math.round(p*100),n=!1;for(let p of ce(e,l=>`${l.date}|${s(l.price)}`).values()){let l=new Set(p.map(k=>k.owner)).size,i=s(p[0].price)%100===0,c=p.reduce((k,S)=>k+S.value,0),y=l>=2&&new Set(p.map(k=>k.shares)).size===1;if(l>=3||l>=2&&(i||c>=5e6||y)){n=!0;break}}let a=!1;for(let p of ce(e,l=>l.owner).values()){let l=new Set(p.map(c=>c.date)).size,i=Math.max(...[...ce(p,c=>s(c.price)).values()].map(c=>c.length));if(p.length>=3&&l>=2&&i/p.length>=.8){a=!0;break}}let d=[...ce(e,p=>p.owner).values()].map(p=>p.reduce((l,i)=>l+i.value,0)),f=t.size>=8&&(Xe(d)??0)<15e3||e.length>=10&&(Xe(e.map(p=>p.value))??0)<5e3,$=[];for(let[p,l]of ce(e,i=>i.owner)){let i=new Set(l.map(k=>k.date)).size,c=Math.min(...l.map(k=>k.price)),y=Math.max(...l.map(k=>k.price));i>=3&&c>0&&(y-c)/c>.01&&$.push(p)}let b=[...ce(e,p=>p.owner).values()].some(p=>p.reduce((l,i)=>l+i.value,0)>=1e6&&p.some(l=>l.stakePct!=null&&l.stakePct>400));return{placement:n,stakeJump:b,fixedPrice:a,programmatic:f,accumulating:$,lateForm4:e.filter(p=>p.lateDays!=null&&p.lateDays>4).length,newPositions:new Set(e.filter(p=>p.newPosition).map(p=>p.owner)).size}}var _e=[{key:"iBreadth",group:"insider",label:"Insider breadth",short:"Breadth",desc:"Different insiders buying, weighted by seniority and how recent the buy is."},{key:"iSize",group:"insider",label:"Insider dollars",short:"Dollars",desc:"Dollars put in by insiders, seniority- and recency-weighted. $25K scores 0, $10M scores 1 (log scale)."},{key:"iStake",group:"insider",label:"Stake increase",short:"Stake Δ",desc:"Median increase in each buyer’s holding. A new position counts as 100%; 50% or more scores 1."},{key:"iSenior",group:"insider",label:"Seniority",short:"Senior",desc:"Most senior buyer: CEO, CFO, COO, president or chair scores 1; other officers 0.6; directors 0.5."},{key:"cBreadth",group:"congress",label:"Congress breadth",short:"Members",desc:"Different members of Congress buying, recency-weighted. Same-day buy-and-sell pairs are ignored."},{key:"cSize",group:"congress",label:"Congress dollars",short:"Cong. $",desc:"Midpoint of reported ranges. $15K scores 0, $1M scores 1 (log scale)."},{key:"cBipartisan",group:"congress",label:"Bipartisan",short:"Bipart.",desc:"Democrats and Republicans both bought."},{key:"convergence",group:"cross",label:"Convergence",short:"Converge",desc:"Insiders bought and members of Congress bought in the window (1) or in the last 90 days (0.7)."},{key:"freshness",group:"cross",label:"Freshness",short:"Fresh",desc:"How recent the latest buy is; halves every 10 days."}],Fn=Object.fromEntries(_e.map(e=>[e.key,e])),Ce={balanced:{label:"Balanced",short:"Balanced",weights:{iBreadth:20,iSize:18,iStake:8,iSenior:14,cBreadth:10,cSize:5,cBipartisan:3,convergence:12,freshness:10}},insider:{label:"Insider-first",short:"Insider",weights:{iBreadth:25,iSize:22,iStake:10,iSenior:17,cBreadth:5,cSize:2,cBipartisan:1,convergence:8,freshness:10}},congress:{label:"Congress-first",short:"Congress",weights:{iBreadth:10,iSize:8,iStake:4,iSenior:6,cBreadth:24,cSize:14,cBipartisan:10,convergence:14,freshness:10}}},Ee=Object.freeze({preset:"balanced",weights:{...Ce.balanced.weights},halfLife:21,tiers:{A:50,B:38,C:25}}),es={csuite:1,officer:.7,director:.8,fund:.45,holder:.4},sn={csuite:1,officer:.6,director:.5,fund:.25,holder:.2},de={placement:.55,fixedPrice:.5,programmatic:.35,entityOnly:.7,stakeJump:.7,floor:.2};function nn(e,t=Ee.tiers){return e>=t.A?"A":e>=t.B?"B":e>=t.C?"C":"D"}var ts=(e,t,s)=>e>0?ke(Math.log10(e/t)/Math.log10(s/t),0,1):0;function Je({insiderBuys:e,congressRows:t,congressAgg:s=new Map,convergence90:n=new Map,enrichment:a=new Map,asOf:d,windowDays:f,model:$=Ee,lastSeen:b=null}){let p=$.halfLife||21,l=r=>r?Math.pow(.5,Math.max(0,Ne(r,d))/p):0,i=_e.reduce((r,g)=>r+($.weights[g.key]||0),0)||1,c=ne(d,-(f-1)),y=Be(c,d),k=new Map(y.map((r,g)=>[r,g])),S=ce(e,r=>r.ticker),C=ce(t.filter(r=>r.kind==="buy"),r=>r.ticker),M=new Set([...S.keys(),...C.keys()]);for(let[r,g]of s)g.buys>0&&M.add(r);let o=[];for(let r of M){let g=S.get(r)||[],m=C.get(r)||[],x=s.get(r)||null,_=new Array(y.length).fill(0),R=[];for(let[E,z]of ce(g,we=>we.owner)){let we=z[0].role,ie=z.reduce((le,be)=>le+be.value,0),ge=z.reduce((le,be)=>be.date>le?be.date:le,""),Qs=z.reduce((le,be)=>be.date<le?be.date:le,ge),Bt=z.map(le=>le.newPosition?100:le.stakePct).filter(le=>le!=null);R.push({name:E,role:we,title:z[0].officer_title||"",usd:ie,tx:z.length,firstDate:Qs,lastDate:ge,stakePct:Bt.length?Math.max(...Bt):null,newPosition:z.some(le=>le.newPosition),avgPrice:ie/z.reduce((le,be)=>le+be.shares,0)});for(let le of z){let be=k.get(le.date);be!=null&&_[be]++}}R.sort((E,z)=>z.usd-E.usd);let P=g.length?Xt(g):null,N=R.reduce((E,z)=>E+z.usd,0),D=R.reduce((E,z)=>z.lastDate>E?z.lastDate:E,""),Q=[];for(let[E,z]of ce(m,we=>we.representative)){let we=z.filter(ie=>!ie.wash);Q.push({name:E,party:z[0].party,chamber:z[0].chamber||"",bioguide:z[0].bioguide_id||null,usd:we.reduce((ie,ge)=>ie+ge.mid,0),tx:z.length,washOnly:!we.length,lastFiled:z.reduce((ie,ge)=>ge.filed>ie?ge.filed:ie,""),lastTraded:z.reduce((ie,ge)=>ge.traded>ie?ge.traded:ie,""),late:z.filter(ie=>ie.lagDays>45).length,ranges:[...new Set(z.map(ie=>ie.amount))]});for(let ie of z){let ge=k.get(ie.filed);ge!=null&&_[ge]++}}Q.sort((E,z)=>z.usd-E.usd);let J=Q.filter(E=>!E.washOnly),Z=x?x.buys:m.length,ee=x?x.sells:0,ve=J.reduce((E,z)=>E+z.usd,0)||(x&&!m.length?x.buyVol:0),w=Q.reduce((E,z)=>z.lastFiled>E?z.lastFiled:E,""),h=new Set(J.map(E=>E.party)),A=m.filter(E=>E.wash).length,I=n.get(r)||0,v=R.reduce((E,z)=>E+es[z.role]*l(z.lastDate),0),V=R.reduce((E,z)=>E+z.usd*es[z.role]*l(z.lastDate),0),re=Xe(R.map(E=>E.stakePct==null?null:Math.min(E.stakePct,300)).filter(E=>E!=null)),U=J.reduce((E,z)=>E+l(z.lastFiled),0)||(x&&!m.length&&x.buys>0?.5:0),K=D>w?D:w,O={iBreadth:R.length?1-Math.exp(-v/1.6):0,iSize:ts(V,25e3,1e7),iStake:re==null?0:ke(re/50,0,1),iSenior:R.length?Math.max(...R.map(E=>sn[E.role])):0,cBreadth:1-Math.exp(-U/1.4),cSize:ts(ve,15e3,1e6),cBipartisan:h.has("D")&&h.has("R")?1:0,convergence:R.length&&J.length?1:R.length&&I>0?.7:0,freshness:K?Math.pow(.5,Math.max(0,Ne(K,d))/10):0},q=[],se=1;P?.placement&&(se*=de.placement,q.push({key:"placement",label:"Offering-priced buys",mult:de.placement})),P?.fixedPrice&&(se*=de.fixedPrice,q.push({key:"fixedPrice",label:"Fixed-price buys",mult:de.fixedPrice})),P?.programmatic&&(se*=de.programmatic,q.push({key:"programmatic",label:"Purchase-program pattern",mult:de.programmatic})),P?.stakeJump&&!P.placement&&(se*=de.stakeJump,q.push({key:"stakeJump",label:"Outsized stake jump",mult:de.stakeJump}));let Ze=R.length>0&&R.every(E=>E.role==="fund"||E.role==="holder");Ze&&(se*=de.entityOnly,q.push({key:"entityOnly",label:"Only funds or large holders bought",mult:de.entityOnly}));let Ae=a.get(r),De=null;if(Ae&&(Ae.sellUsd>0||Ae.buyUsd>0)&&(De=Ae.sellUsd/(Ae.sellUsd+Math.max(Ae.buyUsd,N)),De>.05)){let E=1-.6*De;se*=E,q.push({key:"insiderSelling",label:`Insider selling (${Math.round(De*100)}% of 90-day volume)`,mult:E})}se=Math.max(de.floor,se);let j=1;Z+ee>0&&ee>0&&(j=1-.5*(ee/(Z+ee)),q.push({key:"congressSelling",label:`Congressional sales (${ee} of ${Z+ee} trades)`,mult:j}));let Ie=E=>E.group==="insider"?se:E.group==="congress"?j:E.key==="convergence"?Math.min(se,j):1,rt=_e.map(E=>{let z=$.weights[E.key]||0,we=Ie(E);return{key:E.key,label:E.label,short:E.short,group:E.group,norm:O[E.key],weight:z,mult:we,contrib:100*z*O[E.key]*we/i}}),ot=Math.round(ke(rt.reduce((E,z)=>E+z.contrib,0),0,100)),oe=[],Ve=R.filter(E=>E.role==="csuite"),It=R.filter(E=>E.role==="csuite"||E.role==="officer"||E.role==="director");Ve.length>=2?oe.push({id:"csuite-cluster",tone:"pos",label:`C-suite cluster ×${Ve.length}`,detail:`${Ve.map(E=>E.name).join(", ")} bought on the open market.`}):Ve.length===1&&oe.push({id:"csuite",tone:"pos",label:"C-suite buy",detail:`${Ve[0].name} (${Ve[0].title||"senior officer"}) bought on the open market.`}),It.length>=3&&oe.push({id:"cluster",tone:"pos",label:`Insider cluster ×${It.length}`,detail:"Three or more officers or directors bought in the window."}),P?.accumulating.length&&oe.push({id:"accumulating",tone:"pos",label:"Accumulating",detail:`${P.accumulating.join(", ")} bought on 3+ days at changing prices.`}),P?.newPositions&&oe.push({id:"new",tone:"pos",label:`New position ×${P.newPositions}`,detail:"Buyer held no shares before this purchase."}),O.convergence>0&&oe.push({id:"convergence",tone:"pos",label:"Congress + insiders",detail:J.length?"Members of Congress and insiders both bought in this window.":`Insiders bought in this window; members of Congress made ${I} purchase${I===1?"":"s"} in the last 90 days.`}),O.cBipartisan&&oe.push({id:"bipartisan",tone:"pos",label:"Bipartisan",detail:"Democrats and Republicans both bought."}),J.length>=3&&oe.push({id:"members",tone:"pos",label:`${J.length} members buying`,detail:"Three or more members of Congress bought."}),P?.placement&&oe.push({id:"placement",tone:"warn",label:"Offering-priced",detail:"Several insiders bought on one day at one price, which usually means an offering or private placement rather than market orders."}),P?.fixedPrice&&oe.push({id:"fixed",tone:"warn",label:"Fixed price",detail:"One buyer bought on several days at an identical price, typical of a tender or negotiated deal."}),P?.programmatic&&oe.push({id:"program",tone:"warn",label:"Purchase program",detail:"Many small, uniform purchases, typical of employee or director purchase plans."}),P?.stakeJump&&oe.push({id:"jump",tone:"warn",label:"Outsized stake jump",detail:"A buyer more than quintupled their holding in $1M+ of purchases. Open-market buyers rarely do that; conversions and placements often do."}),Ze&&oe.push({id:"entity",tone:"info",label:"Fund / large holder",detail:"Only funds, companies or 10% owners bought; no management."}),P?.lateForm4&&oe.push({id:"late4",tone:"warn",label:`Late Form 4 ×${P.lateForm4}`,detail:"Filed more than 4 days after the trade (the deadline is 2 business days)."});let Nt=Q.reduce((E,z)=>E+z.late,0);Nt&&oe.push({id:"lateptr",tone:"warn",label:`Late PTR ×${Nt}`,detail:"Congressional trade disclosed more than 45 days after it happened, past the STOCK Act deadline."}),A&&oe.push({id:"wash",tone:"warn",label:"Offsetting trades",detail:"A member bought and sold on the same day; these net to zero and are ignored."}),De!=null&&De>.5&&oe.push({id:"selling",tone:"warn",label:"Insiders net selling",detail:`Sales are ${Math.round(De*100)}% of insider dollar volume over 90 days.`});let js=x&&x.company||m.find(E=>E.company)?.company||"";o.push({ticker:r,company:js,score:ot,tier:nn(ot,$.tiers),factors:rt,notes:q,mult:{insider:se,congress:j},flags:oe,insider:{buyers:R,usd:N,tx:g.length,lastDate:D,stakeMedian:re,patterns:P},congress:{members:Q,buys:Z,sells:ee,usd:ve,lastFiled:w,conv90:I,washes:A},lastActivity:K,daily:_,enriched:!!Ae,isNew:!!(b&&K&&K>=String(b).slice(0,10))})}return o.sort((r,g)=>g.score-r.score||g.insider.usd+g.congress.usd-(r.insider.usd+r.congress.usd)||r.ticker.localeCompare(g.ticker)),o.forEach((r,g)=>{r.rank=g+1}),o}function dt(e){let t=_e.reduce((s,n)=>s+(e[n.key]||0),0)||1;return Object.fromEntries(_e.map(s=>[s.key,100*(e[s.key]||0)/t]))}var an=[{key:"insider",label:"Form 4 purchases"},{key:"congress",label:"Congressional trades"},{key:"aggregate",label:"Congress aggregates"},{key:"score",label:"Clean + score"},{key:"enrich",label:"Insider-selling check"}];function ss({store:e,quiver:t}){let s=0,n=(p,l,i)=>{if(p!==s)return;let c=e.get().pipeline;e.set({pipeline:{...c,stages:c.stages.map(y=>y.key===l?{...y,...i}:y)}})};function a(){let{data:p,enrichment:l,session:i,model:c}=e.get();if(!p)return;let y=Je({insiderBuys:p.insiderBuys,congressRows:p.congressRows,congressAgg:p.congressAgg,convergence90:p.convergence90,enrichment:l,asOf:p.asOf,windowDays:p.windowDays,model:c,lastSeen:i&&i.lastSeenPrev||null});e.set({signals:y})}let d=Ue(a,120);async function f(p,l,i){let c=performance.now();n(p,l,{status:"running"});try{let y=await i();return n(p,l,{status:y.complete===!1?"partial":"done",rows:y.rows.length,pages:y.pages,ms:Math.round(performance.now()-c)}),y}catch(y){throw n(p,l,{status:"error",error:y,ms:Math.round(performance.now()-c)}),y}}async function $({refresh:p=!1}={}){let l=++s,i=e.get().windowDays,c=ye(),y=ne(c,-(i-1)),k=ne(c,-($t-1));e.set({pipeline:{status:"running",startedAt:Date.now(),finishedAt:null,error:null,stages:an.map(D=>({...D,status:"pending",rows:0,ms:0}))},enrichment:new Map});let[S,C,M,o]=await Promise.allSettled([f(l,"insider",()=>t.insiderPurchases({from:y,to:c,refresh:p})),f(l,"congress",()=>t.congressTrades({from:y,to:c,refresh:p})),f(l,"aggregate",()=>t.congressByTicker({from:y,to:c,refresh:p})),i>=$t?Promise.resolve(null):t.congressByTicker({from:k,to:c,refresh:p})]);if(l!==s)return;let r=[S,C,M].filter(D=>D.status==="rejected");if(r.length===3){e.set({pipeline:{...e.get().pipeline,status:"error",error:r[0].reason,finishedAt:Date.now()}});return}let g=performance.now();n(l,"score",{status:"running"});let m=S.status==="fulfilled"?tt(S.value.rows,{from:y,to:c}):{rows:[],dropped:{}},x=C.status==="fulfilled"?Ye(C.value.rows):{rows:[],dropped:{}},_=D=>{let Q=new Map;for(let J of D||[]){let Z=ct(J.ticker);Z&&Q.set(Z,{buys:+J.purchase_count||0,sells:+J.sale_count||0,buyVol:+J.purchase_volume||0,sellVol:+J.sale_volume||0,company:J.company||""})}return Q},R=M.status==="fulfilled"?_(M.value.rows):new Map,P=o.status==="fulfilled"&&o.value?_(o.value.rows):R,N=new Map([...P].map(([D,Q])=>[D,Q.buys]));e.set({data:{asOf:c,windowDays:i,from:y,insiderBuys:m.rows,congressRows:x.rows,congressAgg:R,convergence90:N,drops:Zt(m.dropped,x.dropped),rawCounts:{insider:S.status==="fulfilled"?S.value.rows.length:0,congress:C.status==="fulfilled"?C.value.rows.length:0,aggregate:R.size},coverage:{insider:S.status==="fulfilled"?S.value.complete:!1,congress:C.status==="fulfilled"?C.value.complete:!1},failures:r.map(D=>D.reason),fetchedAt:Date.now()}}),a(),n(l,"score",{status:"done",rows:e.get().signals.length,ms:Math.round(performance.now()-g)}),e.set({pipeline:{...e.get().pipeline,status:"done",finishedAt:Date.now()}}),await b(l,{asOf:c,refresh:p})}async function b(p,{asOf:l,refresh:i}){let c=e.get().signals.filter(C=>C.insider.buyers.length).slice(0,zt);if(!c.length){n(p,"enrich",{status:"done",rows:0});return}let y=performance.now();n(p,"enrich",{status:"running",detail:`0 / ${c.length}`});let k=0,S=0;await Promise.all(c.map(async C=>{try{let M=await t.tickerInsider(C.ticker,{from:ne(l,-89),to:l,refresh:i,maxPages:2,stage:"enrich"});if(p!==s)return;let{rows:o}=tt(M.rows,{to:l});S+=o.length;let r=o.filter(x=>x.transaction_type==="P").reduce((x,_)=>x+_.value,0),g=o.filter(x=>x.transaction_type==="S"),m=new Map(e.get().enrichment);m.set(C.ticker,{buyUsd:r,sellUsd:g.reduce((x,_)=>x+_.value,0),sells:g.length,complete:M.complete}),e.set({enrichment:m}),d()}catch{}k++,n(p,"enrich",{detail:`${k} / ${c.length}`})})),p===s&&(d.flush(),n(p,"enrich",{status:"done",rows:S,ms:Math.round(performance.now()-y)}))}return{run:$,recompute:a}}var rs="papertrail.workspace.v2",_t=2,ns=Object.freeze({v:_t,watch:[],portfolio:{capital:1e4,reserve:10,cap:20,method:"conviction"},model:null,lastSeen:null,updatedAt:0});function rn(){try{let e=JSON.parse(localStorage.getItem(rs)||"null");return e&&e.v===_t?e:null}catch{return null}}function as(e){try{localStorage.setItem(rs,JSON.stringify(e))}catch{}}function os({store:e,onRemote:t}){let s=null,n=null,a=Promise.resolve(),d="memory",f=rn();e.set({workspace:{...ns,...f||{}}}),f&&(d="local");let $=async()=>{let p=e.get().workspace;as(p),s&&(a=a.then(()=>s.set(JSON.parse(JSON.stringify(p)))).catch(()=>{d="local",s=null}),await a)},b=Ue($,900);return{get mode(){return d},update(p){let l=e.get().workspace;e.set({workspace:{...l,...p,updatedAt:Date.now()}}),b()},flush:()=>b.flush(),async attach(p,l){if(!p||!l)return;let i=await l.id().catch(()=>null);if(i){try{s=p.doc(`data/users/${i}/workspace`)}catch{s=null;return}d="synced",n=s.onSnapshot(c=>{if(!c.exists){e.get().workspace.updatedAt&&$();return}let y=c.data();if(!y||y.v!==_t)return;let k=e.get().workspace;(y.updatedAt||0)>(k.updatedAt||0)&&(e.set({workspace:{...ns,...y}}),as(y),t&&t(y))},()=>{d="local",s=null})}},detach(){n&&n()}}}var st=class{constructor(t){this.s=t}toString(){return this.s}},on={"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"},ae=e=>String(e??"").replace(/[&<>"']/g,t=>on[t]),qe=e=>new st(String(e??""));function is(e){return e==null||e===!1?"":e instanceof st?e.s:Array.isArray(e)?e.map(is).join(""):ae(e)}function u(e,...t){let s=e[0];for(let n=0;n<t.length;n++)s+=is(t[n])+e[n+1];return new st(s)}var T=(e,t=document)=>t.querySelector(e);function F(e,t){return e.innerHTML=String(t),e}function B(e,t,s,n,a){let d=f=>{let $=f.target.closest&&f.target.closest(s);$&&e.contains($)&&n(f,$)};return e.addEventListener(t,d,a),()=>e.removeEventListener(t,d,a)}function nt(e){let t=d=>ae(d).replace(/\*\*(.+?)\*\*/g,"<strong>$1</strong>").replace(/(^|[^*])\*([^*\s][^*]*)\*/g,"$1<em>$2</em>"),s="",n=!1,a=()=>{n&&(s+="</ul>",n=!1)};for(let d of String(e).split(/\r?\n/)){let f=d.trim();if(/^#{1,6}\s/.test(f)){a(),s+=`<h4>${t(f.replace(/^#+\s*/,""))}</h4>`;continue}if(/^([-*•]|\d+[.)])\s+/.test(f)){n||(s+="<ul>",n=!0),s+=`<li>${t(f.replace(/^([-*•]|\d+[.)])\s+/,""))}</li>`;continue}if(!f){a();continue}a(),s+=`<p>${t(f)}</p>`}return a(),qe(s)}var ue=(e,t=18)=>qe(`<svg width="${t}" height="${t}" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${e}</svg>`),H={signals:ue('<path d="M3 16V9M8 16V4M13 16v-6M18 16V7"/>'),graph:ue('<circle cx="5" cy="5" r="2"/><circle cx="15" cy="6" r="2"/><circle cx="9" cy="15" r="2"/><path d="M6.7 6 13.2 6M6 6.8 8.2 13.2M14 7.8 10.2 13.4"/>'),dossier:ue('<path d="M5 2.5h7l3.5 3.5v11.5H5z"/><path d="M12 2.5V6h3.5M7.5 10h5M7.5 13h5"/>'),member:ue('<circle cx="10" cy="7" r="3"/><path d="M4 17c.8-3.2 3.2-5 6-5s5.2 1.8 6 5"/>'),model:ue('<path d="M4 5h12M4 10h12M4 15h12"/><circle cx="8" cy="5" r="1.6" fill="currentColor"/><circle cx="13" cy="10" r="1.6" fill="currentColor"/><circle cx="6" cy="15" r="1.6" fill="currentColor"/>'),portfolio:ue('<path d="M10 3a7 7 0 1 0 7 7h-7z"/><path d="M12.5 2.6A7 7 0 0 1 17.4 7.5H12.5z"/>'),lineage:ue('<rect x="2.5" y="3" width="5" height="4" rx="1"/><rect x="12.5" y="3" width="5" height="4" rx="1"/><rect x="7.5" y="13" width="5" height="4" rx="1"/><path d="M5 7v2.5h10V7M10 9.5V13"/>'),refresh:ue('<path d="M16 10a6 6 0 1 1-1.8-4.3"/><path d="M16 3.5v3.5h-3.5"/>',14),spark:ue('<path d="M10 2.5v4M10 13.5v4M2.5 10h4M13.5 10h4M5 5l2.2 2.2M12.8 12.8 15 15M5 15l2.2-2.2M12.8 7.2 15 5"/>',14),plus:ue('<path d="M10 4v12M4 10h12"/>',14),check:ue('<path d="m4 10.5 4 4 8-9"/>',14),open:ue('<path d="M8 4H4v12h12v-4"/><path d="M11 3.5h5.5V9M16.5 3.5 9 11"/>',14),close:ue('<path d="M5 5l10 10M15 5 5 15"/>',16),download:ue('<path d="M10 3v9M6 8.5l4 4 4-4M4 16.5h12"/>',14),focus:ue('<circle cx="10" cy="10" r="3"/><path d="M10 2.5v3M10 14.5v3M2.5 10h3M14.5 10h3"/>',14)};function ls(){let e=T("#tip"),t=null,s=(a,d,f)=>{e.textContent=a,e.hidden=!1;let $=e.offsetWidth,b=e.offsetHeight,p=d+14,l=f+14;p+$>innerWidth-8&&(p=d-$-14),l+b>innerHeight-8&&(l=f-b-14),e.style.left=Math.max(8,p)+"px",e.style.top=Math.max(8,l)+"px"},n=()=>{e.hidden=!0,t=null};return document.addEventListener("pointermove",a=>{if(t)return;let d=a.target.closest&&a.target.closest("[data-tip]");d?s(d.getAttribute("data-tip"),a.clientX,a.clientY):n()}),document.addEventListener("pointerdown",a=>{let d=a.target.closest&&a.target.closest("[data-tip]");d&&a.pointerType==="touch"?(t=d,s(d.getAttribute("data-tip"),a.clientX,a.clientY)):d||n()}),document.addEventListener("scroll",n,{capture:!0,passive:!0}),{show:s,hide:n}}function me(e,t="info",s=3200){let n=T("#toasts"),a=document.createElement("div");a.className="toast",a.dataset.tone=t,a.textContent=e,n.appendChild(a),setTimeout(()=>a.remove(),s)}var je=[];function St(e,t){let s=T("#overlays"),n=document.createElement("div");n.className="scrim",s.append(n,e);let a={node:e,scrim:n,onClose:t,prevFocus:document.activeElement};return je.push(a),n.addEventListener("click",()=>Le(a)),a}function Le(e){let t=je.indexOf(e);t<0||(je.splice(t,1),e.node.remove(),e.scrim.remove(),e.onClose&&e.onClose(),e.prevFocus&&e.prevFocus.focus&&e.prevFocus.focus())}var Ct=()=>je.length?(Le(je[je.length-1]),!0):!1,Mt=()=>je.length>0;function cs({title:e,src:t="",render:s,onClose:n}){let a=document.createElement("aside");a.className="drawer",a.setAttribute("role","dialog"),a.setAttribute("aria-label",e),F(a,u`<div class="panel-h"><h2>${e}</h2><span class="src">${t}</span><span class="grow"></span><button class="btn ghost sm" type="button" data-close aria-label="Close">${H.close}</button></div><div class="body"></div>`);let d=St(a,n);return a.querySelector("[data-close]").addEventListener("click",()=>Le(d)),s(a.querySelector(".body"),()=>Le(d)),a.querySelector("[data-close]").focus(),()=>Le(d)}function ds({title:e,content:t}){let s=document.createElement("div");s.className="modal",s.setAttribute("role","dialog"),s.setAttribute("aria-label",e),F(s,u`<div class="panel-h"><h2>${e}</h2><span class="grow"></span><button class="btn ghost sm" type="button" data-close aria-label="Close">${H.close}</button></div>${t}`);let n=St(s);return s.querySelector("[data-close]").addEventListener("click",()=>Le(n)),s.querySelector("[data-close]").focus(),()=>Le(n)}function pt(e){let t=document.createElement("div");t.className="palette",t.setAttribute("role","dialog"),t.setAttribute("aria-label","Command palette"),F(t,u`<input id="cmdk-q" type="text" placeholder="Jump to a ticker, member, insider or command" autocomplete="off" spellcheck="false" aria-label="Search"><ul role="listbox" id="cmdk-list"></ul><div class="foot"><span><kbd>↑</kbd> <kbd>↓</kbd> move</span><span><kbd>Enter</kbd> open</span><span><kbd>Esc</kbd> close</span></div>`);let s=St(t),n=t.querySelector("input"),a=t.querySelector("ul"),d=e(),f=[],$=0,b=(i,c)=>{let y=i.label.toLowerCase();if(!c)return i.rank??1;if(y===c)return 100;if(y.startsWith(c))return 60-y.length*.01;let k=y.indexOf(c);return k>=0?30-k*.1:(i.hint||"").toLowerCase().indexOf(c)>=0?10:-1},p=()=>{let i=n.value.trim().toLowerCase();f=d.map(y=>({it:y,s:b(y,i)})).filter(y=>y.s>=0).sort((y,k)=>k.s-y.s).slice(0,40).map(y=>y.it),$=Math.min($,Math.max(0,f.length-1)),F(a,f.length?u`${f.map((y,k)=>u`<li role="option" data-i="${k}" aria-selected="${k===$}"><span class="k">${y.kind}</span><span class="m">${y.label}</span><span class="h">${y.hint||""}</span></li>`)}`:u`<li aria-disabled="true"><span class="m muted">No matches</span></li>`);let c=a.querySelector('[aria-selected="true"]');c&&c.scrollIntoView({block:"nearest"})},l=i=>{let c=f[i];c&&(Le(s),c.run())};n.addEventListener("input",()=>{$=0,p()}),n.addEventListener("keydown",i=>{i.key==="ArrowDown"?($=Math.min(f.length-1,$+1),p(),i.preventDefault()):i.key==="ArrowUp"?($=Math.max(0,$-1),p(),i.preventDefault()):i.key==="Enter"&&(l($),i.preventDefault())}),B(a,"click","li[data-i]",(i,c)=>l(+c.dataset.i)),p(),n.focus()}var pe=(e,t=!1)=>u`<span class="tier${t?" lg":""}" data-t="${e}" data-tip="${`Tier ${e}: ${{A:"strongest evidence",B:"solid evidence",C:"some evidence",D:"weak or mechanical"}[e]}`}">${e}</span>`;function ut(e,t=99){if(!e.length)return u`<span class="dim">—</span>`;let s=e.slice(0,t),n=e.length-s.length;return u`<span class="flags">${s.map(a=>u`<span class="flag" data-tone="${a.tone}" data-tip="${a.detail}">${a.label}</span>`)}${n>0?u`<span class="flag more" data-tip="${e.slice(t).map(a=>a.label).join(`
+`)}">+${n}</span>`:""}</span>`}var Te=e=>u`<span class="role" data-r="${e}">${Oe[e]||e}</span>`,Fe=e=>u`<span class="party" data-tip="${{D:"Democrat",R:"Republican",I:"Independent"}[e]||"Party unknown"}">${e||"?"}</span>`;function Qe(e){let t=Yt(e);return u`<div class="alert" data-tone="error" role="alert"><div><b>${t.title}</b>${t.body} <span class="dim mono">(${t.code})</span></div></div>`}var he=(e,t,s="")=>u`<div class="kpi"><span class="label">${e}</span><span class="v">${t}</span><span class="s">${s}</span></div>`,ps=e=>u`<span class="score" data-tip="${`Conviction score ${e.score} / 100 · rank ${e.rank}`}"><b>${e.score}</b><span class="meter"><i style="width:${e.score}%"></i></span></span>`,us=(e,t=8)=>u`${Array.from({length:t},()=>u`<tr>${Array.from({length:e},(s,n)=>u`<td><div class="skel" style="width:${[30,70,60,80,50,90][n%6]}%"></div></td>`)}</tr>`)}`;var at=e=>Math.max(260,Math.round(e.clientWidth||e.parentElement?.clientWidth||600));function Dt(e,t=3){let s=e/t,n=Math.pow(10,Math.floor(Math.log10(s||1))),a=s/n;return(a<=1?1:a<=2?2:a<=2.5?2.5:a<=5?5:10)*n}function At(e,t,s,n,a=3){let d=n-t;if(d<=.5)return"";let f=Math.min(a,d,s/2);return`M${e},${n}L${e},${t+f}Q${e},${t} ${e+f},${t}L${e+s-f},${t}Q${e+s},${t} ${e+s},${t+f}L${e+s},${n}Z`}function hs(e,{w:t=76,h:s=18}={}){let n=e.length||1,a=Math.max(1,...e),d=t/n,f="";return e.forEach(($,b)=>{if(!$)return;let p=Math.max(2,$/a*s);f+=`<rect x="${(b*d).toFixed(2)}" y="${(s-p).toFixed(2)}" width="${Math.max(1,d-.6).toFixed(2)}" height="${p.toFixed(2)}"${b>=n-7?' class="on"':""}/>`}),qe(`<svg class="spark" width="${t}" height="${s}" viewBox="0 0 ${t} ${s}" aria-hidden="true"><line x1="0" x2="${t}" y1="${s-.5}" y2="${s-.5}" stroke="var(--line-3)"/>${f}</svg>`)}function ms(e,t=96){let s=e.filter(n=>n.contrib>.2);return qe(`<span class="stackbar" style="width:${t}px" aria-hidden="true">${s.map(n=>`<i data-g="${n.group}" style="width:${n.contrib.toFixed(2)}%"></i>`).join("")}</span>`)}function ht(e){let t=0,s=e.factors.map(n=>{let a=t;t+=n.contrib;let d=ke(a/100*100,0,100),f=ke(n.contrib/100*100,0,100-d),$=`${n.label}
+Raw ${(n.norm*100).toFixed(0)}% × weight ${n.weight}${n.mult<.999?` × ${n.mult.toFixed(2)} adjustment`:""} = ${n.contrib.toFixed(1)} pts`;return u`<div class="wf-row" data-tip="${$}"><span class="n">${n.label}</span><span class="track"><i data-g="${n.group}" style="left:${d}%;width:${Math.max(f,n.contrib>0?.6:0)}%"></i></span><span class="v">${n.contrib>=.05?"+"+n.contrib.toFixed(1):"0"}</span></div>`});return u`<div class="wf">${s}<div class="wf-row total"><span class="n">Score</span><span class="track"><i data-g="cross" style="left:0;width:${e.score}%;opacity:.35"></i></span><span class="v">${e.score}</span></div>
+    ${e.notes.length?u`<div class="wf-notes">${e.notes.map(n=>u`<span>× ${n.mult.toFixed(2)} ${n.label}</span>`)}</div>`:""}</div>`}function gs(e,{days:t,insider:s,congress:n,range:a,onRange:d}){let f=at(e),$=150,b=34,p=8,l=10,i=22,c=t.length,y=(f-b-p)/c,k=Math.max(1,Math.min(18,y-2)),S=t.map((P,N)=>s[N]+n[N]),C=Math.max(1,...S),M=Dt(C,3),o=Math.ceil(C/M)*M,r=P=>l+($-l-i)*(1-P/o),g=P=>b+y*P,m="";for(let P=0;P<=o+1e-9;P+=M)m+=`<line class="${P?"gl":"bl"}" x1="${b}" x2="${f-p}" y1="${r(P)}" y2="${r(P)}"/><text class="ax" x="${b-6}" y="${r(P)+3.5}" text-anchor="end">${L(P)}</text>`;if(a){let P=t.indexOf(a[0]),N=t.indexOf(a[1]);P>=0&&N>=0&&(m+=`<rect class="brush" x="${g(P)}" y="${l}" width="${g(N)+y-g(P)}" height="${$-l-i}"/>`)}t.forEach((P,N)=>{let D=g(N)+(y-k)/2,Q=r(s[N]),J=r(s[N]+n[N]),Z=r(0);s[N]&&(m+=`<path class="m-ins" d="${At(D,Q,k,Z,n[N]?0:2)}"/>`),n[N]&&(m+=`<path class="m-cong" d="${At(D,J,k,Q-(s[N]?1.5:0),2)}"/>`),m+=`<rect class="hit" x="${g(N)}" y="${l}" width="${y}" height="${$-l-i}" data-i="${N}" data-tip="${ae(`${G(P)}
+Insider buys: ${s[N]}
+Congress filings: ${n[N]}`)}"/>`;let ee=new Date(te(P));ee.getUTCDay()===1&&(c<=31||ee.getUTCDate()<=7)&&(m+=`<text class="ax" x="${g(N)+y/2}" y="${$-6}" text-anchor="middle">${G(P,{year:!1})}</text>`)}),e.innerHTML=`<svg viewBox="0 0 ${f} ${$}" width="${f}" height="${$}" role="img" aria-label="Daily insider purchases and congressional filings">${m}</svg>`;let x=e.firstChild,_=null,R=P=>{let N=x.getBoundingClientRect(),D=(P.clientX-N.left)*(f/N.width);return ke(Math.floor((D-b)/y),0,c-1)};x.addEventListener("pointerdown",P=>{_=R(P),x.setPointerCapture(P.pointerId)}),x.addEventListener("pointerup",P=>{if(_==null)return;let N=R(P),D=Math.min(_,N),Q=Math.max(_,N);_=null,a&&D===Q&&a[0]===t[D]&&a[1]===t[D]?d(null):d([t[D],t[Q]])})}function fs(e,{events:t,from:s,to:n,lanes:a}){let d=at(e),f=d<520?70:92,$=10,b=54,p=4,l=p+b*a.length+24,i=te(s),c=te(n)+Ge,y=M=>f+(M-i)/(c-i)*(d-f-$),k="",S=new Date(i);for(S.setUTCDate(1),S.setUTCMonth(S.getUTCMonth()+1);S.getTime()<c;){let M=y(S.getTime());k+=`<line class="gl" x1="${M}" x2="${M}" y1="${p}" y2="${p+b*a.length}"/>`;let o=S.toLocaleDateString("en-US",{month:"short",timeZone:"UTC"}),r=S.getUTCMonth()===0?`${o} ’${String(S.getUTCFullYear()).slice(2)}`:o;(d>=560||S.getUTCMonth()%2===0)&&(k+=`<text class="ax" x="${M}" y="${l-7}" text-anchor="middle">${r}</text>`),S.setUTCMonth(S.getUTCMonth()+1)}a.forEach((M,o)=>{let r=p+o*b;k+=`<text class="ax-l" x="0" y="${r+b/2+4}">${ae(M)}</text>`,k+=`<line class="bl" x1="${f}" x2="${d-$}" y1="${r+b}" y2="${r+b}"/>`});let C=M=>3.5+4.5*ke(Math.log10(Math.max(M,1)/1e3)/4,0,1);for(let M of[...t].sort((o,r)=>r.usd-o.usd)){let o=te(M.date);if(!(o>=i&&o<c))continue;let r=y(o),g=p+M.lane*b,m=g+b/2;if(M.kind==="award"){let x=5+30*ke(Math.log10(Math.max(M.usd,1)/1e5)/4,0,1),_=g+b-4;k+=`<g data-tip="${ae(M.tip)}"><rect class="hit" x="${r-5}" y="${_-x-4}" width="10" height="${x+8}"/><line x1="${r}" x2="${r}" y1="${_}" y2="${_-x}" stroke="var(--grp-cross)" stroke-width="2" stroke-linecap="round"/></g>`}else{let x=C(M.usd),_=M.kind==="buy",R=_?m-8:m+8,P=_?`${r},${R-x} ${r+x},${R+x*.8} ${r-x},${R+x*.8}`:`${r-x},${R-x*.8} ${r+x},${R-x*.8} ${r},${R+x}`;k+=`<g data-tip="${ae(M.tip)}"><circle class="hit" cx="${r}" cy="${R}" r="${x+6}"/><polygon points="${P}" class="${_?"m-buy":"m-sell"} ring"/></g>`}}e.innerHTML=`<svg viewBox="0 0 ${d} ${l}" width="${d}" height="${l}" role="img" aria-label="Event timeline">${k}</svg>`}function bs(e,t,{format:s=W,height:n=160,label:a="Values"}={}){let d=at(e),f=n,$=48,b=8,p=18,l=22,i=Math.max(1,...t.map(r=>r.value)),c=Dt(i,3),y=Math.ceil(i/c)*c,k=r=>p+(f-p-l)*(1-r/y),S=(d-$-b)/Math.max(1,t.length),C=Math.min(22,S*.62),M="";for(let r=0;r<=y+1e-9;r+=c)M+=`<line class="${r?"gl":"bl"}" x1="${$}" x2="${d-b}" y1="${k(r)}" y2="${k(r)}"/><text class="ax" x="${$-6}" y="${k(r)+3.5}" text-anchor="end">${ae(s(r))}</text>`;let o=t.findIndex(r=>r.value===i);t.forEach((r,g)=>{let m=$+S*g+S/2,x=k(r.value);M+=`<g data-tip="${ae(`${r.label}: ${s(r.value)}`)}"><rect class="hit" x="${m-S/2}" y="${p}" width="${S}" height="${f-p-l}"/><path class="m-acc" d="${At(m-C/2,x,C,k(0))}"/></g>`,(d>=420||g%2===(t.length-1)%2)&&(M+=`<text class="ax" x="${m}" y="${f-6}" text-anchor="middle">${ae(r.label)}</text>`),(g===o||g===t.length-1)&&(M+=`<text class="vl" x="${m}" y="${x-5}" text-anchor="middle">${ae(s(r.value))}</text>`)}),e.innerHTML=`<svg viewBox="0 0 ${d} ${f}" width="${d}" height="${f}" role="img" aria-label="${ae(a)}">${M}</svg>`}function ys(e,t,{value:s,tip:n,format:a=f=>(f*100).toFixed(0)+"%",label:d="Series"}){let f=at(e),$=170,b=40,p=46,l=12,i=22,c=t.map(s),y=Math.min(...c),k=Math.max(...c),S=(k-y)*.15||.05;y-=S,k+=S;let C=Dt(k-y,4);y=Math.floor(y/C)*C,k=Math.ceil(k/C)*C;let M=D=>b+(f-b-p)*(t.length===1?.5:D/(t.length-1)),o=D=>l+($-l-i)*(1-(D-y)/(k-y)),r="";for(let D=y;D<=k+1e-9;D+=C)r+=`<line class="gl" x1="${b}" x2="${f-p}" y1="${o(D)}" y2="${o(D)}"/><text class="ax" x="${b-6}" y="${o(D)+3.5}" text-anchor="end">${ae(a(D))}</text>`;let g=t.map((D,Q)=>`${M(Q).toFixed(1)},${o(s(D)).toFixed(1)}`);r+=`<path d="M${g[0]}L${g.join("L")}L${M(t.length-1)},${o(y)}L${M(0)},${o(y)}Z" fill="var(--accent)" fill-opacity=".10"/>`,r+=`<path d="M${g.join("L")}" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`;let m=t.length-1;r+=`<circle cx="${M(m)}" cy="${o(s(t[m]))}" r="4" class="m-acc ring"/><text class="vl" x="${M(m)+8}" y="${o(s(t[m]))+4}">${ae(a(s(t[m])))}</text>`,r+=`<text class="ax" x="${b}" y="${$-5}">${ae(G(t[0].date,{year:!1}))}</text><text class="ax" x="${f-p}" y="${$-5}" text-anchor="end">${ae(G(t[m].date,{year:!1}))}</text>`,r+=`<g class="xh" visibility="hidden"><line class="bl" y1="${l}" y2="${$-i}"/><circle r="4" class="m-acc ring"/></g><rect class="hit" x="${b}" y="${l}" width="${f-b-p}" height="${$-l-i}"/>`,e.innerHTML=`<svg viewBox="0 0 ${f} ${$}" width="${f}" height="${$}" role="img" aria-label="${ae(d)}">${r}</svg>`;let x=e.firstChild,_=x.querySelector(".xh"),R=x.querySelector("rect.hit"),P=document.getElementById("tip"),N=D=>{let Q=x.getBoundingClientRect(),J=(D.clientX-Q.left)*(f/Q.width),Z=ke(Math.round((J-b)/(f-b-p)*(t.length-1)),0,t.length-1),[ee,ve]=_.children;ee.setAttribute("x1",M(Z)),ee.setAttribute("x2",M(Z)),ve.setAttribute("cx",M(Z)),ve.setAttribute("cy",o(s(t[Z]))),_.setAttribute("visibility","visible"),R.setAttribute("data-tip",n(t[Z]))};R.addEventListener("pointermove",N),R.addEventListener("pointerleave",()=>{_.setAttribute("visibility","hidden"),P.hidden=!0})}function Tt(e,t,{format:s=a=>L(a),label:n="Net"}={}){let a=at(e),d=130,f=8,$=8,b=10,p=22,l=Math.max(1,...t.map(C=>Math.abs(C.value))),i=b+(d-b-p)/2,c=(d-b-p)/2-3,y=(a-f-$)/Math.max(1,t.length),k=Math.min(22,y*.6),S=`<line class="bl" x1="${f}" x2="${a-$}" y1="${i}" y2="${i}"/>`;t.forEach((C,M)=>{let o=f+y*M+y/2,r=o-k/2,g=Math.abs(C.value)/l*c,m="";if(g>.5){let x=Math.min(3,g);m=C.value>0?`M${r},${i}L${r},${i-g+x}Q${r},${i-g} ${r+x},${i-g}L${r+k-x},${i-g}Q${r+k},${i-g} ${r+k},${i-g+x}L${r+k},${i}Z`:`M${r},${i}L${r},${i+g-x}Q${r},${i+g} ${r+x},${i+g}L${r+k-x},${i+g}Q${r+k},${i+g} ${r+k},${i+g-x}L${r+k},${i}Z`}S+=`<g data-tip="${ae(`${C.label}: ${C.value>0?"+":""}${s(C.value)}`)}"><rect class="hit" x="${o-y/2}" y="${b}" width="${y}" height="${d-b-p}"/>${m?`<path d="${m}" class="${C.value>0?"m-buy":"m-sell"}"/>`:`<circle cx="${o}" cy="${i}" r="2" fill="var(--fg-3)"/>`}</g>`,S+=`<text class="ax" x="${o}" y="${d-6}" text-anchor="middle">${ae(C.label)}</text>`}),e.innerHTML=`<svg viewBox="0 0 ${a} ${d}" width="${a}" height="${d}" role="img" aria-label="${ae(n)}">${S}</svg>`}function Me(e,t=5){let s=e==="buy",n=t*1.7,a=s?`${t},0 ${2*t},${n} 0,${n}`:`0,0 ${2*t},0 ${t},${n}`;return qe(`<svg width="${2*t}" height="${n}" viewBox="0 0 ${2*t} ${n}" aria-hidden="true"><polygon points="${a}" class="${s?"m-buy":"m-sell"}"/></svg>`)}var mt=Object.freeze({source:"all",tiers:{A:!0,B:!0,C:!0,D:!1},csuite:!1,hideMechanical:!1,hideEntity:!1,newOnly:!1,party:"any",q:"",range:null}),ln=new Set(["placement","fixedPrice","programmatic","stakeJump"]);function Pt(e,t,s){let n=t.range&&s?[s.indexOf(t.range[0]),s.indexOf(t.range[1])]:null,a=t.q.trim().toLowerCase();return e.filter(d=>{if(!t.tiers[d.tier])return!1;let f=d.insider.buyers.length>0,$=d.congress.members.some(b=>!b.washOnly)||d.congress.buys>0;if(t.source==="insider"&&!f||t.source==="congress"&&!$||t.source==="both"&&!d.flags.some(b=>b.id==="convergence")||t.csuite&&!d.insider.buyers.some(b=>b.role==="csuite")||t.hideMechanical&&d.notes.some(b=>ln.has(b.key))||t.hideEntity&&d.flags.some(b=>b.id==="entity")||t.newOnly&&!d.isNew)return!1;if(t.party!=="any"){let b=new Set(d.congress.members.filter(p=>!p.washOnly).map(p=>p.party));if(t.party==="bi"?!(b.has("D")&&b.has("R")):!b.has(t.party))return!1}if(n&&n[0]>=0){let b=!1;for(let p=n[0];p<=n[1];p++)if(d.daily[p]){b=!0;break}if(!b)return!1}return!(a&&!(d.ticker.toLowerCase().includes(a)||d.company.toLowerCase().includes(a)||d.insider.buyers.some(b=>b.name.toLowerCase().includes(a))||d.congress.members.some(b=>b.name.toLowerCase().includes(a))))})}var $s={score:e=>e.score,ticker:e=>e.ticker,insiders:e=>e.insider.buyers.length,insiderUsd:e=>e.insider.usd,stake:e=>e.insider.stakeMedian??-1,members:e=>e.congress.members.filter(t=>!t.washOnly).length,congressUsd:e=>e.congress.usd,last:e=>e.lastActivity||""};function vs(e){let{store:t}=e,s=document.createElement("section");s.className="view",s.id="v-signals";let n=150,a=[];F(s,u`
+    <div class="view-h">
+      <div><h1>Signals</h1><p>Open-market insider purchases and congressional buying, scored by the conviction model. Select a row to see why it scored what it did.</p></div>
+      <div class="tools">
+        <div class="seg" role="group" aria-label="Look-back window" id="sig-win">${lt.map(o=>u`<button type="button" data-d="${o}">${o}D</button>`)}</div>
+        <select class="input" id="sig-preset" aria-label="Model preset">${Object.entries(Ce).map(([o,r])=>u`<option value="${o}">${r.label}</option>`)}<option value="custom" disabled>Custom</option></select>
+        <button class="btn" type="button" id="sig-brief">${H.spark} Desk brief</button>
+        <button class="btn" type="button" id="sig-refresh" data-tip="Re-pull from Quiver, bypassing the 5-minute cache">${H.refresh} Refresh</button>
+      </div>
+    </div>
+    <div class="kpis" id="sig-kpis"></div>
+    <div id="sig-alert"></div>
+    <div class="sig-grid">
+      <aside class="panel sig-facets" aria-label="Filters">
+        <div class="panel-h"><h2>Filters</h2><span class="grow"></span><button class="btn ghost sm" type="button" id="f-reset">Reset</button></div>
+        <div class="panel-b flush" id="facets"></div>
+      </aside>
+      <section class="panel sig-table">
+        <div class="panel-h"><h2>Ranked signals</h2><span class="src" id="sig-count"></span><span class="grow"></span><span class="legend"><span><i class="sw" data-g="insider"></i>Insider</span><span><i class="sw" data-g="congress"></i>Congress</span><span><i class="sw" data-g="cross"></i>Cross</span></span></div>
+        <div class="table-wrap" id="sig-wrap" tabindex="0" aria-label="Signals table. Use J and K to move, Enter to open."></div>
+        <div class="table-foot" id="sig-foot"></div>
+      </section>
+      <aside class="panel sig-inspector" id="sig-ins" aria-label="Inspector"></aside>
+      <section class="panel sig-activity">
+        <div class="panel-h"><h2>Daily activity</h2><span class="src">drag to filter by date</span><span class="grow"></span><span id="act-range"></span></div>
+        <div class="panel-b"><div class="legend"><span><i class="sw" data-g="insider"></i>Insider purchases</span><span><i class="sw" data-g="congress"></i>Congressional filings</span></div><div class="chart" id="act-chart"></div></div>
+      </section>
+    </div>`);function d(o){let r=o.filters,g={A:0,B:0,C:0,D:0};for(let x of o.signals)g[x.tier]++;let m=(x,_,R)=>u`<label class="check"><input type="radio" name="${x}" value="${_}" ${r[x]===_?"checked":""}> ${R}</label>`;F(T("#facets",s),u`
+      <div class="facet"><span class="label">Search</span><input class="input" id="f-q" type="search" placeholder="Ticker, insider, member" value="${r.q}" aria-label="Search signals"></div>
+      <div class="facet"><span class="label">Tier</span><div class="tiers">${["A","B","C","D"].map(x=>u`<button type="button" data-tier="${x}" aria-pressed="${!!r.tiers[x]}" data-tip="${`Tier ${x}: ${g[x]} tickers`}">${pe(x)}</button>`)}<span class="count">${L(g.A+g.B+g.C+g.D)}</span></div></div>
+      <div class="facet"><span class="label">Source</span>${m("source","all","Any")}${m("source","insider","Insider buying")}${m("source","congress","Congress buying")}${m("source","both","Both (convergence)")}</div>
+      <div class="facet"><span class="label">Quality</span>
+        <label class="check"><input type="checkbox" data-f="csuite" ${r.csuite?"checked":""}> C-suite bought</label>
+        <label class="check"><input type="checkbox" data-f="hideMechanical" ${r.hideMechanical?"checked":""}> Hide offerings and programs</label>
+        <label class="check"><input type="checkbox" data-f="hideEntity" ${r.hideEntity?"checked":""}> Hide fund-only buying</label>
+        <label class="check"><input type="checkbox" data-f="newOnly" ${r.newOnly?"checked":""}> New since last visit</label></div>
+      <div class="facet"><span class="label">Congress party</span>${m("party","any","Any")}${m("party","D","Democrat")}${m("party","R","Republican")}${m("party","bi","Bipartisan")}</div>`)}let f=o=>{t.set({filters:{...t.get().filters,...o}}),n=150};B(s,"input","#f-q",(o,r)=>f({q:r.value})),B(s,"click","[data-tier]",(o,r)=>{let g=t.get().filters;f({tiers:{...g.tiers,[r.dataset.tier]:!g.tiers[r.dataset.tier]}})}),B(s,"change","input[type=radio]",(o,r)=>f({[r.name]:r.value})),B(s,"change","input[data-f]",(o,r)=>f({[r.dataset.f]:r.checked})),B(s,"click","#f-reset",()=>f({...mt})),B(s,"click","#sig-win button",(o,r)=>{t.set({windowDays:+r.dataset.d,filters:{...t.get().filters,range:null}}),e.runPipeline()}),B(s,"change","#sig-preset",(o,r)=>e.applyPreset(r.value)),B(s,"click","#sig-brief",()=>e.openBrief()),B(s,"click","#sig-refresh",()=>e.runPipeline({refresh:!0})),B(s,"click","[data-retry]",()=>e.runPipeline({refresh:!0}));function $(o){let r=T("#sig-wrap",s),g=o.pipeline.status==="running"&&!o.signals.length,m=u`<thead><tr>
+      ${b("ticker","Ticker",o)}${b("score","Score · mix",o)}${b("insiders","Insiders",o)}${b("stake","Stake Δ",o,"num")}${b("members","Congress",o)}${b("last","Activity",o)}<th>Flags</th><th><span class="sr-only">Watch</span></th></tr></thead>`;if(g){F(r,u`<table class="grid">${m}<tbody>${us(8,12)}</tbody></table>`),T("#sig-foot",s).textContent="";return}let x=o.data?Be(o.data.from,o.data.asOf):null,_=Pt(o.signals,o.filters,x),R=$s[o.sort.key]||$s.score,P=o.sort.dir==="asc"?1:-1;if(_.sort((Q,J)=>{let Z=R(Q),ee=R(J);return(Z>ee?1:Z<ee?-1:0)*P||Q.rank-J.rank}),a=_.slice(0,n),T("#sig-count",s).textContent=`${L(_.length)} of ${L(o.signals.length)}`,!_.length){F(r,o.signals.length?u`<div class="empty"><h3>No signals match these filters</h3><span>Loosen a filter or press Reset.</span></div>`:u`<div class="empty"><h3>No signals yet</h3><span>${o.pipeline.status==="error"?"The last pull failed. See the message above.":"Signals appear here once the first pull from Quiver finishes."}</span></div>`),T("#sig-foot",s).textContent="";return}let N=new Set(o.workspace.watch.map(Q=>Q.ticker));F(r,u`<table class="grid" id="sig-grid">${m}<tbody>${a.map(Q=>p(Q,o,N))}</tbody></table>`);let D=a.length;F(T("#sig-foot",s),u`<span>Showing ${L(D)} of ${L(_.length)}</span>${_.length>D?u`<button class="btn sm" type="button" id="sig-more">Show ${Math.min(150,_.length-D)} more</button>`:""}<span class="grow" style="flex:1"></span><span><kbd>J</kbd> <kbd>K</kbd> move · <kbd>Enter</kbd> dossier · <kbd>W</kbd> watch</span>`)}function b(o,r,g,m=""){let x=g.sort.key===o;return u`<th class="sortable ${m}" data-sort="${o}" ${x?u`aria-sort="${g.sort.dir==="asc"?"ascending":"descending"}"`:""}>${r}${x?g.sort.dir==="asc"?" ↑":" ↓":""}</th>`}function p(o,r,g){let m=o.insider.buyers[0],x=o.congress.members.filter(P=>!P.washOnly),_=[...new Set(x.map(P=>P.party))].join("·"),R=g.has(o.ticker);return u`<tr data-t="${o.ticker}" aria-selected="${r.selected===o.ticker}">
+      <td><span class="cell-row">${pe(o.tier)}<div class="two"><span class="cell-row"><button class="tk" type="button" data-open="${o.ticker}">${o.ticker}</button>${o.isNew?u`<span class="new-badge" data-tip="New activity since your last visit">NEW</span>`:""}</span><span class="co">${$e(o.company)}</span></div></span></td>
+      <td><div class="score-mix">${ps(o)}${ms(o.factors,88)}</div></td>
+      <td>${o.insider.buyers.length?u`<div class="two"><span class="mono">${o.insider.buyers.length} · ${W(o.insider.usd)}</span><span class="sub" data-tip="${m?`${m.name} · ${m.title||""}`:""}">${m?m.role==="csuite"?m.title||"C-suite":{officer:"Officer",director:"Director",fund:"Fund",holder:"10% owner"}[m.role]:""}</span></div>`:u`<span class="dim">—</span>`}</td>
+      <td class="num">${o.insider.stakeMedian==null?u`<span class="dim">—</span>`:xe(Math.min(o.insider.stakeMedian,999))}</td>
+      <td>${x.length||o.congress.buys?u`<div class="two"><span class="mono">${x.length||"·"} · ${o.congress.usd?W(o.congress.usd):"—"}</span><span class="sub">${_||(o.congress.conv90?`${o.congress.conv90} buys / 90d`:"")}</span></div>`:o.congress.conv90?u`<span class="sub dim" data-tip="Congressional purchases in the last 90 days">${o.congress.conv90} / 90d</span>`:u`<span class="dim">—</span>`}</td>
+      <td><span class="act" data-tip="${`Last activity ${G(o.lastActivity)} · bars are daily filings in the window`}">${hs(o.daily,{w:64,h:16})}<span class="mono xs muted">${Qt(o.lastActivity,r.data.asOf)}</span></span></td>
+      <td>${ut(o.flags,1)}</td>
+      <td><button class="btn ghost sm" type="button" data-watch="${o.ticker}" aria-pressed="${R}" data-tip="${R?"Remove from portfolio":"Add to portfolio"}">${R?"★":"☆"}</button></td>
+    </tr>`}B(s,"click","th[data-sort]",(o,r)=>{let g=t.get().sort,m=r.dataset.sort;t.set({sort:{key:m,dir:g.key===m&&g.dir==="desc"||m==="ticker"?"asc":"desc"}})}),B(s,"click","#sig-grid tbody tr",(o,r)=>{o.target.closest("button")||t.set({selected:r.dataset.t})}),B(s,"dblclick","#sig-grid tbody tr",(o,r)=>e.openDossier(r.dataset.t)),B(s,"click","#sig-more",()=>{n+=150,$(t.get())});function l(o){let r=T("#sig-ins",s),g=o.signals.find(_=>_.ticker===o.selected)||null;if(!g){F(r,u`<div class="panel-h"><h2>Inspector</h2></div><div class="empty"><h3>Select a signal</h3><span>Pick a row to see the score breakdown, who bought, and what to be careful about. Press <kbd>J</kbd> to start.</span></div>`);return}let m=o.workspace.watch.some(_=>_.ticker===g.ticker),x=o.enrichment.get(g.ticker);F(r,u`
+      <div class="panel-h"><h2>Inspector</h2><span class="src">rank ${g.rank} of ${L(o.signals.length)}</span></div>
+      <div class="panel-b">
+        <div class="ins-h">${pe(g.tier,!0)}<div style="min-width:0"><div class="tk mono">${g.ticker}</div><div class="co">${$e(g.company)}</div></div></div>
+        <div class="ins-score"><b>${g.score}</b><span class="muted small">conviction score · tier ${g.tier}</span></div>
+        <div class="ins-actions">
+          <button class="btn primary sm" type="button" data-open="${g.ticker}">${H.open} Open dossier</button>
+          <button class="btn sm ${m?"on":""}" type="button" data-watch="${g.ticker}">${m?u`${H.check} In portfolio`:u`${H.plus} Add to portfolio`}</button>
+          <button class="btn sm ghost" type="button" data-graph="${g.ticker}">${H.focus} Show in graph</button>
+        </div>
+        <div><div class="label" style="margin-bottom:6px">Score breakdown</div>${ht(g)}</div>
+        ${g.flags.length?u`<div><div class="label" style="margin-bottom:6px">Flags</div><ul class="rows">${g.flags.map(_=>u`<li><span class="flag" data-tone="${_.tone}">${_.label}</span><span class="grow small muted">${_.detail}</span></li>`)}</ul></div>`:""}
+        ${g.insider.buyers.length?u`<div><div class="label" style="margin-bottom:2px">Insider buyers · ${W(g.insider.usd)}</div><ul class="rows">${g.insider.buyers.slice(0,6).map(_=>u`<li>${Te(_.role)}<div class="grow"><div class="t1">${_.name}</div><div class="t2">${_.title||""}${_.title?" · ":""}${_.tx} buy${_.tx>1?"s":""} · last ${G(_.lastDate,{year:!1})}${_.stakePct!=null?` · stake +${xe(Math.min(_.stakePct,999))}`:_.newPosition?" · new position":""}</div></div><span class="mono">${W(_.usd)}</span></li>`)}</ul>${g.insider.buyers.length>6?u`<span class="xs muted">+${g.insider.buyers.length-6} more in the dossier</span>`:""}</div>`:""}
+        ${g.congress.members.length?u`<div><div class="label" style="margin-bottom:2px">Members of Congress</div><ul class="rows">${g.congress.members.slice(0,6).map(_=>u`<li>${Fe(_.party)}<div class="grow"><button class="linkish t1" type="button" data-member="${_.name}">${_.name}</button><div class="t2">${_.chamber} · filed ${G(_.lastFiled,{year:!1})} · ${_.ranges.join(", ")}${_.washOnly?" · offset by a same-day sale":""}</div></div><span class="mono">${_.washOnly?"0":W(_.usd)}</span></li>`)}</ul></div>`:g.congress.conv90?u`<p class="small muted">No congressional buying in this window; ${g.congress.conv90} purchase${g.congress.conv90>1?"s":""} in the last 90 days.</p>`:""}
+        <p class="xs dim">${x?`Insider-selling check done: ${L(x.sells)} sales worth ${W(x.sellUsd)} in 90 days.`:g.insider.buyers.length?g.rank<=15?"Insider-selling check running…":"Insider-selling check runs for the top 15; open the dossier for the full Form 4 history.":""}</p>
+      </div>`)}function i(o){let r=o.data,g=o.signals;if(!r){F(T("#sig-kpis",s),u`${["Tickers screened","Tier A","Tier B","Insider dollars","Congress purchases","Convergence"].map(D=>he(D,u`<span class="skel" style="display:block;width:60%;height:18px"></span>`,""))}`);return}let m=new Set(r.insiderBuys.map(D=>D.owner)).size,x=r.congressRows.filter(D=>D.kind==="buy"),_=new Set(x.map(D=>D.representative)).size,R=g.reduce((D,Q)=>(D[Q.tier]++,D),{A:0,B:0,C:0,D:0}),P=g.filter(D=>D.flags.some(Q=>Q.id==="convergence")).length,N=g.filter(D=>D.isNew).length;F(T("#sig-kpis",s),u`
+      ${he("Tickers screened",L(g.length),`${r.windowDays} days to ${G(r.asOf,{year:!1})}`)}
+      ${he("Tier A",L(R.A),`score ≥ ${o.model.tiers.A} · Tier B ${L(R.B)}`)}
+      ${he("Insider dollars",W(r.insiderBuys.reduce((D,Q)=>D+Q.value,0)),`${L(r.insiderBuys.length)} buys by ${L(m)} insiders`)}
+      ${he("Congress purchases",L(x.length),`by ${L(_)} members`)}
+      ${he("Convergence",L(P),"insiders and Congress both bought")}
+      ${he("New since last visit",o.session.lastSeenPrev?L(N):"—",o.session.lastSeenPrev?`since ${G(o.session.lastSeenPrev,{year:!1})}`:"first visit")}`)}function c(o){let r=o.pipeline,g=T("#sig-alert",s);if(o.caps.mcp==="off"){F(g,u`<div class="alert" data-tone="info"><div><b>Live data needs the claude.ai viewer</b>Open this page on claude.ai, signed in to the account that has the Quiver Quant connector. Everything here is computed from that connector; nothing is stored on a server.</div></div>`);return}if(r.status==="error"){F(g,u`<div style="display:flex;flex-direction:column;gap:8px">${Qe(r.error)}<div><button class="btn" type="button" data-retry>${H.refresh} Retry</button></div></div>`);return}if(r.status==="running"){let x=r.stages.filter(_=>_.key!=="enrich").map(_=>`${_.label}: ${_.status==="done"||_.status==="partial"?L(_.rows)+" rows":_.status}`);F(g,u`<div class="alert" data-tone="info"><div><b>Pulling filings from Quiver</b><span class="mono xs">${x.join(" · ")}</span></div></div>`);return}let m=[];o.data&&!o.data.coverage.insider&&m.push("Form 4 purchases hit the page limit; the oldest days of the window may be missing."),o.data&&!o.data.coverage.congress&&m.push("Congressional trades hit the page limit."),o.data&&o.data.failures.length&&m.push(`${o.data.failures.length} dataset${o.data.failures.length>1?"s":""} failed to load; scores use what arrived.`),F(g,m.length?u`<div class="alert" data-tone="warn"><div>${m.join(" ")}</div></div>`:"")}function y(o){let r=T("#act-chart",s),g=o.data;if(!g){F(r,u`<div class="skel" style="height:120px"></div>`);return}let m=Be(g.from,g.asOf),x=new Map(m.map((N,D)=>[N,D])),_=new Array(m.length).fill(0),R=new Array(m.length).fill(0);for(let N of g.insiderBuys){let D=x.get(N.date);D!=null&&_[D]++}for(let N of g.congressRows)if(N.kind==="buy"){let D=x.get(N.filed);D!=null&&R[D]++}gs(r,{days:m,insider:_,congress:R,range:o.filters.range,onRange:N=>f({range:N})});let P=o.filters.range;F(T("#act-range",s),P?u`<button class="btn sm" type="button" id="act-clear">${P[0]===P[1]?G(P[0],{year:!1}):`${G(P[0],{year:!1})} – ${G(P[1],{year:!1})}`} ✕</button>`:"")}B(s,"click","#act-clear",()=>f({range:null}));function k(o){for(let r of s.querySelectorAll("#sig-win button"))r.setAttribute("aria-pressed",String(+r.dataset.d===o.windowDays));T("#sig-preset",s).value=o.model.preset in Ce?o.model.preset:"custom",T("#sig-brief",s).disabled=!o.signals.length||!e.caps.sample,T("#sig-brief",s).setAttribute("data-tip",e.caps.sample?"Claude weighs the top signals against each other":"Needs permission to use Claude on claude.ai"),T("#sig-refresh",s).disabled=o.pipeline.status==="running"}function S(o,r){let g=!r,m=x=>g||r.includes(x);(g||m("windowDays")||m("model")||m("signals")||m("pipeline"))&&k(o),(g||m("data")||m("signals")||m("model")||m("session"))&&i(o),(g||m("pipeline")||m("data")||m("caps"))&&c(o),(g||m("signals")||m("filters"))&&d(o),(g||m("signals")||m("filters")||m("sort")||m("selected")||m("workspace")||m("pipeline"))&&$(o),(g||m("signals")||m("selected")||m("workspace")||m("enrichment"))&&l(o),(g||m("data")||m("filters"))&&y(o)}function C(o){let r=t.get();if(!a.length)return!1;let g=a.findIndex(m=>m.ticker===r.selected);return o.key==="j"||o.key==="ArrowDown"?(t.set({selected:a[Math.min(a.length-1,g+1)].ticker}),M(),!0):o.key==="k"||o.key==="ArrowUp"?(t.set({selected:a[Math.max(0,g-1)].ticker}),M(),!0):o.key==="Enter"&&r.selected?(e.openDossier(r.selected),!0):o.key==="w"&&r.selected?(e.toggleWatch(r.selected),!0):!1}let M=()=>{let o=s.querySelector('#sig-grid tr[aria-selected="true"]');o&&o.scrollIntoView({block:"nearest"})};return{el:s,render:S,key:C,onResize:()=>y(t.get())}}function ws(e,{maxTickers:t=40,perTickerInsiders:s=4,includeMembers:n=!0,includeInsiders:a=!0,includeFunds:d=!0}={}){let f=new Map,$=[],b=(l,i)=>{let c=f.get(l);if(c)return c.weight+=i.weight||0,c;let y={id:l,degree:0,...i};return f.set(l,y),y};for(let l of e.slice(0,t)){if(b(`t:${l.ticker}`,{type:"ticker",label:l.ticker,ticker:l.ticker,score:l.score,tier:l.tier,weight:0}),a)for(let i of l.insider.buyers.slice(0,s)){let c=i.role==="fund"||i.role==="holder";if(c&&!d)continue;let y=`i:${i.name}`;b(y,{type:c?"fund":"insider",label:i.name,role:i.role,weight:i.usd}),$.push({source:y,target:`t:${l.ticker}`,usd:i.usd,kind:"insider",role:i.role})}if(n)for(let i of l.congress.members){if(i.washOnly)continue;let c=`m:${i.name}`;b(c,{type:"member",label:i.name,party:i.party,chamber:i.chamber,weight:i.usd}),$.push({source:c,target:`t:${l.ticker}`,usd:i.usd,kind:"congress"})}}for(let l of $)f.get(l.source).degree++,f.get(l.target).degree++;return{nodes:[...f.values()].filter(l=>l.degree>0),links:$}}var ks={ticker:"Ticker",member:"Member of Congress",insider:"Insider",fund:"Fund / large holder"};function xs(e){let{store:t}=e,s=document.createElement("section");s.className="view",s.id="v-graph";let n={top:40,members:!0,insiders:!0,funds:!0},a=null,d={nodes:[],links:[]},f=null,$=null;F(s,u`
+    <div class="view-h">
+      <div><h1>Link analysis</h1><p>Tickers in the current signal set and the people who bought them. Thicker lines carry more money. People tied to several tickers are bridges worth a closer look.</p></div>
+      <div class="tools">
+        <div class="seg" role="group" aria-label="Number of tickers" id="g-top">${[20,40,60].map(o=>u`<button type="button" data-n="${o}">Top ${o}</button>`)}</div>
+        <label class="check"><input type="checkbox" id="g-members" checked> Congress</label>
+        <label class="check"><input type="checkbox" id="g-insiders" checked> Insiders</label>
+        <label class="check"><input type="checkbox" id="g-funds" checked> Funds</label>
+        <button class="btn" type="button" id="g-reheat">${H.refresh} Re-run layout</button>
+      </div>
+    </div>
+    <div class="graph-grid">
+      <section class="panel">
+        <div class="panel-h"><h2>Network</h2><span class="src" id="g-count"></span></div>
+        <div class="graph-stage" id="g-stage">
+          <svg id="g-svg" role="img" aria-label="Network of tickers and buyers"></svg>
+          <div class="graph-legend">
+            <span><i style="background:var(--bg-3);border:1.5px solid var(--ent-ticker);border-radius:2px"></i>Ticker</span>
+            <span><i style="background:var(--ent-member);transform:rotate(45deg) scale(.8)"></i>Congress</span>
+            <span><i style="background:var(--ent-insider);border-radius:50%"></i>Insider</span>
+            <span><i style="background:var(--ent-fund);clip-path:polygon(50% 0,100% 100%,0 100%)"></i>Fund / holder</span>
+          </div>
+          <div class="graph-hint">Scroll to zoom · drag to pan · click a node</div>
+        </div>
+      </section>
+      <aside style="display:flex;flex-direction:column;gap:var(--gap)">
+        <section class="panel" id="g-ins"></section>
+        <section class="panel"><div class="panel-h"><h2>Bridges</h2><span class="src">linked to 2+ tickers</span></div><div class="panel-b" id="g-bridges"></div></section>
+      </aside>
+    </div>`),B(s,"click","#g-top button",(o,r)=>{n.top=+r.dataset.n,i(!0)}),B(s,"change","#g-members",(o,r)=>{n.members=r.checked,i(!0)}),B(s,"change","#g-insiders",(o,r)=>{n.insiders=r.checked,i(!0)}),B(s,"change","#g-funds",(o,r)=>{n.funds=r.checked,i(!0)}),B(s,"click","#g-reheat",()=>i(!0)),B(s,"click","[data-node]",(o,r)=>S(r.dataset.node));let b=o=>o.type==="ticker"?9+(o.score||0)/9:5+Math.min(7,Math.log10(Math.max(o.weight,1e3)/1e3)*2.2);function p(o){let r=b(o);return o.type==="ticker"?`<rect class="shape" x="${-r}" y="${-r*.72}" width="${2*r}" height="${1.44*r}" rx="3"/>`:o.type==="member"?`<path class="shape" d="M0,${-r}L${r},0L0,${r}L${-r},0Z"/>`:o.type==="fund"?`<path class="shape" d="M0,${-r}L${r*.95},${r*.75}L${-r*.95},${r*.75}Z"/>`:`<circle class="shape" r="${r}"/>`}let l=o=>{let r=String(o);return r.length>18?r.slice(0,17)+"…":r};function i(o){let r=t.get();for(let _ of s.querySelectorAll("#g-top button"))_.setAttribute("aria-pressed",String(+_.dataset.n===n.top));let g=`${r.signals.length}|${r.signals[0]?.ticker}|${JSON.stringify(r.filters)}|${n.top}|${n.members}|${n.insiders}|${n.funds}|${r.model.preset}`;if(!o&&g===$)return;$=g;let m=r.data?Be(r.data.from,r.data.asOf):null,x=Pt(r.signals,r.filters,m);d=ws(x,{maxTickers:n.top,includeMembers:n.members,includeInsiders:n.insiders,includeFunds:n.funds}),T("#g-count",s).textContent=`${L(d.nodes.length)} nodes · ${L(d.links.length)} links`,c(),M(),C()}function c(){let o=T("#g-svg",s),r=window.d3;if(!r){F(T("#g-stage",s),u`<div class="empty"><h3>Graph library did not load</h3><span>The network view needs d3 from cdnjs.cloudflare.com. Check your connection and reload.</span></div>`);return}a&&a.stop();let g=o.getBoundingClientRect(),m=Math.max(320,g.width||800),x=Math.max(320,g.height||600);if(!d.nodes.length){o.innerHTML=`<text x="${m/2}" y="${x/2}" text-anchor="middle" class="ax">${t.get().signals.length?"No links for the current filters.":"Waiting for signals…"}</text>`;return}let _=d.nodes.map(h=>({...h})),R=d.links.map(h=>({...h})),P=h=>.8+Math.min(4,Math.log10(Math.max(h.usd,1e3)/1e3)*1.1);o.innerHTML="";let N=r.select(o).attr("viewBox",`0 0 ${m} ${x}`),D=N.append("g"),Q=D.append("g").selectAll("line").data(R).join("line").attr("class","g-link").attr("data-k",h=>h.kind).attr("stroke-width",P),J=D.append("g").selectAll("g").data(_,h=>h.id).join("g").attr("class","g-node").attr("data-type",h=>h.type).attr("data-tier",h=>h.tier||null).attr("data-id",h=>h.id).attr("data-tip",h=>h.type==="ticker"?`${h.label} · tier ${h.tier} · score ${h.score}`:`${h.label}
+${ks[h.type]}${h.party?` (${h.party})`:""} · ${h.degree} ticker${h.degree>1?"s":""} · ${W(h.weight)}`).html(h=>p(h)+(h.type==="ticker"||h.degree>1?`<text x="${b(h)+4}" y="4">${(h.type==="ticker"?h.label:l(h.label)).replace(/[<&>]/g,"")}</text>`:"")).on("click",(h,A)=>{h.stopPropagation(),S(A.id)});J.call(r.drag().on("start",(h,A)=>{h.active||a.alphaTarget(.2).restart(),A.fx=A.x,A.fy=A.y}).on("drag",(h,A)=>{A.fx=h.x,A.fy=h.y}).on("end",(h,A)=>{h.active||a.alphaTarget(0),A.fx=null,A.fy=null}));let Z=r.zoom().scaleExtent([.2,4]).on("zoom",h=>D.attr("transform",h.transform));N.call(Z);let ee=h=>{let A=_.map(q=>q.x),I=_.map(q=>q.y),v=Math.min(...A)-40,V=Math.max(...A)+90,re=Math.min(...I)-30,U=Math.max(...I)+30,K=Math.min(1.6,.94*Math.min(m/(V-v),x/(U-re))),O=r.zoomIdentity.translate(m/2-K*(v+V)/2,x/2-K*(re+U)/2).scale(K);h?N.call(Z.transform,O):N.transition().duration(450).call(Z.transform,O)};N.on("click",()=>S(null)),a=r.forceSimulation(_).force("link",r.forceLink(R).id(h=>h.id).distance(h=>h.kind==="congress"?70:55).strength(.5)).force("charge",r.forceManyBody().strength(h=>h.type==="ticker"?-260:-120)).force("collide",r.forceCollide(h=>b(h)+6)).force("x",r.forceX(m/2).strength(.05)).force("y",r.forceY(x/2).strength(.07));let ve=()=>{Q.attr("x1",h=>h.source.x).attr("y1",h=>h.source.y).attr("x2",h=>h.target.x).attr("y2",h=>h.target.y),J.attr("transform",h=>`translate(${h.x},${h.y})`)};a.stop();let w=matchMedia("(prefers-reduced-motion: reduce)").matches;for(let h=0;h<(w?300:160);h++)a.tick();ve(),ee(!0),w||a.on("tick",ve).on("end",()=>ee(!1)).restart(),d.sim={nodes:_,links:R},k()}function y(o){let r=new Set([o]);for(let g of d.links)(g.source===o||g.source.id===o)&&r.add(typeof g.target=="object"?g.target.id:g.target),(g.target===o||g.target.id===o)&&r.add(typeof g.source=="object"?g.source.id:g.source);return r}function k(){let o=f?y(f):null;for(let r of s.querySelectorAll(".g-node"))r.classList.toggle("dim",!!o&&!o.has(r.dataset.id)),r.classList.toggle("sel",r.dataset.id===f);for(let r of s.querySelectorAll(".g-link")){let g=r.__data__,m=f&&g&&(g.source.id===f||g.target.id===f);r.classList.toggle("hl",!!m)}}function S(o){f=o,k(),C()}function C(){let o=T("#g-ins",s),r=d.nodes.find(m=>m.id===f);if(!r){F(o,u`<div class="panel-h"><h2>Selection</h2></div><div class="empty"><h3>Click a node</h3><span>Select a ticker or a person to see their links. Click empty space to clear.</span></div>`);return}let g=d.links.filter(m=>(m.source.id||m.source)===r.id||(m.target.id||m.target)===r.id);if(r.type==="ticker"){let m=t.get().signals.find(x=>x.ticker===r.ticker);F(o,u`<div class="panel-h"><h2>Ticker</h2></div><div class="panel-b">
+        <div class="ins-h">${pe(r.tier,!0)}<div><div class="tk mono" style="font:600 20px var(--f-mono)">${r.label}</div><div class="co muted small">${$e(m?.company)}</div></div></div>
+        <ul class="rows">${g.map(x=>{let _=d.nodes.find(R=>R.id===(x.source.id||x.source));return u`<li>${_.type==="member"?Fe(_.party):Te(_.role)}<button class="linkish grow t1" type="button" data-node="${_.id}">${_.label}</button><span class="mono">${W(x.usd)}</span></li>`})}</ul>
+        <div class="ins-actions"><button class="btn primary sm" type="button" data-open="${r.ticker}">${H.open} Open dossier</button></div></div>`);return}F(o,u`<div class="panel-h"><h2>${ks[r.type]}</h2></div><div class="panel-b">
+      <div><div style="font-weight:600;font-size:15px">${r.label}</div><div class="small muted">${r.type==="member"?`${{D:"Democrat",R:"Republican",I:"Independent"}[r.party]||""} · ${r.chamber}`:""}${r.role?Te(r.role):""}</div></div>
+      <dl class="kv"><dt>Tickers in view</dt><dd>${r.degree}</dd><dt>Dollars in view</dt><dd>${W(r.weight)}</dd></dl>
+      <ul class="rows">${g.map(m=>{let x=d.nodes.find(_=>_.id===(m.target.id||m.target));return u`<li>${pe(x.tier)}<button class="linkish grow t1 mono" type="button" data-node="${x.id}">${x.label}</button><span class="mono">${W(m.usd)}</span></li>`})}</ul>
+      ${r.type==="member"?u`<div class="ins-actions"><button class="btn sm" type="button" data-member="${r.label}">${H.member} Member profile</button></div>`:""}</div>`)}function M(){let o=T("#g-bridges",s),r=d.nodes.filter(g=>g.type!=="ticker"&&g.degree>=2).sort((g,m)=>m.degree-g.degree||m.weight-g.weight).slice(0,12);F(o,r.length?u`<ul class="rows">${r.map(g=>u`<li>${g.type==="member"?Fe(g.party):Te(g.role)}<button class="linkish grow t1" type="button" data-node="${g.id}">${g.label}</button><span class="mono xs">${g.degree} tickers</span></li>`)}</ul>`:u`<p class="small muted">Nobody in this set bought more than one ticker.</p>`)}return{el:s,render(o,r){!s.isConnected||s.hidden||(!r||r.some(g=>["signals","filters","model"].includes(g)))&&i(!1)},show(){$=null,requestAnimationFrame(()=>i(!0))},hide(){a&&a.stop()},focus(o){f=`t:${o}`,requestAnimationFrame(()=>{k(),C()})},onResize(){s.hidden||i(!0)}}}var _s="Rules: use only the data given. There are no share prices, valuations or earnings in it, so never state any; say what to check instead. Congressional amounts are ranges and can be filed up to 45 days late. Form 4 code P is an open-market purchase and S a sale. Describe patterns; never accuse anyone of wrongdoing. Be specific with names, dates and dollar figures from the data.",cn=e=>({ticker:e.ticker,company:e.company||void 0,tier:e.tier,score:e.score,rank:e.rank,last_activity:e.lastActivity,factors:Object.fromEntries(e.factors.map(t=>[t.key,Math.round(t.contrib*10)/10])),adjustments:e.notes.map(t=>`${t.label} ×${t.mult.toFixed(2)}`),flags:e.flags.map(t=>t.label),insiders:e.insider.buyers.slice(0,5).map(t=>({name:t.name,role:Oe[t.role],title:t.title||void 0,usd:Math.round(t.usd),buys:t.tx,last:t.lastDate,stake_increase_pct:t.stakePct==null?void 0:Math.round(t.stakePct)})),insider_total_usd:Math.round(e.insider.usd),congress:e.congress.members.slice(0,5).map(t=>({name:t.name,party:t.party,chamber:t.chamber,est_usd:Math.round(t.usd),ranges:t.ranges,filed:t.lastFiled,same_day_sell:t.washOnly||void 0})),congress_buys_window:e.congress.buys,congress_sells_window:e.congress.sells,congress_buys_90d:e.congress.conv90});function Ss({signals:e,asOf:t,windowDays:s,capital:n}){let a=e.slice(0,14).map(cn);return`You are the lead analyst on a small research desk. A retail investor plans to put about ${W(n)} into US stocks showing unusual insider and congressional buying. Below are the top ${a.length} signals from our conviction model for the ${s} days to ${t}, ranked by score. Weigh them against each other.
+
+${_s}
+
+Reply in Markdown, under 550 words, with exactly these sections:
+## Read of the tape
+Two or three sentences on what the filings say overall this period.
+## Strongest signals
+The 4 to 6 names you would research first, best first. One bullet each: ticker, the specific evidence, and why it beats the names below it.
+## Discount these
+2 to 4 bullets naming high-scoring tickers whose buying is likely mechanical, conflicted or stale, and why.
+## How I would split the money
+A short list: ticker and percent of ${W(n)}, no position above 20%, at least 10% left in cash, one clause of reasoning each.
+## Before buying
+3 bullets of concrete checks.
+
+DATA (JSON):
+${JSON.stringify(a)}`}function Cs(e){return`You are a careful equity analyst. Write a deep-dive memo on ${e.ticker}${e.company?` (${e.company})`:""} for a retail investor splitting about $10,000 across several stocks flagged by insider and congressional buying. The data comes from Quiver Quantitative filings as of ${e.as_of}.
+
+${_s}
+
+Reply in Markdown, under 450 words, with exactly these sections:
+## Verdict
+One line: signal strength from 1 (noise) to 5 (strong) and the main reason.
+## What the filings show
+3 to 5 bullets.
+## Why it could matter
+2 or 3 bullets.
+## Innocent explanations and red flags
+2 to 4 bullets.
+## Check before buying
+3 to 5 concrete bullets.
+## Position size
+One or two sentences: the most of a $10,000 budget you would put here (never above 20%), and why.
+
+DATA (JSON):
+${JSON.stringify(e)}`}function gt(e){switch(e&&e.code){case"cancelled":return"Stopped.";case"not_granted":case"sampling_disabled":case"not_declared":case"capability_disabled":case"capability_removed":return"This page is not allowed to use Claude here. Allow it from the page’s Permissions menu.";case"rate_limited":return"You have reached a Claude usage limit. Try again later.";case"session_expired":return"Sign in to claude.ai again, then retry.";case"refused":return"Claude declined to write this.";case"prompt_too_large":return"Too much data for one request.";default:return"The answer was interrupted. Try again."}}function ft(e,t,{render:s,onDone:n,onError:a,cache:d={gcTime:36e5},modelTier:f="default"}){let $=new AbortController;return e(t,{signal:$.signal,modelTier:f,cache:d,onText:({text:b})=>s(b)}).then(b=>n&&n(b)).catch(b=>a&&a(b)),{stop:()=>$.abort()}}var Ms=["congress","insider","contracts","lobbying","darkpool","news","ownership"],dn=[["overview","Overview"],["insiders","Insider ledger"],["congress","Congress ledger"],["government","Government"],["market","Market structure"],["news","News"]],As={P:"Open-market buy",S:"Open-market sale",A:"Award / grant",M:"Option exercise",F:"Tax withholding",D:"Disposition to issuer",G:"Gift",C:"Conversion",X:"Option exercise"},Ds={summary:"Summary",press_release_summary:"Press release",insiders_automated:"Insider",lobbying_automated:"Lobbying",congress_trades_automated:"Congress trade",legislation_automated:"Legislation",funds_automated:"Funds",contracts_automated:"Contract",earnings_automated:"Earnings",prices_automated:"Price move",strategies_update_automated:"Strategy",forecasts_automated:"Forecast",fundraising_automated:"Fundraising",discussion_automated:"Discussion"};function Ts(e){let{store:t,quiver:s}=e,n=document.createElement("section");n.className="view",n.id="v-dossier";let a=new Map,d=null,f="overview",$=new Set(["P","S"]),b=null,p=0;function l(){let w=t.get().signals.slice(0,8);F(n,u`<div class="view-h"><div><h1>Dossier</h1><p>Everything Quiver has on one ticker: insider and congressional ledgers, federal awards, lobbying, off-exchange volume, ownership and news, with a memo from Claude.</p></div></div>
+      <div class="panel"><div class="empty"><h3>Open a ticker</h3><span>Press <kbd>⌘K</kbd> and type a symbol, or open one from Signals.</span>
+      ${w.length?u`<div class="chips" style="margin-top:8px">${w.map(h=>u`<button class="btn sm" type="button" data-open="${h.ticker}">${pe(h.tier)} ${h.ticker}</button>`)}</div>`:""}</div></div>`)}async function i(w,{refresh:h=!1}={}){let A=++p,I=ye(),v={ticker:w,asOf:I,data:{},err:{},done:0,loadedAt:Date.now()};a.set(w,v),d=v,b=null,y();let V=new Date().getFullYear(),re={congress:()=>s.tickerCongress(w,{from:ne(I,-730),refresh:h}).then(U=>Ye(U.rows).rows),insider:()=>s.tickerInsider(w,{from:ne(I,-730),to:I,refresh:h,maxPages:4}).then(U=>({rows:tt(U.rows,{to:I}).rows,complete:U.complete})),contracts:()=>s.contracts(w,{from:ne(I,-365),to:I,refresh:h}).then(U=>U.rows),lobbying:()=>s.lobbying(w,{yearFrom:V-2,refresh:h}).then(U=>U.rows),darkpool:()=>s.darkPool(w,{from:ne(I,-130),refresh:h}).then(U=>U.rows),news:()=>s.news(w,{refresh:h}).then(U=>U.rows),ownership:()=>s.ownership(w,{refresh:h}).then(U=>U.object||U.rows[0]||null)};await Promise.all(Ms.map(async U=>{try{v.data[U]=await re[U]()}catch(K){v.err[U]=K||{code:"upstream_error"}}v.done++,A===p&&d===v&&y()}))}function c(w){let h=t.get(),A=h.windowDays,I=ne(w.asOf,-(A-1)),v=w.data.insider?w.data.insider.rows:[],V=w.data.congress||[],re=Je({insiderBuys:v.filter(j=>j.transaction_type==="P"&&j.date>=I),congressRows:V.filter(j=>(j.filed||j.traded)>=I),convergence90:new Map([[w.ticker,V.filter(j=>j.kind==="buy"&&(j.filed||"")>=ne(w.asOf,-89)).length]]),enrichment:h.enrichment,asOf:w.asOf,windowDays:A,model:h.model})[0]||null,U=h.signals.find(j=>j.ticker===w.ticker)||null,K=(w.data.contracts||[]).filter(j=>+j.total_dollars_obligated>0),O=$e(U?.company||V.find(j=>j.company)?.company||K[0]&&String(K[0].recipient||"").trim()||""),q=[...ce((w.data.lobbying||[]).filter(j=>j.year&&/Q[1-4]/i.test(j.type||"")),j=>`${j.year}-${String(j.type).match(/Q[1-4]/i)[0].toUpperCase()}`)].map(([j,Ie])=>({key:j,label:`${j.slice(5)} ’${j.slice(2,4)}`,value:Ie.reduce((rt,ot)=>rt+(+ot.amount||0),0)})).sort((j,Ie)=>j.key<Ie.key?-1:1).slice(-8),se=(w.data.darkpool||[]).filter(j=>j&&j.date&&Number.isFinite(+j.dpi)).sort((j,Ie)=>j.date<Ie.date?-1:1).slice(-60),Ze=ne(w.asOf,-89),Ae=v.filter(j=>j.transaction_type==="P"&&j.date>=Ze),De=v.filter(j=>j.transaction_type==="S"&&j.date>=Ze);return{local:re,screened:U,company:O,contracts:K,quarters:q,dp:se,ins:v,cg:V,p90:Ae,s90:De,from:I}}function y(){if(!d){l();return}let w=d,h=c(w),A=h.screened||h.local,I=t.get(),v=I.workspace.watch.some(O=>O.ticker===w.ticker),V={insiders:h.ins.length,congress:h.cg.length,news:(w.data.news||[]).length},re=w.done<Ms.length,U=h.contracts.reduce((O,q)=>O+ +q.total_dollars_obligated,0),K=h.quarters.slice(-4).reduce((O,q)=>O+q.value,0);F(n,u`
+      <div class="panel">
+        <div class="dz-head">
+          <div class="dz-id">${A?pe(A.tier,!0):""}<div style="min-width:0"><h1>${w.ticker}</h1><div class="co">${h.company||(re?"Loading…":"")}</div></div></div>
+          <div class="dz-metrics">
+            <div class="dz-metric"><span class="label">Score</span><b>${A?A.score:"—"}</b><span class="xs muted">${h.screened?`rank ${h.screened.rank} of ${L(I.signals.length)}`:"not in current screen"}</span></div>
+            <div class="dz-metric"><span class="label">Insider buys 90d</span><b>${W(h.p90.reduce((O,q)=>O+q.value,0))}</b><span class="xs muted">sales ${W(h.s90.reduce((O,q)=>O+q.value,0))}</span></div>
+            <div class="dz-metric"><span class="label">Congress buys 2y</span><b>${L(h.cg.filter(O=>O.kind==="buy").length)}</b><span class="xs muted">${L(h.cg.filter(O=>O.kind==="sell").length)} sales</span></div>
+            <div class="dz-metric"><span class="label">Federal awards 12m</span><b>${w.data.contracts?W(U):"—"}</b><span class="xs muted">${L(h.contracts.length)} actions</span></div>
+            <div class="dz-metric"><span class="label">Lobbying 4Q</span><b>${w.data.lobbying?W(K):"—"}</b><span class="xs muted">LDA filings</span></div>
+          </div>
+          <div class="dz-actions">
+            <button class="btn ${v?"on":"primary"}" type="button" data-watch="${w.ticker}">${v?u`${H.check} In portfolio`:u`${H.plus} Add to portfolio`}</button>
+            <button class="btn" type="button" data-graph="${w.ticker}">${H.focus} Graph</button>
+            <button class="btn ghost" type="button" id="dz-refresh">${H.refresh} Refresh</button>
+          </div>
+        </div>
+        ${A&&A.flags.length?u`<div style="padding:0 16px 12px">${ut(A.flags)}</div>`:""}
+        <div class="subtabs" role="tablist">${dn.map(([O,q])=>u`<button type="button" role="tab" data-tab="${O}" aria-selected="${f===O}">${q}${V[O]!=null?u`<span class="n">${L(V[O])}</span>`:""}</button>`)}</div>
+      </div>
+      <div class="dz-grid" id="dz-body">${o(w,h,A)}</div>`),ve(w,h)}function k(w,h,A,I,v=""){return u`<section class="panel span-${w}" ${v?u`id="${v}"`:""}><div class="panel-h"><h2>${h}</h2><span class="src">${A}</span></div><div class="panel-b">${I}</div></section>`}let S=w=>!(w in d.data)&&!(w in d.err),C=(w=3)=>u`${Array.from({length:w},(h,A)=>u`<div class="skel" style="width:${[90,70,80][A%3]}%"></div>`)}`,M=(w,h)=>d.err[w]?Qe(d.err[w]):S(w)?C():h();function o(w,h,A){return f==="overview"?u`
+        ${k(12,"Activity, last 12 months","trades · Form 4 · USAspending",u`<div class="legend"><span>${Me("buy")} Buy</span><span>${Me("sell")} Sell</span><span><span class="sw" data-g="cross" style="width:3px;height:12px"></span> Federal award (taller = larger)</span><span class="dim">Congress on trade date · hover for detail</span></div><div class="chart" id="dz-tl">${S("insider")&&S("congress")?C(4):""}</div>`)}
+        ${k(5,"Score breakdown",`model ${t.get().model.preset}`,A?u`${ht(A)}<p class="xs muted">${h.screened?"From the Signals screen":`Computed from this dossier for the last ${t.get().windowDays} days`}.</p>`:S("insider")?C(6):u`<p class="small muted">No insider or congressional buying in the window, so there is nothing to score.</p>`)}
+        ${k(7,"Analyst memo","Claude · from this dossier",D(),"dz-memo")}
+        ${k(6,"Insider flow, 12 months","Form 4 P and S, net by month",M("insider",()=>h.ins.length?u`<div class="chart" id="dz-flow"></div>`:u`<p class="small muted">No Form 4 filings in two years.</p>`))}
+        ${k(6,"Who is buying",`last ${t.get().windowDays} days`,M("insider",()=>r(A)))}`:f==="insiders"?k(12,"Insider ledger","SEC Form 4, last 2 years",M("insider",()=>g(h))):f==="congress"?k(12,"Congress ledger","House and Senate PTRs, last 2 years",M("congress",()=>m(h))):f==="government"?u`${k(7,"Federal contracts, 12 months","USAspending",M("contracts",()=>x(h)))}
+        ${k(5,"Lobbying by quarter","LDA filings",M("lobbying",()=>h.quarters.length?u`<div class="chart" id="dz-lob"></div>${_()}`:u`<p class="small muted">No lobbying reported since ${new Date().getFullYear()-2}.</p>`))}`:f==="market"?u`${k(7,"Off-exchange short volume (DPI)","FINRA via Quiver",M("darkpool",()=>R(h)))}
+        ${k(5,"Ownership","Form 4 sentiment · 13F",M("ownership",()=>P()))}`:k(12,"Quiver newsfeed","latest",M("news",()=>N()))}function r(w){return w?u`${w.insider.buyers.length?u`<ul class="rows">${w.insider.buyers.slice(0,8).map(h=>u`<li>${Te(h.role)}<div class="grow"><div class="t1">${h.name}</div><div class="t2">${h.title||Oe[h.role]} · ${h.tx} buy${h.tx>1?"s":""} · avg $${h.avgPrice.toFixed(2)}${h.stakePct!=null?` · stake +${xe(Math.min(h.stakePct,999))}`:h.newPosition?" · new position":""}</div></div><span class="mono">${W(h.usd)}</span></li>`)}</ul>`:""}
+      ${w.congress.members.length?u`<ul class="rows">${w.congress.members.map(h=>u`<li>${Fe(h.party)}<div class="grow"><button class="linkish t1" type="button" data-member="${h.name}">${h.name}</button><div class="t2">${h.chamber} · ${h.ranges.join(", ")}</div></div><span class="mono">${h.washOnly?"0":W(h.usd)}</span></li>`)}</ul>`:""}
+      ${!w.insider.buyers.length&&!w.congress.members.length?u`<p class="small muted">No buyers in the window.</p>`:""}`:u`<p class="small muted">No buying in the window.</p>`}function g(w){let h=[...ce(w.ins,v=>v.transaction_type)].map(([v,V])=>[v,V.length]).sort((v,V)=>V[1]-v[1]),A=w.ins.filter(v=>$.has(v.transaction_type)).slice(0,400),I=d.data.insider&&d.data.insider.complete===!1;return u`<div class="chips">${h.map(([v,V])=>u`<button class="btn sm ${$.has(v)?"on":""}" type="button" data-code="${v}" data-tip="${As[v]||"Other"}">${v} · ${L(V)}</button>`)}</div>
+      ${I?u`<div class="alert" data-tone="warn"><div>This ticker has more Form 4 lines than one dossier pull reads; the oldest are not shown.</div></div>`:""}
+      <div class="table-wrap" style="max-height:620px"><table class="grid"><thead><tr><th>Date</th><th>Insider</th><th>Role</th><th>Code</th><th class="num">Shares</th><th class="num">Price</th><th class="num">Value</th><th class="num">Owned after</th><th class="num">Filed after</th></tr></thead><tbody>
+      ${A.map(v=>u`<tr><td class="nowrap">${G(v.date)}</td><td><div class="two"><span>${v.owner}</span><span class="sub">${v.officer_title||""}</span></div></td><td>${Te(v.role)}</td><td><span class="side" data-tip="${As[v.transaction_type]||v.transaction_type}">${v.transaction_type==="P"?Me("buy",4):v.transaction_type==="S"?Me("sell",4):""}${v.transaction_type}</span></td><td class="num">${L(v.shares)}</td><td class="num">$${v.price.toFixed(2)}</td><td class="num">${W(v.value)}</td><td class="num">${Number.isFinite(+v.shares_owned_after)?L(v.shares_owned_after):"—"}</td><td class="num ${v.lateDays>4?"status-err":""}">${v.lateDays==null?"—":v.lateDays+"d"}</td></tr>`)}
+      </tbody></table></div>${A.length?"":u`<p class="small muted">No filings with the selected codes.</p>`}`}function m(w){return w.cg.length?u`<div class="table-wrap" style="max-height:620px"><table class="grid"><thead><tr><th>Member</th><th>Trade</th><th>Amount</th><th>Traded</th><th>Filed</th><th class="num">Days to file</th><th>Owner</th></tr></thead><tbody>
+      ${w.cg.map(h=>u`<tr><td><span class="cell-row">${Fe(h.party)}<button class="linkish" type="button" data-member="${h.representative}">${h.representative}</button></span></td><td><span class="side">${h.kind==="buy"?Me("buy",4):h.kind==="sell"?Me("sell",4):""}${h.transaction}${h.wash?u` <span class="flag" data-tone="warn" data-tip="Bought and sold the same day; nets to zero">offset</span>`:""}</span></td><td class="mono small nowrap">${h.amount}</td><td class="nowrap">${G(h.traded)}</td><td class="nowrap">${G(h.filed)}</td><td class="num ${h.lagDays>45?"status-err":""}" ${h.lagDays>45?u`data-tip="Past the 45-day STOCK Act deadline"`:""}>${h.lagDays??"—"}</td><td class="small muted">${h.owner||"—"}</td></tr>`)}
+      </tbody></table></div>`:u`<p class="small muted">No congressional trades in two years.</p>`}function x(w){if(!w.contracts.length)return u`<p class="small muted">No federal awards tagged to this ticker in 12 months.</p>`;let h=[...ce(w.contracts,I=>I.funding_agency_name||"Unknown agency")].map(([I,v])=>[I,v.reduce((V,re)=>V+ +re.total_dollars_obligated,0),v.length]).sort((I,v)=>v[1]-I[1]).slice(0,5),A=[...w.contracts].sort((I,v)=>v.total_dollars_obligated-I.total_dollars_obligated).slice(0,8);return u`<dl class="kv">${h.map(([I,v,V])=>u`<dt>${I} <span class="dim">· ${V}</span></dt><dd>${W(v)}</dd>`)}</dl>
+      <ul class="rows">${A.map(I=>u`<li><div class="grow"><div class="t1">${I.award_description||"Award"}</div><div class="t2">${I.funding_agency_name||""} · ${G(I.action_date)}${I.usaspending_permalink?u` · <a href="${I.usaspending_permalink}" target="_blank" rel="noopener">USAspending</a>`:""}</div></div><span class="mono">${W(+I.total_dollars_obligated)}</span></li>`)}</ul>`}function _(){let w=(d.data.lobbying||[])[0],h=w&&w.issue?String(w.issue).split(/\s*\n\s*/).filter(Boolean).slice(0,8):[];return h.length?u`<p class="small"><span class="muted">Latest filing covers:</span> ${h.join(", ")}</p>`:""}function R(w){if(w.dp.length<3)return u`<p class="small muted">Not enough off-exchange data.</p>`;let h=A=>A.reduce((I,v)=>I+ +v.dpi,0)/A.length;return u`<div class="stats small muted" style="display:flex;gap:18px;flex-wrap:wrap"><span>Latest <b class="mono" style="color:var(--fg-0)">${xe(w.dp.at(-1).dpi*100)}</b></span><span>20-day <b class="mono" style="color:var(--fg-0)">${xe(h(w.dp.slice(-20))*100)}</b></span><span>${w.dp.length}-day <b class="mono" style="color:var(--fg-0)">${xe(h(w.dp)*100)}</b></span></div><div class="chart" id="dz-dp"></div><p class="xs muted">Share of off-exchange volume reported as short sales. Market makers short to fill customer buy orders, so a rising line can mean buying pressure. A weak, supporting signal.</p>`}function P(){let w=d.data.ownership||{},h=(w.insider_sentiment_by_quarter||[]).filter(v=>v&&v.quarter).slice(-8),A=w.institutional_summary,I=(w.top_owners||[]).slice(0,6);return u`${h.length?u`<span class="label">Insider sentiment by quarter</span><div class="chart" id="dz-sent"></div>`:""}
+      ${A?u`<dl class="kv"><dt>13F filers</dt><dd>${L(A.total)}</dd><dt>New positions</dt><dd>${L(A.new)}</dd><dt>Added</dt><dd>${L(A.increased)}</dd><dt>Held</dt><dd>${L(A.held)}</dd><dt>Cut</dt><dd>${L(A.decreased)}</dd><dt>Exited</dt><dd>${L(A.closed)}</dd></dl>`:""}
+      ${I.length?u`<ul class="rows">${I.map(v=>u`<li><div class="grow"><div class="t1">${v.owner_name}</div><div class="t2">as of ${G(v.date)}</div></div><span class="mono small">${L(v.shares)} sh</span></li>`)}</ul>`:""}
+      ${!h.length&&!A&&!I.length?u`<p class="small muted">No ownership data.</p>`:""}`}function N(){let w=(d.data.news||[]).slice(0,10);return w.length?u`<ul class="rows">${w.map(h=>u`<li><div class="grow"><div class="t1">${h.url?u`<a href="${h.url}" target="_blank" rel="noopener">${h.headline}</a>`:h.headline}</div><div class="t2"><span class="label">${Ds[h.category]||h.category||"News"}</span> · ${G(h.datetime)}</div></div></li>`)}</ul>`:u`<p class="small muted">No recent Quiver news for this ticker.</p>`}function D(){let w=!S("insider")&&!S("congress"),h=!!e.caps.sample,A=b&&b.ticker===d.ticker?b:null;return u`<div class="ins-actions"><button class="btn ${A&&A.text?"":"primary"} sm" type="button" id="memo-go" ${!w||!h||A&&A.busy?"disabled":""}>${H.spark} ${A&&A.text?"Rewrite memo":"Write memo"}</button>${A&&A.busy?u`<button class="btn sm" type="button" id="memo-stop">Stop</button>`:""}<span class="xs muted">${h?A&&A.note?A.note:"Claude reads this dossier and writes a short memo. Uses your Claude usage.":"Needs permission to use Claude on claude.ai."}</span></div>
+      <div class="md" id="memo-out">${A&&A.text?nt(A.text):A&&A.busy?u`<p class="thinking">Thinking… usually 20–60 seconds.</p>`:""}</div>`}function Q(){let w=c(d),h=w.screened||w.local,A=d.data.ownership||{},I=v=>v.length?+(v.reduce((V,re)=>V+ +re.dpi,0)/v.length).toFixed(3):null;return{ticker:d.ticker,company:w.company,as_of:d.asOf,window_days:t.get().windowDays,score:h?h.score:null,tier:h?h.tier:null,factor_points:h?Object.fromEntries(h.factors.map(v=>[v.key,Math.round(v.contrib*10)/10])):null,adjustments:h?h.notes.map(v=>`${v.label} ×${v.mult.toFixed(2)}`):[],flags:h?h.flags.map(v=>v.label):[],insider_trades_recent:w.ins.filter(v=>v.transaction_type==="P"||v.transaction_type==="S").slice(0,25).map(v=>({name:v.owner,role:Oe[v.role],title:v.officer_title||void 0,code:v.transaction_type,shares:v.shares,price:v.price,usd:Math.round(v.value),date:v.date,filed_days_later:v.lateDays,owned_after:v.shares_owned_after})),insider_90d:{buy_usd:Math.round(w.p90.reduce((v,V)=>v+V.value,0)),sell_usd:Math.round(w.s90.reduce((v,V)=>v+V.value,0))},congress_trades_recent:w.cg.slice(0,20).map(v=>({member:v.representative,party:v.party,chamber:v.chamber,type:v.transaction,amount:v.amount,traded:v.traded,filed:v.filed,same_day_offset:v.wash||void 0})),federal_awards_12mo:d.err.contracts?"unavailable":{total_usd:Math.round(w.contracts.reduce((v,V)=>v+ +V.total_dollars_obligated,0)),count:w.contracts.length,largest:[...w.contracts].sort((v,V)=>V.total_dollars_obligated-v.total_dollars_obligated).slice(0,4).map(v=>({usd:Math.round(v.total_dollars_obligated),agency:v.funding_agency_name,what:v.award_description,date:String(v.action_date).slice(0,10)}))},lobbying_by_quarter:w.quarters.map(v=>({quarter:v.key,usd:v.value})),dark_pool_dpi:w.dp.length?{latest:+(+w.dp.at(-1).dpi).toFixed(3),avg_20d:I(w.dp.slice(-20)),avg_60d:I(w.dp)}:"unavailable",insider_sentiment_by_quarter:(A.insider_sentiment_by_quarter||[]).map(v=>({quarter:v.quarter,value:v.sentiment})),institutional_13f:A.institutional_summary||"unavailable",news:(d.data.news||[]).slice(0,6).map(v=>({date:String(v.datetime||"").slice(0,10),type:Ds[v.category]||v.category,headline:v.headline}))}}function J(){if(!e.caps.sample||!d)return;let w=d.ticker,h=!!(b&&b.ticker===w&&b.text);b={ticker:w,busy:!0,text:"",note:"Claude is reading the dossier…"},ee(),b.ctl=ft(e.caps.sample,Cs(Q()),{cache:h?{gcTime:36e5,refresh:!0}:{gcTime:36e5},render:A=>{b&&b.ticker===w&&(b.text=A,Z())},onDone:A=>{b&&b.ticker===w&&(b.busy=!1,b.note=A.truncated?"Cut short by the length limit.":`Written ${new Date().toLocaleTimeString("en-US",{hour:"numeric",minute:"2-digit"})} from this dossier.`,ee())},onError:A=>{b&&b.ticker===w&&(b.busy=!1,A&&A.code==="refused"?b.text="":b.text=A&&A.text||b.text,b.note=gt(A),ee())}})}function Z(){let w=T("#memo-out",n);w&&F(w,nt(b.text))}function ee(){let w=T("#dz-memo .panel-b",n);w&&F(w,D())}function ve(w,h){let A=T("#dz-tl",n);if(A&&!(S("insider")&&S("congress"))){let U=ne(w.asOf,-364),K=[];for(let O of h.cg)O.kind==="other"||(O.traded||"")<U||K.push({lane:0,date:O.traded,kind:O.kind,usd:O.mid,tip:`${O.representative} (${[O.party,O.chamber].filter(Boolean).join(", ")})
+${O.transaction} · ${O.amount}
+Traded ${G(O.traded)}${O.lagDays!=null?` · filed ${O.lagDays} days later`:""}`});for(let O of h.ins)O.transaction_type!=="P"&&O.transaction_type!=="S"||O.date<U||K.push({lane:1,date:O.date,kind:O.transaction_type==="P"?"buy":"sell",usd:O.value,tip:`${O.owner} · ${O.officer_title||Oe[O.role]}
+${O.transaction_type==="P"?"Bought":"Sold"} ${L(O.shares)} sh at $${O.price.toFixed(2)} = ${W(O.value)}
+${G(O.date)}`});for(let O of[...h.contracts].sort((q,se)=>se.total_dollars_obligated-q.total_dollars_obligated).slice(0,160))K.push({lane:2,date:String(O.action_date).slice(0,10),kind:"award",usd:+O.total_dollars_obligated,tip:`${W(+O.total_dollars_obligated)} · ${O.funding_agency_name||"Federal award"}
+${O.award_description||""}
+${G(O.action_date)}`});fs(A,{events:K,from:U,to:w.asOf,lanes:["Congress","Insiders","Awards"]})}let I=T("#dz-flow",n);if(I){let U=[],K=new Date(te(w.asOf));for(let q=11;q>=0;q--){let se=new Date(Date.UTC(K.getUTCFullYear(),K.getUTCMonth()-q,1));U.push(se.toISOString().slice(0,7))}let O=new Map(U.map(q=>[q,0]));for(let q of h.ins){let se=q.date.slice(0,7);O.has(se)&&(q.transaction_type==="P"||q.transaction_type==="S")&&O.set(se,O.get(se)+(q.transaction_type==="P"?q.value:-q.value))}Tt(I,U.map(q=>({label:new Date(q+"-01T00:00:00Z").toLocaleDateString("en-US",{month:"short",timeZone:"UTC"}),value:O.get(q)})),{format:q=>W(Math.abs(q)),label:"Net insider dollars by month"})}let v=T("#dz-lob",n);v&&bs(v,h.quarters,{label:"Lobbying spend by quarter"});let V=T("#dz-dp",n);V&&ys(V,h.dp,{value:U=>+U.dpi,tip:U=>`${G(U.date)}
+DPI ${(U.dpi*100).toFixed(1)}%
+Short ${L(U.dp_short)} of ${L(U.dp_total)} shares`,label:"Daily DPI"});let re=T("#dz-sent",n);re&&Tt(re,(d.data.ownership.insider_sentiment_by_quarter||[]).filter(U=>U&&U.quarter).slice(-8).map(U=>({label:String(U.quarter).replace(/^(\d{2})(\d{2})/,"’$2 "),value:+U.sentiment||0})),{label:"Insider sentiment"})}return B(n,"click","[data-tab]",(w,h)=>{f=h.dataset.tab,y()}),B(n,"click","[data-code]",(w,h)=>{let A=h.dataset.code;$.has(A)?$.delete(A):$.add(A),y()}),B(n,"click","#dz-refresh",()=>d&&i(d.ticker,{refresh:!0})),B(n,"click","#memo-go",()=>J()),B(n,"click","#memo-stop",()=>b&&b.ctl&&b.ctl.stop()),{el:n,open(w){if(!w){d||l();return}f="overview",$=new Set(["P","S"]);let h=a.get(w);h&&Date.now()-h.loadedAt<10*6e4&&h.asOf===ye()?(d=h,b=null,y()):i(w)},current:()=>d&&d.ticker,render(w,h){if(!d||n.hidden){!d&&!n.hidden&&h&&h.includes("signals")&&l();return}h&&h.some(A=>["signals","workspace","model","windowDays"].includes(A))&&!(b&&b.busy)&&y()},onResize(){d&&!n.hidden&&ve(d,c(d))}}}function Ps(e){let{store:t,quiver:s}=e,n=document.createElement("section");n.className="view",n.id="v-member";let a=null,d=0;async function f(b,p){let l=++d;a={name:b,bioguide:p,profile:null,trades:null,err:{}},$();let i=ye();await Promise.all([s.politician({bioguideId:p,name:b}).then(c=>{a.profile=c.object||c.rows[0]||null}).catch(c=>{a.err.profile=c}),s.memberTrades(b,{from:ne(i,-365)}).then(c=>{a.trades=Ye(c.rows).rows}).catch(c=>{a.err.trades=c})]),l===d&&$()}function $(){if(!a){F(n,u`<div class="view-h"><div><h1>Member profile</h1><p>Open a member of Congress from any ledger, inspector or the graph.</p></div></div><div class="panel"><div class="empty"><h3>No member selected</h3><span>Click a member’s name anywhere in the workstation.</span></div></div>`);return}let b=a.profile&&a.profile.profile?a.profile.profile:null,p=a.profile&&a.profile.net_worth,l=a.profile&&a.profile.trading_stats,i=a.trades||[],c=kt(b?b.party:i[0]?.party),y=i[0]?.chamber||"",k=i.filter(m=>m.kind==="buy"),S=i.filter(m=>m.kind==="sell"),C=i.filter(m=>m.lagDays>45).length,M=new Map(t.get().signals.map(m=>[m.ticker,m])),o=[...new Set(k.map(m=>m.ticker))].filter(m=>M.has(m)).map(m=>M.get(m)).sort((m,x)=>x.score-m.score),r=[...ce(i,m=>m.ticker)].map(([m,x])=>({t:m,buys:x.filter(_=>_.kind==="buy").length,sells:x.filter(_=>_.kind==="sell").length,usd:x.filter(_=>_.kind==="buy"&&!_.wash).reduce((_,R)=>_+R.mid,0),company:x[0].company})).sort((m,x)=>x.buys-m.buys||x.usd-m.usd).slice(0,10),g=!a.trades&&!a.err.trades;F(n,u`
+      <div class="panel"><div class="dz-head">
+        <div class="member-h"><span class="avatar">${Vt(b?b.name:a.name)}</span><div><h1 style="font:600 22px var(--f-ui)">${b?b.name:a.name}</h1><div class="small muted">${{D:"Democrat",R:"Republican",I:"Independent"}[c]||""}${b&&b.state?` · ${b.state}`:""}${y?` · ${y}`:""}${b&&b.bioguide_id?` · ${b.bioguide_id}`:""}</div></div></div>
+      </div></div>
+      ${a.err.profile?Qe(a.err.profile):""}
+      <div class="kpis">
+        ${he("Est. net worth",p?W(p.current_nw):"—",p?`${W(p.disclosure_change,{sign:!0})} since disclosure`:"from Quiver")}
+        ${he("Trades, 12 months",g?"…":L(i.length),l?`${L(l.recent_trades)} recent per Quiver`:"")}
+        ${he("Purchases",g?"…":L(k.length),`${W(k.filter(m=>!m.wash).reduce((m,x)=>m+x.mid,0))} est.`)}
+        ${he("Sales",g?"…":L(S.length),`${W(S.reduce((m,x)=>m+x.mid,0))} est.`)}
+        ${he("Late filings",g?"…":L(C),"over 45 days")}
+        ${he("In current signals",g?"…":L(o.length),"tickers this member bought")}
+      </div>
+      <div class="dz-grid">
+        <section class="panel span-4"><div class="panel-h"><h2>Overlap with signals</h2></div><div class="panel-b">${g?u`<div class="skel"></div>`:o.length?u`<ul class="rows">${o.map(m=>u`<li>${pe(m.tier)}<button class="linkish grow t1 mono" type="button" data-open="${m.ticker}">${m.ticker}</button><span class="mono">${m.score}</span></li>`)}</ul>`:u`<p class="small muted">None of this member’s purchases are in the current signal set.</p>`}</div></section>
+        <section class="panel span-8"><div class="panel-h"><h2>Most-traded tickers</h2><span class="src">12 months</span></div><div class="panel-b flush">${g?u`<div class="panel-b"><div class="skel"></div></div>`:u`<div class="table-wrap"><table class="grid"><thead><tr><th>Ticker</th><th>Company</th><th class="num">Buys</th><th class="num">Sales</th><th class="num">Est. bought</th></tr></thead><tbody>${r.map(m=>u`<tr><td><button class="tk" type="button" data-open="${m.t}">${m.t}</button></td><td class="small muted">${$e(m.company)}</td><td class="num">${m.buys}</td><td class="num">${m.sells}</td><td class="num">${W(m.usd)}</td></tr>`)}</tbody></table></div>`}</div></section>
+        <section class="panel span-12"><div class="panel-h"><h2>Trades</h2><span class="src">House and Senate PTRs · 12 months</span></div><div class="panel-b flush">
+          ${a.err.trades?u`<div class="panel-b">${Qe(a.err.trades)}</div>`:g?u`<div class="panel-b"><div class="skel"></div><div class="skel"></div></div>`:i.length?u`<div class="table-wrap" style="max-height:560px"><table class="grid"><thead><tr><th>Traded</th><th>Ticker</th><th>Trade</th><th>Amount</th><th>Filed</th><th class="num">Days to file</th><th>Owner</th></tr></thead><tbody>
+            ${i.map(m=>u`<tr><td class="nowrap">${G(m.traded)}</td><td><button class="tk" type="button" data-open="${m.ticker}">${m.ticker}</button></td><td><span class="side">${m.kind==="buy"?Me("buy",4):m.kind==="sell"?Me("sell",4):""}${m.transaction}</span></td><td class="mono small nowrap">${m.amount}</td><td class="nowrap">${G(m.filed)}</td><td class="num ${m.lagDays>45?"status-err":""}">${m.lagDays??"—"}</td><td class="small muted">${m.owner||"—"}</td></tr>`)}
+          </tbody></table></div>`:u`<div class="panel-b"><p class="small muted">No trades with tickers in 12 months.</p></div>`}
+        </div></section>
+      </div>`)}return{el:n,open({name:b,bioguide:p}){b&&(!a||a.name!==b)?f(b,p):$()},render(b,p){a&&!n.hidden&&p&&p.includes("signals")&&$()},current:()=>a&&a.name}}function Os(e){let{store:t}=e,s=document.createElement("section");s.className="view",s.id="v-model";let n=null,a=new Map;F(s,u`
+    <div class="view-h">
+      <div><h1>Conviction model</h1><p>How the score is built and what changes when you re-weight it. Changes apply everywhere instantly and are saved to your workspace.</p></div>
+      <div class="tools"><button class="btn" type="button" id="m-reset">${H.refresh} Reset to Balanced</button></div>
+    </div>
+    <div class="two-col">
+      <section class="panel"><div class="panel-h"><h2>Weights</h2><span class="src" id="m-version"></span></div><div class="panel-b" id="m-controls"></div></section>
+      <div style="display:flex;flex-direction:column;gap:var(--gap);min-width:0">
+        <section class="panel"><div class="panel-h"><h2>Impact vs. Balanced</h2><span class="src">top 25 under your weights</span></div><div class="panel-b flush" id="m-impact"></div></section>
+        <section class="panel"><div class="panel-h"><h2>Model card</h2></div><div class="panel-b" id="m-card"></div></section>
+      </div>
+    </div>`);function d(l){let i=l.model,c=dt(i.weights);F(T("#m-controls",s),u`
+      <div class="seg" role="group" aria-label="Preset">${Object.entries(Ce).map(([y,k])=>u`<button type="button" data-preset="${y}" aria-pressed="${i.preset===y}">${k.short}</button>`)}<button type="button" disabled aria-pressed="${!(i.preset in Ce)}">Custom</button></div>
+      <div>${_e.map(y=>u`<div class="slider">
+        <label class="name" for="w-${y.key}"><span class="sw" data-g="${y.group}"></span>${y.label}</label><span class="val">${c[y.key].toFixed(0)}%</span>
+        <input type="range" id="w-${y.key}" min="0" max="40" step="1" value="${i.weights[y.key]}" data-w="${y.key}" aria-label="${y.label} weight">
+        <span class="desc">${y.desc}</span></div>`)}</div>
+      <div class="slider"><label class="name" for="m-hl">Recency half-life</label><span class="val">${i.halfLife}d</span><input type="range" id="m-hl" min="7" max="60" step="1" value="${i.halfLife}"><span class="desc">A buy this many days old counts half as much as one from today.</span></div>
+      <div class="form-grid">${["A","B","C"].map(y=>u`<div class="field"><label class="label" for="m-t${y}">Tier ${y} from</label><input class="input" type="number" id="m-t${y}" min="1" max="99" value="${i.tiers[y]}" data-tier="${y}"></div>`)}</div>`)}function f(l){let i=T("#m-impact",s);if(!l.data){F(i,u`<div class="empty"><h3>Waiting for data</h3><span>The impact table fills in after the first pull.</span></div>`);return}let c=`${l.data.fetchedAt}|${l.enrichment.size}`;if(c!==n){let k=Je({...l.data,insiderBuys:l.data.insiderBuys,congressRows:l.data.congressRows,enrichment:l.enrichment,model:Ee});a=new Map(k.map(S=>[S.ticker,S])),n=c}let y=l.signals.slice(0,25);F(i,u`<div class="table-wrap"><table class="grid"><thead><tr><th class="num">Rank</th><th class="num">Δ</th><th>Ticker</th><th>Tier</th><th class="num">Score</th><th class="num">Δ score</th><th>Driven by</th></tr></thead><tbody>
+      ${y.map(k=>{let S=a.get(k.ticker),C=S?S.rank-k.rank:null,M=S?k.score-S.score:null;return u`<tr><td class="num">${k.rank}</td><td class="num ${C>0?"delta-up":C<0?"delta-down":"dim"}">${C==null?"new":C===0?"·":(C>0?"▲":"▼")+Math.abs(C)}</td><td><button class="tk" type="button" data-open="${k.ticker}">${k.ticker}</button></td><td>${pe(k.tier)}</td><td class="num">${k.score}</td><td class="num ${M>0?"delta-up":M<0?"delta-down":"dim"}">${M==null?"":M===0?"·":(M>0?"+":"")+M}</td><td>${$(k)}</td></tr>`})}</tbody></table></div>`)}function $(l){let i=[...l.factors].sort((c,y)=>y.contrib-c.contrib).filter(c=>c.contrib>=1).slice(0,3);return u`<span class="cell-row xs">${i.map(c=>u`<span class="cell-row"><span class="sw" data-g="${c.group}"></span>${c.short}</span>`)}</span>`}function b(l){let i=dt(l.model.weights);F(T("#m-card",s),u`
+      <p class="small">Inputs: SEC Form 4 open-market purchases (code P), House and Senate periodic transaction reports, and Quiver’s per-ticker congressional aggregates, for the selected window; congressional purchases over 90 days for convergence; and, for the top 15, 90 days of all Form 4 activity to detect insider selling.</p>
+      <div class="table-wrap"><table class="grid"><thead><tr><th>Factor</th><th>Group</th><th class="num">Weight</th><th>Definition</th></tr></thead><tbody>
+        ${_e.map(c=>u`<tr><td class="nowrap">${c.label}</td><td><span class="cell-row"><span class="sw" data-g="${c.group}"></span>${c.group}</span></td><td class="num">${i[c.key].toFixed(0)}%</td><td class="small muted">${c.desc}</td></tr>`)}
+      </tbody></table></div>
+      <div><span class="label">Adjustments (multiply the insider or Congress part)</span>
+      <ul class="rows small">
+        <li><span class="grow">Offering-priced: 3+ insiders, or 2 with a round price, identical lots or $5M+, on one day at one price</span><span class="mono">×${de.placement}</span></li>
+        <li><span class="grow">Fixed price: one buyer, 3+ lines over several days, 80%+ at one price</span><span class="mono">×${de.fixedPrice}</span></li>
+        <li><span class="grow">Purchase program: 8+ buyers with a median under $15K, or 10+ lines with a median under $5K</span><span class="mono">×${de.programmatic}</span></li>
+        <li><span class="grow">Outsized stake jump: a buyer more than quintuples their holding with $1M+</span><span class="mono">×${de.stakeJump}</span></li>
+        <li><span class="grow">Only funds or 10% owners bought</span><span class="mono">×${de.entityOnly}</span></li>
+        <li><span class="grow">Insider selling over 90 days (top 15 only)</span><span class="mono">×(1 − 0.6 × sell share)</span></li>
+        <li><span class="grow">Congressional sales in the window</span><span class="mono">×(1 − 0.5 × sell share)</span></li>
+      </ul></div>
+      <div><span class="label">Data hygiene</span><p class="small muted">Rows without a valid ticker, mutual-fund share classes, dates outside the window or in the future, non-positive share counts, prices under 5 cents, single lines above $2B (data errors) and duplicates are dropped before scoring; counts are on the Lineage page. Same-day buy and sell pairs by one member count as zero.</p></div>
+      <div><span class="label">Limitations</span><p class="small muted">No price, valuation or volatility data enters the score, and the model has not been backtested. It ranks evidence of informed buying; it does not forecast returns. Congressional trades are disclosed up to 45 days late and as ranges.</p></div>`)}let p=l=>e.setModel({...t.get().model,...l});return B(s,"click","[data-preset]",(l,i)=>e.applyPreset(i.dataset.preset)),B(s,"input","[data-w]",(l,i)=>{let c=t.get().model;p({preset:"custom",weights:{...c.weights,[i.dataset.w]:+i.value}})}),B(s,"input","#m-hl",(l,i)=>p({halfLife:+i.value})),B(s,"change","[data-tier]",(l,i)=>{let c=t.get().model,y=Math.max(1,Math.min(99,+i.value||c.tiers[i.dataset.tier]));p({tiers:{...c.tiers,[i.dataset.tier]:y}})}),B(s,"click","#m-reset",()=>e.applyPreset("balanced")),{el:s,render(l,i){if(s.hidden)return;let c=y=>!i||i.includes(y);if(T("#m-version",s).textContent=`${L(l.signals.length)} tickers`,c("model")){let y=document.activeElement;if(!(y&&s.contains(y)&&y.matches("input[type=range],input[type=number]")))d(l);else for(let S of _e){let C=s.querySelector(`#w-${S.key}`)?.closest(".slider")?.querySelector(".val");C&&(C.textContent=dt(l.model.weights)[S.key].toFixed(0)+"%")}}(c("signals")||c("model")||c("data"))&&(f(l),b(l))}}}var Ot={conviction:{label:"Conviction-weighted",desc:"Score above 30, squared: an 80 gets about 2.8× the slice of a 50."},tiered:{label:"By tier",desc:"Tier A gets 3 parts, B 2, C 1, D half a part."},equal:{label:"Equal",desc:"Same amount in every position."}},pn={A:3,B:2,C:1,D:.5};function un(e,t){if(t==="equal")return 1;if(t==="tiered")return pn[e.tier]??1;let s=Math.max(0,(e.score??0)-30);return Math.max(1,s*s)}function Es(e,{capital:t,reserve:s,cap:n,method:a}){let d=Math.max(0,t*(1-s/100)),f=t*(n/100),$=e.map(C=>un(C,a)),b=e.map(()=>0),p=e.map((C,M)=>M),l=d;for(;p.length&&l>.005;){let C=p.reduce((o,r)=>o+$[r],0),M=p.filter(o=>l*$[o]/C>f-b[o]+1e-9);if(!M.length){for(let o of p)b[o]+=l*$[o]/C;l=0;break}for(let o of M)l-=f-b[o],b[o]=f;p=p.filter(o=>!M.includes(o))}let i=b.map(C=>Math.floor(C)),c=i.reduce((C,M)=>C+M,0),y=Math.max(0,d-c),k=i.map(C=>t>0?C/t:0),S=k.reduce((C,M)=>C+M*M,0);return{amounts:i,shares:k,invested:c,reserve:t-d,idle:y,cash:t-c,maxPos:f,effectiveN:S>0?(c/t)**2/S:0,largest:Math.max(0,...k),minPositionsForFullInvestment:n>0?Math.ceil((100-s)/n-1e-9):1/0}}function Ls(e){let{store:t,workspace:s}=e,n=document.createElement("section");n.className="view",n.id="v-portfolio",F(n,u`
+    <div class="view-h">
+      <div><h1>Portfolio plan</h1><p>Sizes the stocks you picked under a cash reserve and a cap per position. Scores refresh from the live signals; notes are saved to your workspace.</p></div>
+      <div class="tools">
+        <button class="btn" type="button" id="p-addtop">${H.plus} Add top 6 tier A/B</button>
+        <button class="btn" type="button" id="p-export">${H.download} Export CSV</button>
+      </div>
+    </div>
+    <div class="two-col">
+      <div style="display:flex;flex-direction:column;gap:var(--gap);min-width:0">
+        <section class="panel"><div class="panel-h"><h2>Constraints</h2></div><div class="panel-b" id="p-form"></div></section>
+        <section class="panel"><div class="panel-h"><h2>Plan summary</h2></div><div class="panel-b" id="p-sum"></div></section>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:var(--gap);min-width:0">
+        <section class="panel"><div class="panel-h"><h2>Positions</h2><span class="src" id="p-count"></span></div><div class="panel-b flush" id="p-table"></div></section>
+        <section class="panel"><div class="panel-h"><h2>Before you place an order</h2></div><div class="panel-b"><ul class="rows small">
+          <li>Check the price since each filing date. If the stock already ran, much of the signal may be priced in.</li>
+          <li>Congressional trades can be 45 days old when disclosed, and amounts are ranges.</li>
+          <li>Use limit orders. Decide now what makes you sell: a price, a date, or insiders turning to sellers.</li>
+          <li>Re-run the signals in 30 days before adding money. This plan is a sizing tool, not investment advice.</li>
+        </ul></div></section>
+      </div>
+    </div>`);function a(p){let l=p.workspace.portfolio;F(T("#p-form",n),u`<div class="form-grid">
+      <div class="field full"><label class="label" for="p-cap">Cash to invest ($)</label><input class="input" type="number" id="p-cap" min="100" step="100" value="${l.capital}"></div>
+      <div class="field"><label class="label" for="p-res">Cash reserve (%)</label><input class="input" type="number" id="p-res" min="0" max="80" step="5" value="${l.reserve}"></div>
+      <div class="field"><label class="label" for="p-max">Max per stock (%)</label><input class="input" type="number" id="p-max" min="5" max="100" step="5" value="${l.cap}"></div>
+      <div class="field full"><label class="label" for="p-method">Sizing</label><select class="input" id="p-method">${Object.entries(Ot).map(([i,c])=>u`<option value="${i}" ${l.method===i?"selected":""}>${c.label}</option>`)}</select><span class="hint">${Ot[l.method]?.desc||""}</span></div>
+    </div>`)}function d(p){let l=new Map(p.signals.map(i=>[i.ticker,i]));return p.workspace.watch.map(i=>{let c=l.get(i.ticker);return{...i,score:c?c.score:i.scoreAtAdd,tier:c?c.tier:i.tierAtAdd,live:!!c,company:c?.company||i.company}}).sort((i,c)=>(c.score??0)-(i.score??0))}function f(p){let l=d(p),i=p.workspace.portfolio;if(T("#p-count",n).textContent=`${l.length} position${l.length===1?"":"s"}`,!l.length){F(T("#p-table",n),u`<div class="empty"><h3>No positions yet</h3><span>Press ☆ on a signal, <b>Add to portfolio</b> in a dossier, or <b>Add top 6 tier A/B</b> above.</span></div>`),F(T("#p-sum",n),u`<p class="small muted">Add positions to see the plan.</p>`);return}let c=Es(l,{capital:i.capital,reserve:i.reserve,cap:i.cap,method:i.method}),y=Math.max(1,...c.amounts);F(T("#p-table",n),u`<div class="table-wrap"><table class="grid"><thead><tr><th>Ticker</th><th>Tier</th><th class="num">Score</th><th class="num">Weight</th><th class="num">Amount</th><th style="min-width:90px"><span class="sr-only">Bar</span></th><th>Thesis / exit note</th><th><span class="sr-only">Remove</span></th></tr></thead><tbody>
+      ${l.map((S,C)=>u`<tr>
+        <td><div class="two"><button class="tk" type="button" data-open="${S.ticker}">${S.ticker}</button><span class="co">${$e(S.company)}</span></div></td>
+        <td>${S.tier?pe(S.tier):""}</td>
+        <td class="num" data-tip="${S.live?"Live score":`Score when added on ${G(S.addedAt)}; not in the current screen`}">${S.score??"—"}${S.live?"":"*"}</td>
+        <td class="num">${xe(c.shares[C]*100,1)}</td>
+        <td class="num">${et(c.amounts[C])}</td>
+        <td><span class="alloc"><i style="width:${(c.amounts[C]/y*100).toFixed(1)}%"></i></span></td>
+        <td><input class="input note-input" type="text" data-note="${S.ticker}" value="${S.note||""}" placeholder="Why, and when to sell" aria-label="Note for ${S.ticker}"></td>
+        <td><button class="btn ghost sm" type="button" data-remove="${S.ticker}" aria-label="Remove ${S.ticker}">${H.close}</button></td>
+      </tr>`)}</tbody></table></div>`);let k=c.idle>=1?u`<div class="alert" data-tone="warn"><div>${et(c.idle)} stays in cash because of the ${i.cap}% cap. Add ${Math.max(1,c.minPositionsForFullInvestment-l.length)} more position${c.minPositionsForFullInvestment-l.length>1?"s":""} or raise the cap.</div></div>`:"";F(T("#p-sum",n),u`${k}<dl class="kv">
+      <dt>Invested</dt><dd>${et(c.invested)}</dd>
+      <dt>Cash (reserve + uninvested)</dt><dd>${et(c.cash)}</dd>
+      <dt>Largest position</dt><dd>${xe(c.largest*100,1)}</dd>
+      <dt>Effective positions</dt><dd data-tip="1 / sum of squared weights: how many equal positions this plan behaves like">${c.effectiveN.toFixed(1)}</dd>
+      <dt>Stocks needed to invest it all</dt><dd>${c.minPositionsForFullInvestment}</dd></dl>`),n._last={list:l,a:c,p:i}}let $=p=>s.update({portfolio:{...t.get().workspace.portfolio,...p}}),b=(p,l,i,c)=>{let y=parseFloat(p);return Number.isFinite(y)?Math.max(i,Math.min(c,y)):l};return B(n,"change","#p-cap",(p,l)=>$({capital:b(l.value,1e4,100,1e9)})),B(n,"change","#p-res",(p,l)=>$({reserve:b(l.value,10,0,80)})),B(n,"change","#p-max",(p,l)=>$({cap:b(l.value,20,5,100)})),B(n,"change","#p-method",(p,l)=>$({method:l.value})),B(n,"click","[data-remove]",(p,l)=>e.toggleWatch(l.dataset.remove)),B(n,"change","[data-note]",(p,l)=>{let i=t.get().workspace.watch.map(c=>c.ticker===l.dataset.note?{...c,note:l.value.slice(0,500)}:c);s.update({watch:i})}),B(n,"click","#p-addtop",()=>{let p=t.get(),l=new Set(p.workspace.watch.map(c=>c.ticker)),i=p.signals.filter(c=>(c.tier==="A"||c.tier==="B")&&!l.has(c.ticker)&&!c.notes.some(y=>["placement","fixedPrice","programmatic","stakeJump"].includes(y.key))).slice(0,6);if(!i.length){me("No new tier A/B signals without offering or program patterns.");return}s.update({watch:[...p.workspace.watch,...i.map(c=>({ticker:c.ticker,company:c.company,scoreAtAdd:c.score,tierAtAdd:c.tier,addedAt:ye(),note:""}))]}),me(`Added ${i.map(c=>c.ticker).join(", ")}`,"ok")}),B(n,"click","#p-export",async()=>{let p=n._last;if(!p){me("Add positions first.");return}if(!e.caps.downloads){me("File downloads are not available in this view.","error");return}let l=c=>{let y=String(c??"");return/[",\n]/.test(y)?`"${y.replace(/"/g,'""')}"`:y},i=[["Ticker","Company","Tier","Score","Weight %","Amount USD","Note"]];p.list.forEach((c,y)=>i.push([c.ticker,$e(c.company),c.tier||"",c.score??"",(p.a.shares[y]*100).toFixed(1),p.a.amounts[y],c.note||""])),i.push(["CASH","Reserve and uninvested","","",(p.a.cash/p.p.capital*100).toFixed(1),Math.round(p.a.cash),""]);try{await e.caps.downloads.save({filename:`paper-trail-plan-${ye()}.csv`,data:i.map(c=>c.map(l).join(",")).join(`
+`)}),me("Plan saved","ok")}catch(c){(!c||c.code!=="declined")&&me(`Could not save the file (${c&&c.code||"error"}).`,"error")}}),{el:n,render(p,l){if(n.hidden)return;let i=y=>!l||l.includes(y),c=document.activeElement&&n.contains(document.activeElement)&&document.activeElement.matches("input,select");if(i("workspace")&&!c&&a(p),i("workspace")||i("signals")){if(c&&document.activeElement.matches("[data-note]"))return;f(p)}}}}var hn={noTicker:"No valid ticker",mutualFund:"Mutual-fund share class",badDate:"Date outside window or invalid",nonPositive:"Zero shares or price",subPenny:"Price under 5¢ (unit mismatch)",outlier:"Implausible value (> $2B line)",duplicate:"Duplicate line"};function Fs(e){let{store:t,conn:s}=e,n=document.createElement("section");n.className="view",n.id="v-lineage",F(n,u`
+    <div class="view-h"><div><h1>Data lineage</h1><p>Every request this session made to Quiver, how each pipeline stage did, and what was dropped before scoring.</p></div></div>
+    <section class="panel"><div class="panel-h"><h2>Pipeline</h2><span class="src" id="l-run"></span></div><div class="stages" id="l-stages"></div></section>
+    <div class="dz-grid">
+      <section class="panel span-6"><div class="panel-h"><h2>Data quality</h2></div><div class="panel-b" id="l-quality"></div></section>
+      <section class="panel span-6"><div class="panel-h"><h2>Runtime</h2></div><div class="panel-b" id="l-caps"></div></section>
+    </div>
+    <section class="panel"><div class="panel-h"><h2>Request log</h2><span class="src" id="l-count"></span></div><div class="panel-b flush" id="l-log"></div></section>`);function a(p){let l=p.pipeline;T("#l-run",n).textContent=l.startedAt?`started ${ze(l.startedAt)}${l.finishedAt?` · ${((l.finishedAt-l.startedAt)/1e3).toFixed(1)}s`:""}`:"not run",F(T("#l-stages",n),u`${l.stages.map(i=>u`<div class="stage" data-s="${i.status}"><span class="st"><i></i>${i.label}</span><span class="v">${i.status==="pending"?"—":L(i.rows)}</span><span class="xs muted">${i.status}${i.pages?` · ${i.pages} pages`:""}${i.ms?` · ${(i.ms/1e3).toFixed(1)}s`:""}${i.detail?` · ${i.detail}`:""}</span></div>`)}`)}function d(p){let l=p.data;if(!l){F(T("#l-quality",n),u`<p class="small muted">Available after the first pull.</p>`);return}let i=Object.values(l.drops).reduce((c,y)=>c+y,0);F(T("#l-quality",n),u`<dl class="kv">
+      <dt>Form 4 rows received</dt><dd>${L(l.rawCounts.insider)}</dd>
+      <dt>Congress rows received</dt><dd>${L(l.rawCounts.congress)}</dd>
+      <dt>Tickers in Congress aggregates</dt><dd>${L(l.rawCounts.aggregate)}</dd>
+      <dt>Rows kept for scoring</dt><dd>${L(l.insiderBuys.length+l.congressRows.length)}</dd>
+      <dt>Rows dropped</dt><dd>${L(i)}</dd>
+      ${Object.entries(l.drops).filter(([,c])=>c).map(([c,y])=>u`<dt class="dim">· ${hn[c]||c}</dt><dd class="dim">${L(y)}</dd>`)}
+      <dt>Form 4 coverage</dt><dd class="${l.coverage.insider?"status-ok":"status-err"}">${l.coverage.insider?"complete":"page limit hit"}</dd>
+      <dt>Congress coverage</dt><dd class="${l.coverage.congress?"status-ok":"status-err"}">${l.coverage.congress?"complete":"page limit hit"}</dd>
+      <dt>Window</dt><dd>${l.from} → ${l.asOf}</dd></dl>`)}function f(p){let l=p.caps,i=(c,y,k)=>u`<dt>${c}</dt><dd class="${y==="on"?"status-ok":y==="off"?"status-err":"status-pend"}">${y}${k?u` <span class="dim">${k}</span>`:""}</dd>`;F(T("#l-caps",n),u`<dl class="kv">
+      <dt>App</dt><dd>${He.name} ${He.version}</dd>
+      <dt>Model</dt><dd>${He.model} · ${p.model.preset}</dd>
+      ${i(`Connector (${it})`,l.mcp)}
+      ${i("Claude (memos, brief)",l.sample)}
+      ${i("Workspace sync",l.db,e.workspace.mode)}
+      ${i("File export",l.downloads)}
+      <dt>Cache policy</dt><dd>5 min fresh · 1 h kept</dd>
+      <dt>Concurrency</dt><dd>4 requests</dd></dl>`)}function $(){let p=s.log.slice(0,200);T("#l-count",n).textContent=`${L(s.log.length)} requests`,F(T("#l-log",n),p.length?u`<div class="table-wrap" style="max-height:520px"><table class="grid"><thead><tr><th>Time</th><th>Stage</th><th>Tool</th><th>Arguments</th><th class="num">Rows</th><th class="num">ms</th><th>Cache</th><th>Status</th></tr></thead><tbody>
+      ${p.map(l=>u`<tr><td class="mono xs nowrap">${ze(l.at)}</td><td class="xs">${l.stage}</td><td class="mono xs">${l.tool}</td><td class="code" style="max-width:420px">${JSON.stringify(l.input)}</td><td class="num">${l.status==="ok"?L(l.rows):""}${l.truncated?u` <span class="flag" data-tone="warn" data-tip="Server truncated this response; paging continued from where it stopped">trunc</span>`:""}</td><td class="num">${l.ms||""}</td><td class="xs">${l.cached?"hit":l.status==="ok"?"miss":""}</td><td class="xs ${l.status==="ok"?"status-ok":l.status==="error"?"status-err":"status-pend"}">${l.status}${l.code?` · ${l.code}`:""}</td></tr>`)}
+    </tbody></table></div>`:u`<div class="empty"><span>No requests yet.</span></div>`)}let b=!1;return s.onLog(()=>{n.hidden||b||(b=!0,requestAnimationFrame(()=>{b=!1,$()}))}),{el:n,render(p,l){if(n.hidden)return;let i=c=>!l||l.includes(c);i("pipeline")&&a(p),i("data")&&d(p),(i("caps")||i("model"))&&f(p),l||$()}}}var Ke=[{key:"signals",label:"Signals",icon:H.signals,go:"s"},{key:"graph",label:"Link analysis",icon:H.graph,go:"g"},{key:"dossier",label:"Dossier",icon:H.dossier,go:"d"},{key:"member",label:"Member",icon:H.member,go:"c"},{key:"model",label:"Model",icon:H.model,go:"m"},{key:"portfolio",label:"Portfolio",icon:H.portfolio,go:"p"},{key:"lineage",label:"Lineage",icon:H.lineage,go:"l",bottom:!0}];function Ns(e){return e&&e.weights&&_e.every(t=>Number.isFinite(e.weights[t.key]))&&e.tiers&&Number.isFinite(e.halfLife)}var Y=qt({view:"signals",caps:{mcp:"pending",sample:"pending",db:"pending",downloads:"pending"},windowDays:30,model:{...Ee,weights:{...Ee.weights},tiers:{...Ee.tiers}},pipeline:{status:"idle",stages:[],startedAt:null,finishedAt:null,error:null},data:null,enrichment:new Map,signals:[],selected:null,filters:{...mt,tiers:{...mt.tiers}},sort:{key:"score",dir:"desc"},workspace:null,session:{lastSeenPrev:null}}),Lt=null,Ft=Gt({getMcp:()=>Lt}),Bs=Jt(Ft),yt=ss({store:Y,quiver:Bs}),We=os({store:Y,onRemote:e=>{Ns(e.model)&&(Y.set({model:e.model}),yt.recompute())}});{let e=Y.get().workspace;Ns(e.model)&&Y.set({model:e.model}),Y.set({session:{lastSeenPrev:e.lastSeen||null}})}var Rs=!1,X={store:Y,conn:Ft,quiver:Bs,pipeline:yt,workspace:We,caps:{sample:null,downloads:null},async runPipeline(e={}){if(!Lt){me("Live data needs the claude.ai viewer with the Quiver Quant connector.","error");return}await yt.run(e),Y.get().pipeline.status==="done"&&(Rs||(Rs=!0,We.update({lastSeen:new Date().toISOString()})),e.refresh&&me(`Refreshed · ${L(Y.get().signals.length)} tickers scored`,"ok"))},openDossier(e){Re("dossier",{ticker:e})},openMember(e,t){Re("member",{name:e,bioguide:t})},showGraph(e){Re("graph"),e&&Se.graph.focus(e)},toggleWatch(e){let t=Y.get();if(t.workspace.watch.some(n=>n.ticker===e))We.update({watch:t.workspace.watch.filter(n=>n.ticker!==e)}),me(`Removed ${e} from the portfolio`);else{let n=t.signals.find(a=>a.ticker===e);We.update({watch:[...t.workspace.watch,{ticker:e,company:n?.company||"",scoreAtAdd:n?.score??null,tierAtAdd:n?.tier??null,addedAt:ye(),note:""}]}),me(`Added ${e} to the portfolio`,"ok")}},applyPreset(e){let t=Ce[e];t&&X.setModel({...Y.get().model,preset:e,weights:{...t.weights}})},setModel(e){Y.set({model:e}),yt.recompute(),mn(e)},openBrief:Rt},mn=Ue(e=>We.update({model:e}),600),zs=T("#main"),Se={signals:vs(X),graph:xs(X),dossier:Ts(X),member:Ps(X),model:Os(X),portfolio:Ls(X),lineage:Fs(X)};for(let e of Object.values(Se))e.el.hidden=!0,zs.appendChild(e.el);F(T("#rail"),u`${Ke.filter(e=>!e.bottom).map(Is)}<span class="spacer"></span>${Ke.filter(e=>e.bottom).map(Is)}`);function Is(e){return u`<button type="button" data-nav="${e.key}" data-tip="${`${e.label}  ·  G then ${e.go.toUpperCase()}`}" aria-label="${e.label}">${e.icon}<span class="rail-label">${e.label}</span></button>`}function Re(e,t={}){let s=Y.get().view;s!==e&&Se[s]?.hide&&Se[s].hide();for(let[d,f]of Object.entries(Se))f.el.hidden=d!==e;Y.set({view:e});for(let d of document.querySelectorAll("[data-nav]"))d.dataset.nav===e?d.setAttribute("aria-current","page"):d.removeAttribute("aria-current");let n=Se[e];e==="dossier"&&n.open(t.ticker||n.current()),e==="member"&&n.open(t),n.render(Y.get(),null),n.show&&n.show(),gn(),zs.scrollTop=0;let a=e==="dossier"&&(t.ticker||n.current())?`dossier-${t.ticker||n.current()}`:e;try{location.hash.slice(1)!==a&&history.replaceState(null,"","#"+a)}catch{}}function gn(){let e=Y.get(),t=Ke.find(n=>n.key===e.view)?.label||"",s=e.view==="dossier"?Se.dossier.current():e.view==="member"?Se.member.current():null;F(T("#crumbs"),u`<span>Workspace</span><span>›</span>${s?u`<span>${t}</span><span>›</span><b>${s}</b>`:u`<b>${t}</b>`}`)}Y.subscribe((e,t)=>{Se[e.view].render(e,t),t.some(s=>["pipeline","data","caps","model","signals","workspace"].includes(s))&&Us(e)});function Us(e){let t=T("#feed"),s=e.pipeline,n=e.caps.mcp==="off"?"error":s.status==="running"?"running":s.status==="error"?"error":s.status==="done"?"live":"wait";t.dataset.s=n,T("#feed-t").textContent=e.caps.mcp==="off"?"Offline":s.status==="running"?"Syncing":s.status==="error"?"Sync failed":s.status==="done"?`Live · ${ze(s.finishedAt)}`:"Connecting",F(T("#sb-conn"),u`Quiver: <b>${e.caps.mcp==="on"?"connected":e.caps.mcp}</b>`),F(T("#sb-model"),u`Model: <b>${He.model}/${e.model.preset}</b> · window <b>${e.windowDays}d</b>`),F(T("#sb-rows"),e.data?u`Rows: <b>${L(e.data.insiderBuys.length+e.data.congressRows.length)}</b> · tickers <b>${L(e.signals.length)}</b> · requests <b>${L(Ft.log.length)}</b>`:"");let a=s.stages.find(d=>d.key==="enrich");F(T("#sb-sync"),s.status==="running"?u`Pipeline: <b>running</b>`:a&&a.status==="running"?u`Selling check <b>${a.detail||""}</b>`:s.finishedAt?u`Synced <b>${ze(s.finishedAt)}</b> · workspace <b>${We.mode}</b>`:"")}ls();B(document,"click","[data-nav]",(e,t)=>Re(t.dataset.nav));B(document,"click","[data-open]",(e,t)=>{e.preventDefault(),Ct(),X.openDossier(t.dataset.open)});B(document,"click","[data-member]",(e,t)=>{e.preventDefault(),X.openMember(t.dataset.member)});B(document,"click","[data-watch]",(e,t)=>{e.stopPropagation(),X.toggleWatch(t.dataset.watch)});B(document,"click","[data-graph]",(e,t)=>X.showGraph(t.dataset.graph));T("#omni").addEventListener("click",()=>pt(Et));T("#sb-keys").addEventListener("click",qs);var bt=0;document.addEventListener("keydown",e=>{let t=e.target,s=t&&(t.isContentEditable||/^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName));if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==="k"){e.preventDefault(),Mt()||pt(Et);return}if(e.key==="Escape"){Ct()&&e.preventDefault();return}if(!(s||Mt()||e.metaKey||e.ctrlKey||e.altKey)){if(bt&&Date.now()-bt<1200){bt=0;let n=Ke.find(a=>a.go===e.key.toLowerCase());n&&(Re(n.key),e.preventDefault());return}if(e.key==="g"){bt=Date.now();return}if(e.key==="/"){e.preventDefault(),pt(Et);return}if(e.key==="?"){qs();return}if(e.key==="b"){Rt();return}if(e.key==="r"){X.runPipeline({refresh:!0});return}Y.get().view==="signals"&&Se.signals.key(e)&&e.preventDefault()}});window.addEventListener("resize",Ue(()=>{let e=Se[Y.get().view];e.onResize&&e.onResize()},150));function qs(){let e=(...t)=>u`<dt>${t.map(s=>u`<kbd>${s}</kbd>`)}</dt>`;ds({title:"Keyboard shortcuts",content:u`<dl class="shortcuts">
+      ${e("⌘","K")}<dd>Command palette (also <kbd>/</kbd>)</dd>
+      ${e("G","S")}<dd>Signals</dd>${e("G","G")}<dd>Link analysis</dd>${e("G","D")}<dd>Dossier</dd>${e("G","C")}<dd>Member profile</dd>${e("G","M")}<dd>Model</dd>${e("G","P")}<dd>Portfolio</dd>${e("G","L")}<dd>Lineage</dd>
+      ${e("J")}<dd>Next signal</dd>${e("K")}<dd>Previous signal</dd>${e("Enter")}<dd>Open dossier for the selected signal</dd>${e("W")}<dd>Add or remove the selected signal from the portfolio</dd>
+      ${e("B")}<dd>Desk brief from Claude</dd>${e("R")}<dd>Refresh from Quiver</dd>${e("Esc")}<dd>Close the top panel</dd></dl>`})}function Et(){let e=Y.get(),t=[];for(let a of Ke)t.push({kind:"Go to",label:a.label,hint:`G ${a.go.toUpperCase()}`,rank:3,run:()=>Re(a.key)});t.push({kind:"Action",label:"Refresh from Quiver",hint:"R",rank:2,run:()=>X.runPipeline({refresh:!0})}),t.push({kind:"Action",label:"Desk brief from Claude",hint:"B",rank:2,run:Rt});for(let a of lt)t.push({kind:"Window",label:`Look back ${a} days`,hint:e.windowDays===a?"current":"",rank:1,run:()=>{Y.set({windowDays:a}),X.runPipeline()}});for(let[a,d]of Object.entries(Ce))t.push({kind:"Model",label:`${d.label} weights`,hint:e.model.preset===a?"current":"",rank:1,run:()=>X.applyPreset(a)});for(let a of e.signals.slice(0,400))t.push({kind:"Ticker",label:a.ticker,hint:`${a.company?a.company.slice(0,40)+" · ":""}tier ${a.tier} · ${a.score}`,rank:2-a.rank/1e3,run:()=>X.openDossier(a.ticker)});let s=new Map;for(let a of e.data?.congressRows||[])s.has(a.representative)||s.set(a.representative,a);for(let[a,d]of s)t.push({kind:"Member",label:a,hint:[d.party,d.chamber].filter(Boolean).join(" · "),rank:.5,run:()=>X.openMember(a)});let n=new Map;for(let a of e.signals.slice(0,300))for(let d of a.insider.buyers)n.has(d.name)||n.set(d.name,a.ticker);for(let[a,d]of n)t.push({kind:"Insider",label:a,hint:d,rank:.4,run:()=>X.openDossier(d)});return t}function Rt(){let e=Y.get();if(!X.caps.sample){me("The desk brief needs permission to use Claude on claude.ai.","error");return}if(!e.signals.length){me("Wait for the signals to load first.");return}let t=null;cs({title:"Desk brief",src:`Claude · top ${Math.min(14,e.signals.length)} of ${L(e.signals.length)}`,onClose:()=>t&&t.stop(),render(s){let n=a=>{let d=Y.get();F(s,u`<div class="ins-actions" style="margin-bottom:12px"><button class="btn sm" type="button" id="br-stop">Stop</button><span class="xs muted" id="br-note">Claude is weighing the signals. Usually 30–90 seconds.</span></div><div class="md" id="br-out"><p class="thinking">Thinking…</p></div>`);let f=T("#br-out",s),$=T("#br-note",s);t=ft(X.caps.sample,Ss({signals:d.signals,asOf:d.data.asOf,windowDays:d.windowDays,capital:d.workspace.portfolio.capital}),{cache:a?{gcTime:36e5,refresh:!0}:{gcTime:36e5},render:p=>F(f,nt(p)),onDone:p=>{$.textContent=p.truncated?"Cut short by the length limit.":`Written ${ze(Date.now())} from the ${d.windowDays}-day screen, ${d.model.preset} weights.`,b()},onError:p=>{p&&p.code==="refused"&&F(f,""),$.textContent=gt(p),b()}}),T("#br-stop",s).addEventListener("click",()=>t.stop());function b(){let p=T("#br-stop",s);p&&(p.textContent="Rewrite",p.replaceWith(p.cloneNode(!0)),T("#br-stop",s).addEventListener("click",()=>n(!0)))}};n(!1)}})}function fn(){let e=(location.hash||"").slice(1),t=/^dossier-([A-Z0-9.\-]{1,8})$/.exec(e);t?Re("dossier",{ticker:t[1]}):Re(Ke.some(a=>a.key===e)?e:"signals"),Us(Y.get());let s=window.claude,n=(a,d)=>Y.set({caps:{...Y.get().caps,[a]:d}});if(!s||typeof s.use!="function"){Y.set({caps:{mcp:"off",sample:"off",db:"off",downloads:"off"}});return}s.use("mcp").then(a=>{Lt=a,n("mcp",a?"on":"off"),a&&X.runPipeline()}).catch(()=>n("mcp","off")),s.use("sample").then(a=>{X.caps.sample=a,n("sample",a?"on":"off")}).catch(()=>n("sample","off")),s.use("downloads").then(a=>{X.caps.downloads=a,n("downloads",a?"on":"off")}).catch(()=>n("downloads","off")),Promise.all([s.use("db").catch(()=>null),s.use("user").catch(()=>null)]).then(([a,d])=>{n("db",a?"on":"off"),We.attach(a,d)})}fn();})();
+</script>
