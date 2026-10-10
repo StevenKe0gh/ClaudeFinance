@@ -6,7 +6,10 @@ import { fmtDate, fmtInt, fmtUSD, fmtClock, fmtSignedPct, isoDate } from '../cor
 import { holdingAlerts } from '../app/portfolio.js';
 import { previousSnapshot, quoteFor } from './signals.js';
 
-const STEP_LABEL = { quiver: 'Quiver filings', analysis: 'Analysis', holdings: 'Holdings check', quotes: 'Quotes', prices: 'Yahoo prices', logos: 'Logos', brief: 'Brief' };
+/** The job writes epoch milliseconds; older documents may carry ISO strings. */
+const toMs = v => (typeof v === 'number' ? v : v ? Date.parse(v) || 0 : 0);
+
+const STEP_LABEL ={ quiver: 'Quiver filings', analysis: 'Analysis', holdings: 'Holdings check', quotes: 'Quotes', prices: 'Yahoo prices', logos: 'Logos', brief: 'Brief' };
 
 /**
  * Briefing: the morning page. The daily job writes a brief, quotes, prices
@@ -53,7 +56,7 @@ export function createBriefingView(ctx) {
       return;
     }
     const stale = b.date && b.date < isoDate() && !shown;
-    mount(host, html`<div class="brief-hero"><span class="date">${fmtDate(b.date)}${b.generatedAt ? ` · ${fmtClock(Date.parse(b.generatedAt))}` : ''}${shown && shown !== briefs[0]?.id ? html` · archive <button class="linkish" type="button" id="b-latest">back to latest</button>` : ''}${stale ? ' · today’s run has not finished yet' : ''}</span>
+    mount(host, html`<div class="brief-hero"><span class="date">${fmtDate(b.date)}${toMs(b.generatedAt) ? ` · ${fmtClock(toMs(b.generatedAt))}` : ''}${shown && shown !== briefs[0]?.id ? html` · archive <button class="linkish" type="button" id="b-latest">back to latest</button>` : ''}${stale ? ' · today’s run has not finished yet' : ''}</span>
       <h2>${b.headline || 'Daily brief'}</h2>
       <div class="md">${markdown(b.markdown || '')}</div>
       ${b.sources ? html`<p class="xs dim">${b.sources}</p>` : ''}</div>`);
