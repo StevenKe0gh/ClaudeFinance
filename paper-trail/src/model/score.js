@@ -209,7 +209,7 @@ export function buildSignals({ insiderBuys, congressRows, congressAgg = new Map(
       notes,
       mult: { insider: mI, congress: mC },
       flags,
-      insider: { buyers, usd: insiderUsd, tx: buys.length, lastDate: insiderLast, stakeMedian: stake, patterns: pat },
+      insider: { buyers, usd: insiderUsd, tx: buys.length, lastDate: insiderLast, stakeMedian: stake, patterns: pat, avgPrice: buys.length ? insiderUsd / buys.reduce((n, b) => n + b.shares, 0) : null },
       congress: { members, buys: cBuys, sells: cSells, usd: cUsd, lastFiled: congressLast, conv90, washes },
       lastActivity: last,
       daily,

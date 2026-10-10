@@ -2,7 +2,8 @@ import { html, mount, on, $ } from '../ui/html.js';
 import { ICON } from '../ui/icons.js';
 import { tierChip, flagsList, roleChip, partyChip, errorAlert, kpi, scoreCell, skeletonRows } from '../ui/parts.js';
 import { sparkline, stackbar, waterfall, activityChart } from '../ui/charts.js';
-import { fmtUSD, fmtInt, fmtAge, fmtDate, fmtPct, dayRange, cleanCompany } from '../core/util.js';
+import { fmtUSD, fmtInt, fmtAge, fmtDate, fmtPct, dayRange } from '../core/util.js';
+import { brand, brandHead, nameOf } from '../ui/brand.js';
 import { WINDOWS } from '../core/config.js';
 import { PRESETS } from '../model/score.js';
 
@@ -43,7 +44,7 @@ export function applyFilters(signals, f, days) {
       for (let i = rangeIdx[0]; i <= rangeIdx[1]; i++) if (s.daily[i]) { hit = true; break; }
       if (!hit) return false;
     }
-    if (q && !(s.ticker.toLowerCase().includes(q) || s.company.toLowerCase().includes(q) ||
+    if (q && !(s.ticker.toLowerCase().includes(q) || s.company.toLowerCase().includes(q) || nameOf(s.ticker).toLowerCase().includes(q) ||
       s.insider.buyers.some(b => b.name.toLowerCase().includes(q)) || s.congress.members.some(m => m.name.toLowerCase().includes(q)))) return false;
     return true;
   });
@@ -51,7 +52,8 @@ export function applyFilters(signals, f, days) {
 
 const SORTS = {
   score: s => s.score,
-  ticker: s => s.ticker,
+  ticker: s => nameOf(s.ticker, s.company).toLowerCase(),
+  move: s => s._move ?? -1e9,
   insiders: s => s.insider.buyers.length,
   insiderUsd: s => s.insider.usd,
   stake: s => s.insider.stakeMedian ?? -1,
@@ -59,6 +61,28 @@ const SORTS = {
   congressUsd: s => s.congress.usd,
   last: s => s.lastActivity || ''
 };
+
+/** Score and rank from the most recent earlier daily snapshot for this window. */
+export function previousSnapshot(st) {
+  const snaps = st.cloud?.snapshots || [];
+  const asOf = st.data?.asOf;
+  if (!asOf) return null;
+  const prev = snaps.filter(x => x.w === st.windowDays && x.date < asOf).sort((a, b) => (a.date < b.date ? 1 : -1))[0];
+  if (!prev) return null;
+  const map = new Map(prev.top.map(([t, score, tier], i) => [t, { score, tier, rank: i + 1 }]));
+  return { date: prev.date, map };
+}
+
+/** Last price, day change and move since the insiders' average buy price. */
+export function quoteFor(st, s) {
+  const q = st.cloud?.quotes?.q?.[s.ticker];
+  if (!q) return null;
+  const [last, pct] = q;
+  const avg = s.insider.avgPrice;
+  // A ratio beyond 5× either way is a unit mismatch (ADS vs ordinary shares), not a move.
+  const ratio = avg && last ? last / avg : null;
+  return { last, pct, sinceInsider: ratio && ratio < 5 && ratio > 0.2 ? (ratio - 1) * 100 : null };
+}
 
 export function createSignalsView(ctx) {
   const { store } = ctx;
@@ -104,7 +128,7 @@ export function createSignalsView(ctx) {
     for (const s of st.signals) counts[s.tier]++;
     const opt = (name, value, label) => html`<label class="check"><input type="radio" name="${name}" value="${value}" ${f[name] === value ? 'checked' : ''}> ${label}</label>`;
     mount($('#facets', el), html`
-      <div class="facet"><span class="label">Search</span><input class="input" id="f-q" type="search" placeholder="Ticker, insider, member" value="${f.q}" aria-label="Search signals"></div>
+      <div class="facet"><span class="label">Search</span><input class="input" id="f-q" type="search" placeholder="Company, ticker, insider, member" value="${f.q}" aria-label="Search signals"></div>
       <div class="facet"><span class="label">Tier</span><div class="tiers">${['A', 'B', 'C', 'D'].map(t => html`<button type="button" data-tier="${t}" aria-pressed="${!!f.tiers[t]}" data-tip="${`Tier ${t}: ${counts[t]} tickers`}">${tierChip(t)}</button>`)}<span class="count">${fmtInt(counts.A + counts.B + counts.C + counts.D)}</span></div></div>
       <div class="facet"><span class="label">Source</span>${opt('source', 'all', 'Any')}${opt('source', 'insider', 'Insider buying')}${opt('source', 'congress', 'Congress buying')}${opt('source', 'both', 'Both (convergence)')}</div>
       <div class="facet"><span class="label">Quality</span>
@@ -133,10 +157,11 @@ export function createSignalsView(ctx) {
     const wrap = $('#sig-wrap', el);
     const loading = st.pipeline.status === 'running' && !st.signals.length;
     const head = html`<thead><tr>
-      ${th('ticker', 'Ticker', st)}${th('score', 'Score · mix', st)}${th('insiders', 'Insiders', st)}${th('stake', 'Stake Δ', st, 'num')}${th('members', 'Congress', st)}${th('last', 'Activity', st)}<th>Flags</th><th><span class="sr-only">Watch</span></th></tr></thead>`;
+      ${th('ticker', 'Company', st)}${th('score', 'Score · mix', st)}${th('move', 'Price · vs insiders', st, 'num')}${th('insiders', 'Insiders · stake', st)}${th('members', 'Congress', st)}${th('last', 'Activity', st, 'col-act')}<th>Flags</th><th><span class="sr-only">Watch</span></th></tr></thead>`;
     if (loading) { mount(wrap, html`<table class="grid">${head}<tbody>${skeletonRows(8, 12)}</tbody></table>`); $('#sig-foot', el).textContent = ''; return; }
     const days = st.data ? dayRange(st.data.from, st.data.asOf) : null;
     const filtered = applyFilters(st.signals, st.filters, days);
+    for (const s of filtered) s._move = quoteFor(st, s)?.sinceInsider ?? null;
     const key = SORTS[st.sort.key] || SORTS.score;
     const dir = st.sort.dir === 'asc' ? 1 : -1;
     filtered.sort((a, b) => { const x = key(a), y = key(b); return (x > y ? 1 : x < y ? -1 : 0) * dir || a.rank - b.rank; });
@@ -150,7 +175,8 @@ export function createSignalsView(ctx) {
       return;
     }
     const watch = new Set(st.workspace.watch.map(w => w.ticker));
-    mount(wrap, html`<table class="grid" id="sig-grid">${head}<tbody>${visible.map(s => row(s, st, watch))}</tbody></table>`);
+    const prev = previousSnapshot(st);
+    mount(wrap, html`<table class="grid" id="sig-grid">${head}<tbody>${visible.map(s => row(s, st, watch, prev))}</tbody></table>`);
     const shown = visible.length;
     mount($('#sig-foot', el), html`<span>Showing ${fmtInt(shown)} of ${fmtInt(filtered.length)}</span>${filtered.length > shown ? html`<button class="btn sm" type="button" id="sig-more">Show ${Math.min(150, filtered.length - shown)} more</button>` : ''}<span class="grow" style="flex:1"></span><span><kbd>J</kbd> <kbd>K</kbd> move · <kbd>Enter</kbd> dossier · <kbd>W</kbd> watch</span>`);
   }
@@ -158,26 +184,40 @@ export function createSignalsView(ctx) {
     const active = st.sort.key === key;
     return html`<th class="sortable ${cls}" data-sort="${key}" ${active ? html`aria-sort="${st.sort.dir === 'asc' ? 'ascending' : 'descending'}"` : ''}>${label}${active ? (st.sort.dir === 'asc' ? ' ↑' : ' ↓') : ''}</th>`;
   }
-  function row(s, st, watch) {
+  function deltaChip(s, prev) {
+    if (!prev) return '';
+    const p = prev.map.get(s.ticker);
+    if (!p) return html`<span class="delta new" data-tip="${`Not in the top 120 on ${fmtDate(prev.date, { year: false })}`}">new</span>`;
+    const d = s.score - p.score;
+    if (Math.abs(d) < 1) return '';
+    return html`<span class="delta ${d > 0 ? 'up' : 'down'}" data-tip="${`Score ${p.score} on ${fmtDate(prev.date, { year: false })} · rank ${p.rank}`}">${d > 0 ? '▲' : '▼'}${Math.abs(Math.round(d))}</span>`;
+  }
+  function quoteCell(st, s) {
+    const q = quoteFor(st, s);
+    if (!q) return html`<span class="dim">—</span>`;
+    const cls = v => (v >= 0 ? 'chg-up' : 'chg-down');
+    return html`<div class="two" style="align-items:flex-end"><span class="mono">$${q.last < 10 ? q.last.toFixed(3) : q.last.toFixed(2)} <span class="xs ${cls(q.pct)}">${q.pct >= 0 ? '+' : ''}${q.pct.toFixed(1)}%</span></span>${q.sinceInsider == null ? html`<span class="sub dim">—</span>` : html`<span class="sub ${cls(q.sinceInsider)}" data-tip="${`Insiders paid $${s.insider.avgPrice.toFixed(2)} on average`}">${q.sinceInsider >= 0 ? '+' : ''}${q.sinceInsider.toFixed(1)}% vs insiders</span>`}</div>`;
+  }
+  function row(s, st, watch, prev) {
     const top = s.insider.buyers[0];
     const realMembers = s.congress.members.filter(m => !m.washOnly);
     const parties = [...new Set(realMembers.map(m => m.party))].join('·');
     const watched = watch.has(s.ticker);
     return html`<tr data-t="${s.ticker}" aria-selected="${st.selected === s.ticker}">
-      <td><span class="cell-row">${tierChip(s.tier)}<div class="two"><span class="cell-row"><button class="tk" type="button" data-open="${s.ticker}">${s.ticker}</button>${s.isNew ? html`<span class="new-badge" data-tip="New activity since your last visit">NEW</span>` : ''}</span><span class="co">${cleanCompany(s.company)}</span></div></span></td>
-      <td><div class="score-mix">${scoreCell(s)}${stackbar(s.factors, 88)}</div></td>
-      <td>${s.insider.buyers.length ? html`<div class="two"><span class="mono">${s.insider.buyers.length} · ${fmtUSD(s.insider.usd)}</span><span class="sub" data-tip="${top ? `${top.name} · ${top.title || ''}` : ''}">${top ? (top.role === 'csuite' ? (top.title || 'C-suite') : { officer: 'Officer', director: 'Director', fund: 'Fund', holder: '10% owner' }[top.role]) : ''}</span></div>` : html`<span class="dim">—</span>`}</td>
-      <td class="num">${s.insider.stakeMedian == null ? html`<span class="dim">—</span>` : fmtPct(Math.min(s.insider.stakeMedian, 999))}</td>
+      <td><span class="cell-row">${tierChip(s.tier)}${brand(s.ticker, { name: nameOf(s.ticker, s.company), size: 26 })}${s.isNew ? html`<span class="new-badge" data-tip="New activity since your last visit">NEW</span>` : ''}</span></td>
+      <td><div class="score-mix"><span class="cell-row">${scoreCell(s)}${deltaChip(s, prev)}</span>${stackbar(s.factors, 88)}</div></td>
+      <td class="num">${quoteCell(st, s)}</td>
+      <td>${s.insider.buyers.length ? html`<div class="two"><span class="mono">${s.insider.buyers.length} · ${fmtUSD(s.insider.usd)}</span><span class="sub" data-tip="${top ? `${top.name} · ${top.title || ''}${s.insider.stakeMedian != null ? ` · median stake increase ${fmtPct(Math.min(s.insider.stakeMedian, 999))}` : ''}` : ''}">${top ? (top.role === 'csuite' ? (top.title || 'C-suite') : { officer: 'Officer', director: 'Director', fund: 'Fund', holder: '10% owner' }[top.role]) : ''}${s.insider.stakeMedian != null ? ` · +${fmtPct(Math.min(s.insider.stakeMedian, 999))}` : ''}</span></div>` : html`<span class="dim">—</span>`}</td>
       <td>${realMembers.length || s.congress.buys ? html`<div class="two"><span class="mono">${realMembers.length || '·'} · ${s.congress.usd ? fmtUSD(s.congress.usd) : '—'}</span><span class="sub">${parties || (s.congress.conv90 ? `${s.congress.conv90} buys / 90d` : '')}</span></div>` : s.congress.conv90 ? html`<span class="sub dim" data-tip="Congressional purchases in the last 90 days">${s.congress.conv90} / 90d</span>` : html`<span class="dim">—</span>`}</td>
-      <td><span class="act" data-tip="${`Last activity ${fmtDate(s.lastActivity)} · bars are daily filings in the window`}">${sparkline(s.daily, { w: 64, h: 16 })}<span class="mono xs muted">${fmtAge(s.lastActivity, st.data.asOf)}</span></span></td>
+      <td class="col-act"><span class="act" data-tip="${`Last activity ${fmtDate(s.lastActivity)} · bars are daily filings in the window`}">${sparkline(s.daily, { w: 64, h: 16 })}<span class="mono xs muted">${fmtAge(s.lastActivity, st.data.asOf)}</span></span></td>
       <td>${flagsList(s.flags, 1)}</td>
-      <td><button class="btn ghost sm" type="button" data-watch="${s.ticker}" aria-pressed="${watched}" data-tip="${watched ? 'Remove from portfolio' : 'Add to portfolio'}">${watched ? '★' : '☆'}</button></td>
+      <td><button class="btn ghost sm" type="button" data-watch="${s.ticker}" aria-pressed="${watched}" data-tip="${watched ? 'Remove from plan' : 'Add to plan'}">${watched ? '★' : '☆'}</button></td>
     </tr>`;
   }
   on(el, 'click', 'th[data-sort]', (_, t) => {
     const s = store.get().sort;
     const k = t.dataset.sort;
-    store.set({ sort: { key: k, dir: s.key === k && s.dir === 'desc' ? 'asc' : k === 'ticker' ? 'asc' : 'desc' } });
+    store.set({ sort: { key: k, dir: s.key === k ? (s.dir === 'desc' ? 'asc' : 'desc') : k === 'ticker' ? 'asc' : 'desc' } });
   });
   on(el, 'click', '#sig-grid tbody tr', (ev, tr) => {
     if (ev.target.closest('button')) return;
@@ -199,11 +239,12 @@ export function createSignalsView(ctx) {
     mount(ins, html`
       <div class="panel-h"><h2>Inspector</h2><span class="src">rank ${s.rank} of ${fmtInt(st.signals.length)}</span></div>
       <div class="panel-b">
-        <div class="ins-h">${tierChip(s.tier, true)}<div style="min-width:0"><div class="tk mono">${s.ticker}</div><div class="co">${cleanCompany(s.company)}</div></div></div>
+        <div class="ins-h">${brandHead(s.ticker, { name: nameOf(s.ticker, s.company), size: 40 })}${tierChip(s.tier, true)}</div>
+        ${(() => { const q = quoteFor(st, s); return q ? html`<div class="small mono">Last $${q.last.toFixed(2)} <span class="${q.pct >= 0 ? 'chg-up' : 'chg-down'}">${q.pct >= 0 ? '+' : ''}${q.pct.toFixed(2)}% today</span>${q.sinceInsider != null ? html` · <span class="${q.sinceInsider >= 0 ? 'chg-up' : 'chg-down'}">${q.sinceInsider >= 0 ? '+' : ''}${q.sinceInsider.toFixed(1)}%</span> vs insiders' $${s.insider.avgPrice.toFixed(2)}` : ''}</div>` : ''; })()}
         <div class="ins-score"><b>${s.score}</b><span class="muted small">conviction score · tier ${s.tier}</span></div>
         <div class="ins-actions">
           <button class="btn primary sm" type="button" data-open="${s.ticker}">${ICON.open} Open dossier</button>
-          <button class="btn sm ${watched ? 'on' : ''}" type="button" data-watch="${s.ticker}">${watched ? html`${ICON.check} In portfolio` : html`${ICON.plus} Add to portfolio`}</button>
+          <button class="btn sm ${watched ? 'on' : ''}" type="button" data-watch="${s.ticker}">${watched ? html`${ICON.check} In plan` : html`${ICON.plus} Add to plan`}</button>
           <button class="btn sm ghost" type="button" data-graph="${s.ticker}">${ICON.focus} Show in graph</button>
         </div>
         <div><div class="label" style="margin-bottom:6px">Score breakdown</div>${waterfall(s)}</div>
@@ -289,8 +330,8 @@ export function createSignalsView(ctx) {
     if (all || has('data') || has('signals') || has('model') || has('session')) renderKpis(st);
     if (all || has('pipeline') || has('data') || has('caps')) renderAlert(st);
     if (all || has('signals') || has('filters')) renderFacets(st);
-    if (all || has('signals') || has('filters') || has('sort') || has('selected') || has('workspace') || has('pipeline')) renderTable(st);
-    if (all || has('signals') || has('selected') || has('workspace') || has('enrichment')) renderInspector(st);
+    if (all || has('signals') || has('filters') || has('sort') || has('selected') || has('workspace') || has('pipeline') || has('cloud')) renderTable(st);
+    if (all || has('signals') || has('selected') || has('workspace') || has('enrichment') || has('cloud')) renderInspector(st);
     if (all || has('data') || has('filters')) renderActivity(st);
   }
 

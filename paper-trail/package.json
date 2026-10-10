@@ -1,6 +1,6 @@
 {
   "name": "paper-trail",
-  "version": "2.0.0",
+  "version": "3.0.0",
   "private": true,
   "description": "Disclosure intelligence workstation: scores congressional and insider buying from Quiver Quant and turns it into dossiers and a position plan.",
   "type": "module",

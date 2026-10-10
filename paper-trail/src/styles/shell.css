@@ -97,6 +97,7 @@
 .rail button[aria-current="page"]::before { content: ""; position: absolute; left: 0; top: 8px; bottom: 8px; width: 2px; background: var(--accent); }
 .rail .rail-label { display: none; }
 .rail .spacer { flex: 1; }
+.rail .rail-sep { display: block; width: 20px; height: 1px; background: var(--line-2); margin: 6px auto; flex: none; }
 
 /* ---------- Main ---------- */
 .main { grid-area: main; min-width: 0; min-height: 0; overflow: auto; position: relative; }
@@ -135,6 +136,7 @@
   .statusbar { display: none; }
   .rail { flex-direction: row; padding: 0 0 env(safe-area-inset-bottom, 0px); border-right: 0; border-top: 1px solid var(--line); overflow-x: auto; }
   .rail button { flex: 1 0 52px; height: 52px; }
+  .rail .rail-sep, .rail .spacer { display: none; }
   .rail button[aria-current="page"]::before { left: 10px; right: 10px; top: 0; bottom: auto; width: auto; height: 2px; }
   .rail .spacer { display: none; }
   .brand, .crumbs { display: none; }

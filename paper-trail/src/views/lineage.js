@@ -1,5 +1,6 @@
 import { html, mount, $ } from '../ui/html.js';
-import { fmtInt, fmtClock } from '../core/util.js';
+import { fmtInt, fmtClock, fmtDate } from '../core/util.js';
+import { directory } from '../core/directory.js';
 import { APP, SERVER } from '../core/config.js';
 
 const DROP_LABEL = { noTicker: 'No valid ticker', mutualFund: 'Mutual-fund share class', badDate: 'Date outside window or invalid', nonPositive: 'Zero shares or price', subPenny: 'Price under 5¢ (unit mismatch)', outlier: 'Implausible value (> $2B line)', duplicate: 'Duplicate line' };
@@ -16,6 +17,7 @@ export function createLineageView(ctx) {
     <div class="dz-grid">
       <section class="panel span-6"><div class="panel-h"><h2>Data quality</h2></div><div class="panel-b" id="l-quality"></div></section>
       <section class="panel span-6"><div class="panel-h"><h2>Runtime</h2></div><div class="panel-b" id="l-caps"></div></section>
+      <section class="panel span-12"><div class="panel-h"><h2>Daily data</h2><span class="src">written by the scheduled job</span></div><div class="panel-b" id="l-daily"></div></section>
     </div>
     <section class="panel"><div class="panel-h"><h2>Request log</h2><span class="src" id="l-count"></span></div><div class="panel-b flush" id="l-log"></div></section>`);
 
@@ -52,6 +54,24 @@ export function createLineageView(ctx) {
       <dt>Cache policy</dt><dd>5 min fresh · 1 h kept</dd>
       <dt>Concurrency</dt><dd>4 requests</dd></dl>`);
   }
+  function daily(st) {
+    const c = st.cloud || {};
+    const q = c.quotes, j = c.job;
+    const row = (k, v, ok, note) => html`<dt>${k}</dt><dd class="${ok === true ? 'status-ok' : ok === false ? 'status-err' : 'status-pend'}">${v}${note ? html` <span class="dim">${note}</span>` : ''}</dd>`;
+    mount($('#l-daily', el), html`<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:4px 32px"><dl class="kv">
+      ${row('Database', c.status || 'pending', c.status === 'on' ? true : c.status === 'off' ? false : null)}
+      ${row('Quotes snapshot', q ? `${fmtInt(q.count || Object.keys(q.q || {}).length)} tickers` : 'none yet', q ? true : null, q ? `${fmtDate(q.asOf)} · ${q.source || ''}` : '')}
+      ${row('Company logos', fmtInt(c.logoCount || 0), (c.logoCount || 0) > 0 ? true : null, 'nvstly/icons, stored as data URIs')}
+      ${row('Company directory', `${fmtInt(Object.keys(directory.t).length)} US listings`, true, `built ${fmtDate(directory.built)}`)}
+      </dl><dl class="kv">
+      ${row('Last job', j ? j.state : 'never', j ? j.state === 'ok' : null, j && j.finishedAt ? `${fmtDate(new Date(j.finishedAt).toISOString().slice(0, 10))} ${fmtClock(j.finishedAt)}` : '')}
+      ${(j?.steps || []).map(s => row(`· ${s.label || s.key}`, s.status, s.status === 'ok' ? true : s.status === 'error' || s.status === 'blocked' ? false : null, s.detail || ''))}
+      ${row('Briefs stored', fmtInt((c.briefs || []).length), (c.briefs || []).length ? true : null)}
+      ${row('Daily snapshots', fmtInt((c.snapshots || []).length), (c.snapshots || []).length ? true : null, 'top 120 per window, for day-over-day changes')}
+      ${row('Schedule', c.config?.schedule || 'not set up', c.config?.triggerId ? true : null)}
+      </dl></div>`);
+  }
+
   function log() {
     const rows = conn.log.slice(0, 200);
     $('#l-count', el).textContent = `${fmtInt(conn.log.length)} requests`;
@@ -75,6 +95,7 @@ export function createLineageView(ctx) {
       if (has('pipeline')) stages(st);
       if (has('data')) quality(st);
       if (has('caps') || has('model')) caps(st);
+      if (has('cloud')) daily(st);
       if (!changed) log();
     }
   };

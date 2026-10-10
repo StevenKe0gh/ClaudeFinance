@@ -1,6 +1,6 @@
 .dz-head { display: flex; flex-wrap: wrap; gap: 14px 24px; align-items: flex-end; justify-content: space-between; padding: 14px 16px; }
 .dz-id { display: flex; align-items: center; gap: 12px; min-width: 0; }
-.dz-id h1 { font: 600 var(--t-xxl)/1 var(--f-mono); letter-spacing: -.01em; }
+.dz-id h1 { font: 600 var(--t-xxl)/1.05 var(--f-ui); letter-spacing: -.015em; }
 .dz-id .co { color: var(--fg-1); font-size: var(--t-lg); margin-top: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 48ch; }
 .dz-metrics { display: flex; gap: 22px; flex-wrap: wrap; }
 .dz-metric { display: flex; flex-direction: column; gap: 3px; }

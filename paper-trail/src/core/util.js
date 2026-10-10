@@ -55,6 +55,15 @@ export function fmtUSD(n, { sign = false } = {}) {
   if (a >= 1e3) return `${s}$${(a / 1e3).toFixed(a >= 1e4 ? 0 : 1)}K`;
   return `${s}$${Math.round(a).toLocaleString('en-US')}`;
 }
+/** Euros, en-US grouping: €1,234 or €1,234.50 with cents; − for negatives. */
+export function fmtEUR(n, { sign = false, cents = false } = {}) {
+  if (n == null || !Number.isFinite(+n)) return '—';
+  n = +n;
+  const s = n < 0 ? '−' : sign && n > 0 ? '+' : '';
+  const a = Math.abs(n);
+  return `${s}€${a.toLocaleString('en-US', { minimumFractionDigits: cents ? 2 : 0, maximumFractionDigits: cents ? 2 : 0 })}`;
+}
+export const fmtSignedPct = (n, d = 1) => (n == null || !Number.isFinite(+n) ? '—' : `${n > 0 ? '+' : n < 0 ? '−' : ''}${Math.abs(n).toFixed(d)}%`);
 export const fmtInt = n => (Number.isFinite(+n) ? Math.round(+n).toLocaleString('en-US') : '—');
 export const fmtMoney = n => '$' + Math.round(+n || 0).toLocaleString('en-US');
 export function fmtPct(n, digits = 0) {

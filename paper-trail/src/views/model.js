@@ -3,6 +3,7 @@ import { ICON } from '../ui/icons.js';
 import { tierChip } from '../ui/parts.js';
 import { FACTORS, PRESETS, DEFAULT_MODEL, MULT, buildSignals, weightShares } from '../model/score.js';
 import { fmtInt } from '../core/util.js';
+import { brand, nameOf } from '../ui/brand.js';
 
 /**
  * Model workbench: weights, recency half-life and tier cut-offs, with a live
@@ -57,7 +58,7 @@ export function createModelView(ctx) {
         const b = baseline.get(s.ticker);
         const dr = b ? b.rank - s.rank : null;
         const ds = b ? s.score - b.score : null;
-        return html`<tr><td class="num">${s.rank}</td><td class="num ${dr > 0 ? 'delta-up' : dr < 0 ? 'delta-down' : 'dim'}">${dr == null ? 'new' : dr === 0 ? '·' : (dr > 0 ? '▲' : '▼') + Math.abs(dr)}</td><td><button class="tk" type="button" data-open="${s.ticker}">${s.ticker}</button></td><td>${tierChip(s.tier)}</td><td class="num">${s.score}</td><td class="num ${ds > 0 ? 'delta-up' : ds < 0 ? 'delta-down' : 'dim'}">${ds == null ? '' : ds === 0 ? '·' : (ds > 0 ? '+' : '') + ds}</td><td>${drivers(s)}</td></tr>`;
+        return html`<tr><td class="num">${s.rank}</td><td class="num ${dr > 0 ? 'delta-up' : dr < 0 ? 'delta-down' : 'dim'}">${dr == null ? 'new' : dr === 0 ? '·' : (dr > 0 ? '▲' : '▼') + Math.abs(dr)}</td><td>${brand(s.ticker, { name: nameOf(s.ticker, s.company), size: 20 })}</td><td>${tierChip(s.tier)}</td><td class="num">${s.score}</td><td class="num ${ds > 0 ? 'delta-up' : ds < 0 ? 'delta-down' : 'dim'}">${ds == null ? '' : ds === 0 ? '·' : (ds > 0 ? '+' : '') + ds}</td><td>${drivers(s)}</td></tr>`;
       })}</tbody></table></div>`);
   }
 

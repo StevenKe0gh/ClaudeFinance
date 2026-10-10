@@ -1,7 +1,8 @@
 import { html, mount, on, $, markdown } from '../ui/html.js';
 import { ICON } from '../ui/icons.js';
 import { tierChip, flagsList, roleChip, partyChip, errorAlert } from '../ui/parts.js';
-import { waterfall, timeline, columns, lineChart, diverging, tri } from '../ui/charts.js';
+import { waterfall, timeline, columns, lineChart, diverging, tri, priceChart } from '../ui/charts.js';
+import { brandHead, nameOf } from '../ui/brand.js';
 import { fmtUSD, fmtInt, fmtDate, fmtPct, isoDate, addDays, ts, groupBy, cleanCompany } from '../core/util.js';
 import { cleanInsider, cleanCongress, ROLE_LABEL } from '../model/clean.js';
 import { buildSignals } from '../model/score.js';
@@ -29,12 +30,13 @@ export function createDossierView(ctx) {
   let codeFilter = new Set(['P', 'S']);
   let memo = null;
   let seq = 0;
+  let lastCloud = {};
 
   function emptyState() {
     const top = store.get().signals.slice(0, 8);
     mount(el, html`<div class="view-h"><div><h1>Dossier</h1><p>Everything Quiver has on one ticker: insider and congressional ledgers, federal awards, lobbying, off-exchange volume, ownership and news, with a memo from Claude.</p></div></div>
       <div class="panel"><div class="empty"><h3>Open a ticker</h3><span>Press <kbd>⌘K</kbd> and type a symbol, or open one from Signals.</span>
-      ${top.length ? html`<div class="chips" style="margin-top:8px">${top.map(s => html`<button class="btn sm" type="button" data-open="${s.ticker}">${tierChip(s.tier)} ${s.ticker}</button>`)}</div>` : ''}</div></div>`);
+      ${top.length ? html`<div class="chips" style="margin-top:8px">${top.map(s => html`<button class="btn sm" type="button" data-open="${s.ticker}">${tierChip(s.tier)} ${nameOf(s.ticker, s.company)}</button>`)}</div>` : ''}</div></div>`);
   }
 
   async function load(ticker, { refresh = false } = {}) {
@@ -55,6 +57,7 @@ export function createDossierView(ctx) {
       news: () => quiver.news(ticker, { refresh }).then(r => r.rows),
       ownership: () => quiver.ownership(ticker, { refresh }).then(r => r.object || r.rows[0] || null)
     };
+    if (ctx.cloud) ctx.cloud.prices(ticker).then(p => { entry.prices = p || null; entry.pricesDone = true; if (my === seq && cur === entry) render(); });
     await Promise.all(SECTIONS.map(async k => {
       try { entry.data[k] = await jobs[k](); } catch (e) { entry.err[k] = e || { code: 'upstream_error' }; }
       entry.done++;
@@ -105,8 +108,9 @@ export function createDossierView(ctx) {
     mount(el, html`
       <div class="panel">
         <div class="dz-head">
-          <div class="dz-id">${s ? tierChip(s.tier, true) : ''}<div style="min-width:0"><h1>${e.ticker}</h1><div class="co">${x.company || (loading ? 'Loading…' : '')}</div></div></div>
+          <div class="dz-id">${brandHead(e.ticker, { name: nameOf(e.ticker, x.company) })}${s ? tierChip(s.tier, true) : ''}</div>
           <div class="dz-metrics">
+            ${quoteMetric(e, st)}
             <div class="dz-metric"><span class="label">Score</span><b>${s ? s.score : '—'}</b><span class="xs muted">${x.screened ? `rank ${x.screened.rank} of ${fmtInt(st.signals.length)}` : 'not in current screen'}</span></div>
             <div class="dz-metric"><span class="label">Insider buys 90d</span><b>${fmtUSD(x.p90.reduce((a, r) => a + r.value, 0))}</b><span class="xs muted">sales ${fmtUSD(x.s90.reduce((a, r) => a + r.value, 0))}</span></div>
             <div class="dz-metric"><span class="label">Congress buys 2y</span><b>${fmtInt(x.cg.filter(r => r.kind === 'buy').length)}</b><span class="xs muted">${fmtInt(x.cg.filter(r => r.kind === 'sell').length)} sales</span></div>
@@ -114,7 +118,7 @@ export function createDossierView(ctx) {
             <div class="dz-metric"><span class="label">Lobbying 4Q</span><b>${e.data.lobbying ? fmtUSD(lob4) : '—'}</b><span class="xs muted">LDA filings</span></div>
           </div>
           <div class="dz-actions">
-            <button class="btn ${watched ? 'on' : 'primary'}" type="button" data-watch="${e.ticker}">${watched ? html`${ICON.check} In portfolio` : html`${ICON.plus} Add to portfolio`}</button>
+            <button class="btn ${watched ? 'on' : 'primary'}" type="button" data-watch="${e.ticker}">${watched ? html`${ICON.check} In plan` : html`${ICON.plus} Add to plan`}</button>
             <button class="btn" type="button" data-graph="${e.ticker}">${ICON.focus} Graph</button>
             <button class="btn ghost" type="button" id="dz-refresh">${ICON.refresh} Refresh</button>
           </div>
@@ -136,6 +140,7 @@ export function createDossierView(ctx) {
   function body(e, x, s) {
     if (tab === 'overview') {
       return html`
+        ${section(12, 'Price, 1 year', e.prices ? `Yahoo Finance · closes to ${fmtDate(e.prices.t.at(-1))}` : 'Yahoo Finance', priceBlock(e, x))}
         ${section(12, 'Activity, last 12 months', 'trades · Form 4 · USAspending', html`<div class="legend"><span>${tri('buy')} Buy</span><span>${tri('sell')} Sell</span><span><span class="sw" data-g="cross" style="width:3px;height:12px"></span> Federal award (taller = larger)</span><span class="dim">Congress on trade date · hover for detail</span></div><div class="chart" id="dz-tl">${pending('insider') && pending('congress') ? sk(4) : ''}</div>`)}
         ${section(5, 'Score breakdown', `model ${store.get().model.preset}`, s ? html`${waterfall(s)}<p class="xs muted">${x.screened ? 'From the Signals screen' : `Computed from this dossier for the last ${store.get().windowDays} days`}.</p>` : (pending('insider') ? sk(6) : html`<p class="small muted">No insider or congressional buying in the window, so there is nothing to score.</p>`))}
         ${section(7, 'Analyst memo', 'Claude · from this dossier', memoBlock(), 'dz-memo')}
@@ -153,6 +158,30 @@ export function createDossierView(ctx) {
         ${section(5, 'Ownership', 'Form 4 sentiment · 13F', guard('ownership', () => ownershipBlock()))}`;
     }
     return section(12, 'Quiver newsfeed', 'latest', guard('news', () => newsBlock()));
+  }
+
+  function quoteMetric(e, st) {
+    const q = st.cloud?.quotes?.q?.[e.ticker];
+    const p = e.prices;
+    const last = p?.last ?? q?.[0];
+    if (!last) return '';
+    const chg = p && p.c.length > 1 ? (p.c.at(-1) / p.c.at(-2) - 1) * 100 : q?.[1];
+    return html`<div class="dz-metric"><span class="label">Last price</span><b>$${last < 10 ? last.toFixed(3) : last.toFixed(2)}</b><span class="xs ${chg >= 0 ? 'chg-up' : 'chg-down'}">${chg == null ? '' : `${chg >= 0 ? '+' : ''}${chg.toFixed(2)}% day`}${p && p.hi52 ? html` <span class="muted">· 52w ${p.lo52.toFixed(2)}–${p.hi52.toFixed(2)}</span>` : ''}</span></div>`;
+  }
+  function priceBlock(e, x) {
+    if (!ctx.cloud || !ctx.cloud.ready) return html`<p class="small muted">Price history comes from the daily job and needs the claude.ai viewer.</p>`;
+    if (!e.pricesDone) return sk(3);
+    if (!e.prices) return html`<p class="small muted">No Yahoo price history stored for ${e.ticker} yet. The daily job fetches prices for every signal in the top 150, your holdings and your watchlist; press <b>Run now</b> on the Briefing to fetch it sooner.</p>`;
+    const p = e.prices;
+    const from = p.t[0];
+    const buys = x.ins.filter(r => r.transaction_type === 'P' && r.date >= from);
+    const usd = buys.reduce((a, r) => a + r.value, 0);
+    const sh = buys.reduce((a, r) => a + r.shares, 0);
+    const raw = sh ? usd / sh : null;
+    const avg = raw && p.c.at(-1) / raw < 5 && p.c.at(-1) / raw > 0.2 ? raw : null;
+    const vs = avg ? (p.c.at(-1) / avg - 1) * 100 : null;
+    const ret = (p.c.at(-1) / p.c[0] - 1) * 100;
+    return html`<div class="legend"><span>${tri('buy')} Insider or member buy</span><span>${tri('sell')} Sale</span>${avg ? html`<span><span class="sw" data-g="insider" style="height:2px"></span> Insiders' average buy price</span>` : ''}<span class="grow"></span><span class="mono xs">1y <b class="${ret >= 0 ? 'chg-up' : 'chg-down'}">${ret >= 0 ? '+' : ''}${ret.toFixed(1)}%</b>${vs != null ? html` · vs insiders <b class="${vs >= 0 ? 'chg-up' : 'chg-down'}">${vs >= 0 ? '+' : ''}${vs.toFixed(1)}%</b>` : ''}</span></div><div class="chart" id="dz-px"></div>`;
   }
 
   function whoBlock(s) {
@@ -261,6 +290,24 @@ export function createDossierView(ctx) {
 
   /* ---------- Charts ---------- */
   function drawCharts(e, x) {
+    const px = $('#dz-px', el);
+    if (px && e.prices) {
+      const p = e.prices;
+      const markers = [];
+      for (const r of x.ins) {
+        if (r.transaction_type !== 'P' && r.transaction_type !== 'S') continue;
+        markers.push({ date: r.date, kind: r.transaction_type === 'P' ? 'buy' : 'sell', tip: `${r.owner} · ${r.officer_title || ROLE_LABEL[r.role]}\n${r.transaction_type === 'P' ? 'Bought' : 'Sold'} ${fmtInt(r.shares)} sh at $${r.price.toFixed(2)} = ${fmtUSD(r.value)}\n${fmtDate(r.date)}` });
+      }
+      for (const r of x.cg) {
+        if (r.kind !== 'buy' && r.kind !== 'sell') continue;
+        markers.push({ date: r.traded, kind: r.kind, tip: `${r.representative} (${[r.party, r.chamber].filter(Boolean).join(', ')})\n${r.transaction} · ${r.amount}\nTraded ${fmtDate(r.traded)}` });
+      }
+      const buys = x.ins.filter(r => r.transaction_type === 'P' && r.date >= p.t[0]);
+      const sh = buys.reduce((a, r) => a + r.shares, 0);
+      const raw = sh ? buys.reduce((a, r) => a + r.value, 0) / sh : null;
+      const avg = raw && p.c.at(-1) / raw < 5 && p.c.at(-1) / raw > 0.2 ? raw : null;
+      priceChart(px, { t: p.t, c: p.c, markers, ref: avg ? { value: avg, label: `ins $${avg.toFixed(2)}` } : null });
+    }
     const tl = $('#dz-tl', el);
     if (tl && !(pending('insider') && pending('congress'))) {
       const from = addDays(e.asOf, -364);
@@ -316,6 +363,10 @@ export function createDossierView(ctx) {
     render(st, changed) {
       if (!cur || el.hidden) { if (!cur && !el.hidden && changed && changed.includes('signals')) emptyState(); return; }
       if (changed && changed.some(k => ['signals', 'workspace', 'model', 'windowDays'].includes(k)) && !(memo && memo.busy)) render();
+      else if (changed && changed.includes('cloud') && !(memo && memo.busy)) {
+        const c = st.cloud || {};
+        if (c.logoCount !== lastCloud.logos || c.quotes !== lastCloud.quotes) { lastCloud = { logos: c.logoCount, quotes: c.quotes }; render(); }
+      }
     },
     onResize() { if (cur && !el.hidden) drawCharts(cur, derive(cur)); }
   };

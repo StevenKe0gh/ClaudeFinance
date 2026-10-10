@@ -4,6 +4,9 @@ import { tierChip, roleChip, partyChip } from '../ui/parts.js';
 import { buildGraph } from '../model/graph.js';
 import { applyFilters } from './signals.js';
 import { fmtUSD, fmtInt, dayRange, cleanCompany } from '../core/util.js';
+import { brandHead, nameOf, logo } from '../ui/brand.js';
+
+const tickerName = t => { const n = nameOf(t); return n.length > 18 ? n.slice(0, 17).trimEnd() + '…' : n; };
 
 const TYPE_LABEL = { ticker: 'Ticker', member: 'Member of Congress', insider: 'Insider', fund: 'Fund / large holder' };
 
@@ -113,9 +116,9 @@ export function createGraphView(ctx) {
     const nodeSel = layer.append('g').selectAll('g').data(nodes, d => d.id).join('g')
       .attr('class', 'g-node').attr('data-type', d => d.type).attr('data-tier', d => d.tier || null).attr('data-id', d => d.id)
       .attr('data-tip', d => d.type === 'ticker'
-        ? `${d.label} · tier ${d.tier} · score ${d.score}`
+        ? `${nameOf(d.ticker)} (${d.ticker}) · tier ${d.tier} · score ${d.score}`
         : `${d.label}\n${TYPE_LABEL[d.type]}${d.party ? ` (${d.party})` : ''} · ${d.degree} ticker${d.degree > 1 ? 's' : ''} · ${fmtUSD(d.weight)}`)
-      .html(d => shape(d) + (d.type === 'ticker' || d.degree > 1 ? `<text x="${radius(d) + 4}" y="4">${(d.type === 'ticker' ? d.label : shortName(d.label)).replace(/[<&>]/g, '')}</text>` : ''))
+      .html(d => shape(d) + (d.type === 'ticker' || d.degree > 1 ? `<text x="${radius(d) + 4}" y="4">${(d.type === 'ticker' ? tickerName(d.ticker) : shortName(d.label)).replace(/[<&>]/g, '')}</text>` : ''))
       .on('click', (ev, d) => { ev.stopPropagation(); select(d.id); });
 
     nodeSel.call(d3.drag()
@@ -192,7 +195,7 @@ export function createGraphView(ctx) {
     if (n.type === 'ticker') {
       const s = store.get().signals.find(x => x.ticker === n.ticker);
       mount(host, html`<div class="panel-h"><h2>Ticker</h2></div><div class="panel-b">
-        <div class="ins-h">${tierChip(n.tier, true)}<div><div class="tk mono" style="font:600 20px var(--f-mono)">${n.label}</div><div class="co muted small">${cleanCompany(s?.company)}</div></div></div>
+        <div class="ins-h">${brandHead(n.ticker, { name: nameOf(n.ticker, s?.company), size: 36 })}${tierChip(n.tier, true)}</div>
         <ul class="rows">${linked.map(l => { const other = graph.nodes.find(x => x.id === (l.source.id || l.source)); return html`<li>${other.type === 'member' ? partyChip(other.party) : roleChip(other.role)}<button class="linkish grow t1" type="button" data-node="${other.id}">${other.label}</button><span class="mono">${fmtUSD(l.usd)}</span></li>`; })}</ul>
         <div class="ins-actions"><button class="btn primary sm" type="button" data-open="${n.ticker}">${ICON.open} Open dossier</button></div></div>`);
       return;
@@ -200,7 +203,7 @@ export function createGraphView(ctx) {
     mount(host, html`<div class="panel-h"><h2>${TYPE_LABEL[n.type]}</h2></div><div class="panel-b">
       <div><div style="font-weight:600;font-size:15px">${n.label}</div><div class="small muted">${n.type === 'member' ? `${{ D: 'Democrat', R: 'Republican', I: 'Independent' }[n.party] || ''} · ${n.chamber}` : ''}${n.role ? roleChip(n.role) : ''}</div></div>
       <dl class="kv"><dt>Tickers in view</dt><dd>${n.degree}</dd><dt>Dollars in view</dt><dd>${fmtUSD(n.weight)}</dd></dl>
-      <ul class="rows">${linked.map(l => { const t = graph.nodes.find(x => x.id === (l.target.id || l.target)); return html`<li>${tierChip(t.tier)}<button class="linkish grow t1 mono" type="button" data-node="${t.id}">${t.label}</button><span class="mono">${fmtUSD(l.usd)}</span></li>`; })}</ul>
+      <ul class="rows">${linked.map(l => { const t = graph.nodes.find(x => x.id === (l.target.id || l.target)); return html`<li>${tierChip(t.tier)}${logo(t.ticker, nameOf(t.ticker), 18)}<button class="linkish grow t1" type="button" data-node="${t.id}">${nameOf(t.ticker)}</button><span class="mono">${fmtUSD(l.usd)}</span></li>`; })}</ul>
       ${n.type === 'member' ? html`<div class="ins-actions"><button class="btn sm" type="button" data-member="${n.label}">${ICON.member} Member profile</button></div>` : ''}</div>`);
   }
 

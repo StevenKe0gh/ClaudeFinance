@@ -1,6 +1,6 @@
 import { APP, WINDOWS } from './core/config.js';
 import { createStore } from './core/store.js';
-import { fmtInt, fmtClock, debounce, isoDate } from './core/util.js';
+import { fmtInt, fmtClock, fmtDate, debounce, isoDate } from './core/util.js';
 import { createConnector } from './data/connector.js';
 import { createQuiver } from './data/quiver.js';
 import { createPipeline } from './app/pipeline.js';
@@ -16,17 +16,28 @@ import { createMemberView } from './views/member.js';
 import { createModelView } from './views/model.js';
 import { createPortfolioView } from './views/portfolio.js';
 import { createLineageView } from './views/lineage.js';
+import { createBriefingView } from './views/briefing.js';
+import { createHoldingsView } from './views/holdings.js';
+import { createTradesView } from './views/trades.js';
+import { createCloud } from './app/cloud.js';
+import { createPortfolio } from './app/portfolio.js';
+import { setLogos, nameOf } from './ui/brand.js';
 import { deskBriefPrompt, sampleErrorCopy, streamInto } from './ai/claude.js';
 
 const NAV = [
+  { key: 'briefing', label: 'Briefing', icon: ICON.briefing, go: 'o' },
   { key: 'signals', label: 'Signals', icon: ICON.signals, go: 's' },
   { key: 'graph', label: 'Link analysis', icon: ICON.graph, go: 'g' },
   { key: 'dossier', label: 'Dossier', icon: ICON.dossier, go: 'd' },
   { key: 'member', label: 'Member', icon: ICON.member, go: 'c' },
-  { key: 'model', label: 'Model', icon: ICON.model, go: 'm' },
-  { key: 'portfolio', label: 'Portfolio', icon: ICON.portfolio, go: 'p' },
+  { key: 'holdings', label: 'Holdings', icon: ICON.holdings, go: 'h', sep: true },
+  { key: 'trades', label: 'Trade review', icon: ICON.trades, go: 't' },
+  { key: 'portfolio', label: 'Plan', icon: ICON.portfolio, go: 'p' },
+  { key: 'model', label: 'Model', icon: ICON.model, go: 'm', bottom: true },
   { key: 'lineage', label: 'Lineage', icon: ICON.lineage, go: 'l', bottom: true }
 ];
+const JOB_SERVER = 'Claude Code Remote';
+const STALE_MS = 6 * 3600e3;
 
 function validModel(m) {
   return m && m.weights && FACTORS.every(f => Number.isFinite(m.weights[f.key])) && m.tiers && Number.isFinite(m.halfLife);
@@ -34,7 +45,10 @@ function validModel(m) {
 
 /* ---------- State ---------- */
 const store = createStore({
-  view: 'signals',
+  view: 'briefing',
+  cloud: { status: 'pending' },
+  holdingChecks: null,
+  portfolioLocalAt: 0,
   caps: { mcp: 'pending', sample: 'pending', db: 'pending', downloads: 'pending' },
   windowDays: 30,
   model: { ...DEFAULT_MODEL, weights: { ...DEFAULT_MODEL.weights }, tiers: { ...DEFAULT_MODEL.tiers } },
@@ -53,6 +67,8 @@ let mcp = null;
 const conn = createConnector({ getMcp: () => mcp });
 const quiver = createQuiver(conn);
 const pipeline = createPipeline({ store, quiver });
+const cloud = createCloud({ store });
+const portfolio = createPortfolio({ store, quiver, cloud });
 const workspace = createWorkspace({
   store,
   onRemote: ws => { if (validModel(ws.model)) { store.set({ model: ws.model }); pipeline.recompute(); } }
@@ -66,7 +82,7 @@ const workspace = createWorkspace({
 /* ---------- Context shared with views ---------- */
 let firstRunDone = false;
 const ctx = {
-  store, conn, quiver, pipeline, workspace,
+  store, conn, quiver, pipeline, workspace, cloud, portfolio,
   caps: { sample: null, downloads: null },
   async runPipeline(opts = {}) {
     if (!mcp) { toast('Live data needs the claude.ai viewer with the Quiver Quant connector.', 'error'); return; }
@@ -74,6 +90,7 @@ const ctx = {
     const p = store.get().pipeline;
     if (p.status === 'done') {
       if (!firstRunDone) { firstRunDone = true; workspace.update({ lastSeen: new Date().toISOString() }); }
+      snapshot();
       if (opts.refresh) toast(`Refreshed · ${fmtInt(store.get().signals.length)} tickers scored`, 'ok');
     }
   },
@@ -85,11 +102,11 @@ const ctx = {
     const has = st.workspace.watch.some(w => w.ticker === ticker);
     if (has) {
       workspace.update({ watch: st.workspace.watch.filter(w => w.ticker !== ticker) });
-      toast(`Removed ${ticker} from the portfolio`);
+      toast(`Removed ${nameOf(ticker)} from the plan`);
     } else {
       const s = st.signals.find(x => x.ticker === ticker);
       workspace.update({ watch: [...st.workspace.watch, { ticker, company: s?.company || '', scoreAtAdd: s?.score ?? null, tierAtAdd: s?.tier ?? null, addedAt: isoDate(), note: '' }] });
-      toast(`Added ${ticker} to the portfolio`, 'ok');
+      toast(`Added ${nameOf(ticker)} to the plan`, 'ok');
     }
   },
   applyPreset(key) {
@@ -102,26 +119,65 @@ const ctx = {
     pipeline.recompute();
     saveModel(model);
   },
-  openBrief
+  openBrief,
+  openImport() { nav('holdings'); views.holdings.openImport(); },
+  canFireJob: () => !!mcp,
+  async fireJob() {
+    const id = store.get().cloud?.config?.triggerId;
+    if (!mcp || !id) { toast('The daily job is not connected to this page yet.', 'error'); return false; }
+    try {
+      await mcp.callTool(JOB_SERVER, 'fire_trigger', { trigger_id: id, text: `On-demand run requested from the Paper Trail page at ${new Date().toISOString()}.` }, { cache: false });
+      await cloud.markJobRequested();
+      toast('Daily job started. The brief, prices and logos update here in 5–15 minutes.', 'ok', 6000);
+      return true;
+    } catch (e) {
+      toast(e && e.code === 'not_granted' ? 'Allow the Claude Code Remote connector for this page to start the job.' : `Could not start the job: ${(e && e.message) || 'unknown error'}`, 'error', 7000);
+      return false;
+    }
+  }
 };
+
+/** Daily snapshot of the screen, used for day-over-day changes. */
+function snapshot() {
+  const st = store.get();
+  if (!cloud.ready || !st.data || !st.signals.length) return;
+  const tiers = st.signals.reduce((m, s) => (m[s.tier]++, m), { A: 0, B: 0, C: 0, D: 0 });
+  cloud.saveSnapshot({ signals: st.signals, asOf: st.data.asOf, windowDays: st.windowDays, model: st.model, kpis: { tickers: st.signals.length, ...tiers } });
+}
+
+/* Data stays current without a reload: refresh when the screen is older than
+   six hours or the date rolled over, checked every ten minutes and whenever
+   the tab becomes visible again. */
+function maybeRefresh() {
+  const st = store.get();
+  if (!mcp || st.pipeline.status === 'running' || document.hidden) return;
+  const f = st.pipeline.finishedAt;
+  if (!f) return;
+  if (Date.now() - f > STALE_MS || isoDate(new Date(f)) !== isoDate()) ctx.runPipeline({ refresh: true });
+}
+setInterval(maybeRefresh, 10 * 60e3);
+document.addEventListener('visibilitychange', () => { if (!document.hidden) maybeRefresh(); });
 const saveModel = debounce(model => workspace.update({ model }), 600);
 
 /* ---------- Views and navigation ---------- */
 const main = $('#main');
 const views = {
+  briefing: createBriefingView(ctx),
   signals: createSignalsView(ctx),
   graph: createGraphView(ctx),
   dossier: createDossierView(ctx),
   member: createMemberView(ctx),
   model: createModelView(ctx),
   portfolio: createPortfolioView(ctx),
+  holdings: createHoldingsView(ctx),
+  trades: createTradesView(ctx),
   lineage: createLineageView(ctx)
 };
 for (const v of Object.values(views)) { v.el.hidden = true; main.appendChild(v.el); }
 
 mount($('#rail'), html`${NAV.filter(n => !n.bottom).map(railButton)}<span class="spacer"></span>${NAV.filter(n => n.bottom).map(railButton)}`);
 function railButton(n) {
-  return html`<button type="button" data-nav="${n.key}" data-tip="${`${n.label}  ·  G then ${n.go.toUpperCase()}`}" aria-label="${n.label}">${n.icon}<span class="rail-label">${n.label}</span></button>`;
+  return html`${n.sep ? html`<span class="rail-sep" aria-hidden="true"></span>` : ''}<button type="button" data-nav="${n.key}" data-tip="${`${n.label}  ·  G then ${n.go.toUpperCase()}`}" aria-label="${n.label}">${n.icon}<span class="rail-label">${n.label}</span></button>`;
 }
 
 function nav(view, params = {}) {
@@ -146,14 +202,27 @@ function nav(view, params = {}) {
 function crumbs() {
   const st = store.get();
   const label = NAV.find(n => n.key === st.view)?.label || '';
-  const sub = st.view === 'dossier' ? views.dossier.current() : st.view === 'member' ? views.member.current() : null;
+  const sub = st.view === 'dossier' ? (views.dossier.current() && nameOf(views.dossier.current())) : st.view === 'member' ? views.member.current() : null;
   mount($('#crumbs'), html`<span>Workspace</span><span>›</span>${sub ? html`<span>${label}</span><span>›</span><b>${sub}</b>` : html`<b>${label}</b>`}`);
 }
 
 /* ---------- Store → UI ---------- */
+let portfolioSeen = false;
+let logoCount = 0;
 store.subscribe((st, changed) => {
+  if (changed.includes('cloud') && (st.cloud.logoCount || 0) !== logoCount) {
+    logoCount = st.cloud.logoCount || 0;
+    setLogos(st.cloud.logos);
+    views[st.view].render(st, null);
+    chrome(st);
+    return;
+  }
+  if (changed.includes('cloud') && st.cloud.portfolioLoaded && !portfolioSeen) {
+    portfolioSeen = true;
+    if (mcp && portfolio.derived() && ['briefing', 'holdings'].includes(st.view) && !st.holdingChecks) portfolio.check();
+  }
   views[st.view].render(st, changed);
-  if (changed.some(k => ['pipeline', 'data', 'caps', 'model', 'signals', 'workspace'].includes(k))) chrome(st);
+  if (changed.some(k => ['pipeline', 'data', 'caps', 'model', 'signals', 'workspace', 'cloud'].includes(k))) chrome(st);
 });
 
 function chrome(st) {
@@ -164,6 +233,8 @@ function chrome(st) {
   $('#feed-t').textContent = st.caps.mcp === 'off' ? 'Offline' : p.status === 'running' ? 'Syncing' : p.status === 'error' ? 'Sync failed' : p.status === 'done' ? `Live · ${fmtClock(p.finishedAt)}` : 'Connecting';
   mount($('#sb-conn'), html`Quiver: <b>${st.caps.mcp === 'on' ? 'connected' : st.caps.mcp}</b>`);
   mount($('#sb-model'), html`Model: <b>${APP.model}/${st.model.preset}</b> · window <b>${st.windowDays}d</b>`);
+  const q = st.cloud?.quotes;
+  mount($('#sb-cloud'), st.cloud?.status === 'on' ? html`Prices: <b>${q?.asOf ? fmtDate(q.asOf, { year: false }) : 'none yet'}</b> · logos <b>${fmtInt(st.cloud.logoCount || 0)}</b>${st.cloud.job ? html` · job <b>${st.cloud.job.state}</b>` : ''}` : '');
   mount($('#sb-rows'), st.data ? html`Rows: <b>${fmtInt(st.data.insiderBuys.length + st.data.congressRows.length)}</b> · tickers <b>${fmtInt(st.signals.length)}</b> · requests <b>${fmtInt(conn.log.length)}</b>` : '');
   const enr = p.stages.find(x => x.key === 'enrich');
   mount($('#sb-sync'), p.status === 'running' ? html`Pipeline: <b>running</b>` : enr && enr.status === 'running' ? html`Selling check <b>${enr.detail || ''}</b>` : p.finishedAt ? html`Synced <b>${fmtClock(p.finishedAt)}</b> · workspace <b>${workspace.mode}</b>` : '');
@@ -208,8 +279,8 @@ function showShortcuts() {
     title: 'Keyboard shortcuts',
     content: html`<dl class="shortcuts">
       ${k('⌘', 'K')}<dd>Command palette (also <kbd>/</kbd>)</dd>
-      ${k('G', 'S')}<dd>Signals</dd>${k('G', 'G')}<dd>Link analysis</dd>${k('G', 'D')}<dd>Dossier</dd>${k('G', 'C')}<dd>Member profile</dd>${k('G', 'M')}<dd>Model</dd>${k('G', 'P')}<dd>Portfolio</dd>${k('G', 'L')}<dd>Lineage</dd>
-      ${k('J')}<dd>Next signal</dd>${k('K')}<dd>Previous signal</dd>${k('Enter')}<dd>Open dossier for the selected signal</dd>${k('W')}<dd>Add or remove the selected signal from the portfolio</dd>
+      ${NAV.map(n => html`${k('G', n.go.toUpperCase())}<dd>${n.label}</dd>`)}
+      ${k('J')}<dd>Next signal</dd>${k('K')}<dd>Previous signal</dd>${k('Enter')}<dd>Open dossier for the selected signal</dd>${k('W')}<dd>Add or remove the selected signal from the plan</dd>
       ${k('B')}<dd>Desk brief from Claude</dd>${k('R')}<dd>Refresh from Quiver</dd>${k('Esc')}<dd>Close the top panel</dd></dl>`
   });
 }
@@ -222,7 +293,11 @@ function paletteItems() {
   items.push({ kind: 'Action', label: 'Desk brief from Claude', hint: 'B', rank: 2, run: openBrief });
   for (const d of WINDOWS) items.push({ kind: 'Window', label: `Look back ${d} days`, hint: st.windowDays === d ? 'current' : '', rank: 1, run: () => { store.set({ windowDays: d }); ctx.runPipeline(); } });
   for (const [k, p] of Object.entries(PRESETS)) items.push({ kind: 'Model', label: `${p.label} weights`, hint: st.model.preset === k ? 'current' : '', rank: 1, run: () => ctx.applyPreset(k) });
-  for (const s of st.signals.slice(0, 400)) items.push({ kind: 'Ticker', label: s.ticker, hint: `${s.company ? s.company.slice(0, 40) + ' · ' : ''}tier ${s.tier} · ${s.score}`, rank: 2 - s.rank / 1000, run: () => ctx.openDossier(s.ticker) });
+  for (const s of st.signals.slice(0, 400)) items.push({ kind: 'Company', label: nameOf(s.ticker, s.company), hint: `${s.ticker} · tier ${s.tier} · ${s.score}`, rank: 2 - s.rank / 1000, run: () => ctx.openDossier(s.ticker) });
+  const d = portfolio.derived();
+  if (d) for (const p of d.positions) items.push({ kind: 'Holding', label: p.short, hint: [p.inst.ticker, `${p.alloc.toFixed(1)}%`].filter(Boolean).join(' · '), rank: 1.5, run: () => (p.inst.us && p.inst.ticker ? ctx.openDossier(p.inst.ticker) : nav('holdings')) });
+  items.push({ kind: 'Action', label: 'Import from Finanzfluss', hint: '', rank: 1.2, run: () => ctx.openImport() });
+  items.push({ kind: 'Action', label: 'Run the daily job now', hint: '', rank: 1.2, run: () => ctx.fireJob() });
   const members = new Map();
   for (const r of st.data?.congressRows || []) if (!members.has(r.representative)) members.set(r.representative, r);
   for (const [name, r] of members) items.push({ kind: 'Member', label: name, hint: [r.party, r.chamber].filter(Boolean).join(' · '), rank: 0.5, run: () => ctx.openMember(name) });
@@ -247,7 +322,7 @@ function openBrief() {
         const s = store.get();
         mount(body, html`<div class="ins-actions" style="margin-bottom:12px"><button class="btn sm" type="button" id="br-stop">Stop</button><span class="xs muted" id="br-note">Claude is weighing the signals. Usually 30–90 seconds.</span></div><div class="md" id="br-out"><p class="thinking">Thinking…</p></div>`);
         const out = $('#br-out', body), note = $('#br-note', body);
-        ctl = streamInto(ctx.caps.sample, deskBriefPrompt({ signals: s.signals, asOf: s.data.asOf, windowDays: s.windowDays, capital: s.workspace.portfolio.capital }), {
+        ctl = streamInto(ctx.caps.sample, deskBriefPrompt({ signals: s.signals, asOf: s.data.asOf, windowDays: s.windowDays, capital: s.workspace.portfolio.capital, quotes: s.cloud?.quotes?.q }), {
           cache: refresh ? { gcTime: 3600000, refresh: true } : { gcTime: 3600000 },
           render: text => mount(out, markdown(text)),
           onDone: r => { note.textContent = r.truncated ? 'Cut short by the length limit.' : `Written ${fmtClock(Date.now())} from the ${s.windowDays}-day screen, ${s.model.preset} weights.`; done(); },
@@ -269,13 +344,14 @@ function boot() {
   const hash = (location.hash || '').slice(1);
   const m = /^dossier-([A-Z0-9.\-]{1,8})$/.exec(hash);
   if (m) nav('dossier', { ticker: m[1] });
-  else nav(NAV.some(n => n.key === hash) ? hash : 'signals');
+  else nav(NAV.some(n => n.key === hash) ? hash : 'briefing');
   chrome(store.get());
 
   const C = window.claude;
   const setCap = (k, v) => store.set({ caps: { ...store.get().caps, [k]: v } });
   if (!C || typeof C.use !== 'function') {
     store.set({ caps: { mcp: 'off', sample: 'off', db: 'off', downloads: 'off' } });
+    cloud.attach(null);
     return;
   }
   C.use('mcp').then(m2 => {
@@ -288,6 +364,7 @@ function boot() {
   Promise.all([C.use('db').catch(() => null), C.use('user').catch(() => null)]).then(([db, user]) => {
     setCap('db', db ? 'on' : 'off');
     workspace.attach(db, user);
+    cloud.attach(db);
   });
 }
 boot();

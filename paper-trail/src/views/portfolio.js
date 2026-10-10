@@ -4,6 +4,7 @@ import { tierChip } from '../ui/parts.js';
 import { toast } from '../ui/overlay.js';
 import { allocate, METHODS } from '../model/allocate.js';
 import { fmtMoney, fmtPct, fmtDate, isoDate, cleanCompany } from '../core/util.js';
+import { brand, nameOf } from '../ui/brand.js';
 
 /** Position planner: constraints, conviction-weighted sizing, notes, CSV export. */
 export function createPortfolioView(ctx) {
@@ -59,7 +60,7 @@ export function createPortfolioView(ctx) {
     const p = st.workspace.portfolio;
     $('#p-count', el).textContent = `${list.length} position${list.length === 1 ? '' : 's'}`;
     if (!list.length) {
-      mount($('#p-table', el), html`<div class="empty"><h3>No positions yet</h3><span>Press ☆ on a signal, <b>Add to portfolio</b> in a dossier, or <b>Add top 6 tier A/B</b> above.</span></div>`);
+      mount($('#p-table', el), html`<div class="empty"><h3>No positions yet</h3><span>Press ☆ on a signal, <b>Add to plan</b> in a dossier, or <b>Add top 6 tier A/B</b> above.</span></div>`);
       mount($('#p-sum', el), html`<p class="small muted">Add positions to see the plan.</p>`);
       return;
     }
@@ -67,7 +68,7 @@ export function createPortfolioView(ctx) {
     const maxAmt = Math.max(1, ...a.amounts);
     mount($('#p-table', el), html`<div class="table-wrap"><table class="grid"><thead><tr><th>Ticker</th><th>Tier</th><th class="num">Score</th><th class="num">Weight</th><th class="num">Amount</th><th style="min-width:90px"><span class="sr-only">Bar</span></th><th>Thesis / exit note</th><th><span class="sr-only">Remove</span></th></tr></thead><tbody>
       ${list.map((it, i) => html`<tr>
-        <td><div class="two"><button class="tk" type="button" data-open="${it.ticker}">${it.ticker}</button><span class="co">${cleanCompany(it.company)}</span></div></td>
+        <td>${brand(it.ticker, { name: nameOf(it.ticker, it.company) })}</td>
         <td>${it.tier ? tierChip(it.tier) : ''}</td>
         <td class="num" data-tip="${it.live ? 'Live score' : `Score when added on ${fmtDate(it.addedAt)}; not in the current screen`}">${it.score ?? '—'}${it.live ? '' : '*'}</td>
         <td class="num">${fmtPct(a.shares[i] * 100, 1)}</td>
@@ -111,7 +112,7 @@ export function createPortfolioView(ctx) {
     if (!ctx.caps.downloads) { toast('File downloads are not available in this view.', 'error'); return; }
     const cell = v => { const s = String(v ?? ''); return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s; };
     const rows = [['Ticker', 'Company', 'Tier', 'Score', 'Weight %', 'Amount USD', 'Note']];
-    last.list.forEach((it, i) => rows.push([it.ticker, cleanCompany(it.company), it.tier || '', it.score ?? '', (last.a.shares[i] * 100).toFixed(1), last.a.amounts[i], it.note || '']));
+    last.list.forEach((it, i) => rows.push([it.ticker, nameOf(it.ticker, cleanCompany(it.company)), it.tier || '', it.score ?? '', (last.a.shares[i] * 100).toFixed(1), last.a.amounts[i], it.note || '']));
     rows.push(['CASH', 'Reserve and uninvested', '', '', ((last.a.cash / last.p.capital) * 100).toFixed(1), Math.round(last.a.cash), '']);
     try {
       await ctx.caps.downloads.save({ filename: `paper-trail-plan-${isoDate()}.csv`, data: rows.map(r => r.map(cell).join(',')).join('\n') });
