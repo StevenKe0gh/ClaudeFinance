@@ -1,0 +1,39 @@
+.sig-grid {
+  display: grid;
+  grid-template-columns: 184px minmax(0, 1fr) 316px;
+  grid-template-areas: "facets table inspector" "facets activity inspector";
+  grid-template-rows: minmax(420px, auto) auto;
+  gap: var(--gap);
+  align-items: start;
+}
+.sig-facets { grid-area: facets; position: sticky; top: 0; }
+.sig-table { grid-area: table; }
+.sig-activity { grid-area: activity; }
+.sig-inspector { grid-area: inspector; position: sticky; top: 0; max-height: calc(100vh - var(--top) - var(--status) - 28px); overflow: auto; }
+@media (max-width: 1360px) {
+  .sig-grid { grid-template-columns: 184px minmax(0, 1fr); grid-template-areas: "facets table" "facets activity" "inspector inspector"; }
+  .sig-inspector { position: static; max-height: none; }
+}
+@media (max-width: 900px) {
+  .sig-grid { grid-template-columns: minmax(0, 1fr); grid-template-areas: "facets" "table" "inspector" "activity"; grid-template-rows: auto; }
+  .sig-facets { position: static; }
+}
+.sig-table .table-wrap { max-height: 640px; }
+.facet { display: flex; flex-direction: column; gap: 7px; padding: 10px 12px; border-bottom: 1px solid var(--line-2); }
+.facet:last-child { border-bottom: 0; }
+.facet .label { margin-bottom: 1px; }
+.facet .tiers { display: flex; gap: 4px; }
+.facet .tiers button { border: 0; padding: 0; background: none; cursor: pointer; opacity: .35; }
+.facet .tiers button[aria-pressed="true"] { opacity: 1; }
+.facet .count { margin-left: auto; font: 400 var(--t-xs) var(--f-mono); color: var(--fg-3); }
+@media (max-width: 900px) {
+  .sig-facets .panel-b.flush { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); }
+  .facet { border-bottom: 0; border-right: 1px solid var(--line-2); }
+}
+.table-foot { display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-top: 1px solid var(--line); font-size: var(--t-xs); color: var(--fg-2); }
+.ins-h { display: flex; align-items: center; gap: 10px; }
+.ins-h .tk { font: 600 var(--t-xl) var(--f-mono); }
+.ins-h .co { color: var(--fg-2); font-size: var(--t-sm); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ins-score { display: flex; align-items: baseline; gap: 8px; }
+.ins-score b { font: 500 var(--t-xxl)/1 var(--f-ui); letter-spacing: -.02em; }
+.ins-actions { display: flex; flex-wrap: wrap; gap: 6px; }

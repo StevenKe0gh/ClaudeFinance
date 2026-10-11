@@ -1,0 +1,40 @@
+.chart { position: relative; min-width: 0; }
+.chart svg { display: block; width: 100%; height: auto; overflow: visible; }
+.ax { font: 400 10.5px var(--f-mono); fill: var(--fg-3); }
+.ax-l { font: 600 10.5px var(--f-cond); letter-spacing: .08em; text-transform: uppercase; fill: var(--fg-2); }
+.vl { font: 500 11px var(--f-mono); fill: var(--fg-1); }
+.gl { stroke: var(--line-2); stroke-width: 1; }
+.bl { stroke: var(--line-3); stroke-width: 1; }
+.m-buy { fill: var(--buy); }
+.m-sell { fill: var(--sell); }
+.m-acc { fill: var(--accent); }
+.m-ins { fill: var(--grp-insider); }
+.m-cong { fill: var(--grp-congress); }
+.m-cross { fill: var(--grp-cross); }
+.m-dim { fill: var(--bg-4); }
+.ring { stroke: var(--bg-1); stroke-width: 2; stroke-linejoin: round; }
+.hit { fill: transparent; cursor: pointer; }
+.brush { fill: var(--accent-bg); stroke: var(--accent-line); stroke-width: 1; }
+.legend { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: var(--t-xs); color: var(--fg-2); align-items: center; }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.sw { display: inline-block; width: 10px; height: 10px; border-radius: 2px; flex: none; }
+.sw[data-g="insider"] { background: var(--grp-insider); }
+.sw[data-g="congress"] { background: var(--grp-congress); }
+.sw[data-g="cross"] { background: var(--grp-cross); }
+.spark { display: block; }
+.spark rect { fill: var(--fg-3); }
+.spark rect.on { fill: var(--accent); }
+
+/* Factor waterfall (HTML) */
+.wf { display: flex; flex-direction: column; gap: 5px; }
+.wf-row { display: grid; grid-template-columns: 112px minmax(0, 1fr) 40px; align-items: center; gap: 8px; font-size: var(--t-xs); }
+.wf-row .n { color: var(--fg-1); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.wf-row .track { position: relative; height: 10px; background: var(--bg-3); border-radius: 1px; }
+.wf-row .track i { position: absolute; top: 0; bottom: 0; border-radius: 1px; }
+.wf-row .track i[data-g="insider"] { background: var(--grp-insider); }
+.wf-row .track i[data-g="congress"] { background: var(--grp-congress); }
+.wf-row .track i[data-g="cross"] { background: var(--grp-cross); }
+.wf-row .track u { position: absolute; top: -2px; bottom: -2px; width: 1px; background: var(--fg-3); text-decoration: none; }
+.wf-row .v { font-family: var(--f-mono); text-align: right; color: var(--fg-0); }
+.wf-row.total { border-top: 1px solid var(--line); padding-top: 6px; margin-top: 2px; font-weight: 600; }
+.wf-notes { display: flex; flex-direction: column; gap: 3px; font-size: var(--t-xs); color: #F1CB86; }

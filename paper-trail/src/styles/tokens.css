@@ -1,0 +1,65 @@
+/* Layout: an operations console. Fixed command bar, icon rail, scrolling
+   work area of hairline-ruled panels, status bar. Dense 13px UI with mono
+   figures. Single dark theme by design: this is a tool for long sessions. */
+:root {
+  color-scheme: dark;
+
+  /* Surfaces, darkest to lightest. Slight blue bias, matched to the accent. */
+  --bg-0: #090C10;
+  --bg-1: #0F141A;
+  --bg-2: #131A22;
+  --bg-3: #18212B;
+  --bg-4: #1F2A36;
+  --line: #222D38;
+  --line-2: #19212A;
+  --line-3: #2F3C4A;
+
+  /* Ink */
+  --fg-0: #E4EAF0;
+  --fg-1: #B3BFCB;
+  --fg-2: #8593A2;
+  --fg-3: #5E6A77;
+
+  /* Accent and semantic */
+  --accent: #4C8DFF;
+  --accent-hi: #7DABFF;
+  --accent-bg: rgba(76, 141, 255, .13);
+  --accent-line: rgba(76, 141, 255, .42);
+  --on-accent: #05101F;
+  --buy: #1FA874;
+  --buy-bg: rgba(31, 168, 116, .14);
+  --sell: #F0563F;
+  --sell-bg: rgba(240, 86, 63, .14);
+  --warn: #D9A13B;
+  --warn-bg: rgba(217, 161, 59, .13);
+  --info: #8C9CB0;
+  --info-bg: rgba(140, 156, 176, .12);
+
+  /* Entities (validated for CVD on --bg-1). Teal = insiders, amber = Congress everywhere. */
+  --ent-ticker: #4C8DFF;
+  --ent-member: #C98420;
+  --ent-insider: #1F9E90;
+  --ent-fund: #8C6CF0;
+  --grp-insider: var(--ent-insider);
+  --grp-congress: var(--ent-member);
+  --grp-cross: var(--ent-fund);
+
+  /* Type */
+  --f-ui: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --f-cond: "IBM Plex Sans Condensed", "Arial Narrow", "IBM Plex Sans", sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --f-mark: "Archivo", "Arial Black", "IBM Plex Sans", sans-serif;
+  --t-xs: 11px;
+  --t-sm: 12px;
+  --t-md: 13px;
+  --t-lg: 15px;
+  --t-xl: 20px;
+  --t-xxl: 30px;
+
+  /* Geometry */
+  --r: 4px;
+  --top: 44px;
+  --rail: 56px;
+  --status: 26px;
+  --gap: 12px;
+}

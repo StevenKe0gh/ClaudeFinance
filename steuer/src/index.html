@@ -1,0 +1,176 @@
+<title>Steuererklärung 2024–2026</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: the paper form beside its assessment. Inputs run down the left like
+   the Mantelbogen and its Anlagen; the live result for the chosen year sits on
+   the right and turns into the ELSTER fill-in list. */
+:root {
+  color-scheme: light;
+  --bg: #F3F5F2;
+  --surface: #FFFFFF;
+  --surface-2: #F8FAF8;
+  --ink: #14211B;
+  --ink-2: #4A5A52;
+  --ink-3: #6F7F77;
+  --line: #DCE3DE;
+  --line-2: #E9EEEA;
+  --accent: #1D6B4C;
+  --accent-ink: #FFFFFF;
+  --accent-soft: #E3F0EA;
+  --refund: #146B42;
+  --pay: #B3361F;
+  --warn: #9A6200;
+  --warn-soft: #FBF1DD;
+  --focus: #2F7DE1;
+
+  --f-display: "Bricolage Grotesque", "Atkinson Hyperlegible", system-ui, sans-serif;
+  --f-body: "Atkinson Hyperlegible", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-num: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  --r: 10px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --bg: #0E1412; --surface: #151D1A; --surface-2: #121916; --ink: #E6EEEA; --ink-2: #A9B8B1; --ink-3: #7F8F88;
+    --line: #26332E; --line-2: #1D2824; --accent: #4FB386; --accent-ink: #06140E; --accent-soft: #17312A;
+    --refund: #5BD69A; --pay: #F07A62; --warn: #E3A63B; --warn-soft: #2B2412; --focus: #6AA8F5;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #0E1412; --surface: #151D1A; --surface-2: #121916; --ink: #E6EEEA; --ink-2: #A9B8B1; --ink-3: #7F8F88;
+  --line: #26332E; --line-2: #1D2824; --accent: #4FB386; --accent-ink: #06140E; --accent-soft: #17312A;
+  --refund: #5BD69A; --pay: #F07A62; --warn: #E3A63B; --warn-soft: #2B2412; --focus: #6AA8F5;
+}
+* { box-sizing: border-box; margin: 0; }
+body { background: var(--bg); color: var(--ink); font: 15px/1.5 var(--f-body); padding-inline: 16px; padding-block: 24px 48px; }
+.wrap { max-width: 1240px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px; }
+h1, h2, h3 { font-family: var(--f-display); text-wrap: balance; letter-spacing: -0.01em; }
+.num { font-family: var(--f-num); font-variant-numeric: tabular-nums; }
+.label { font: 700 11px/1.2 var(--f-body); letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); }
+.muted { color: var(--ink-2); }
+.small { font-size: 13px; }
+.xs { font-size: 12px; }
+button, input, select { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+
+/* Header */
+.top { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 16px 32px; align-items: end; }
+.top h1 { font-size: clamp(28px, 4vw, 40px); font-weight: 700; line-height: 1.05; }
+.top p { max-width: 62ch; color: var(--ink-2); margin-top: 6px; }
+.hero { text-align: right; }
+.hero .v { font: 700 clamp(32px, 5vw, 48px)/1 var(--f-display); color: var(--refund); }
+.hero .v.pay { color: var(--pay); }
+.hero .s { color: var(--ink-2); font-size: 13px; margin-top: 4px; }
+@media (max-width: 720px) { .top { grid-template-columns: minmax(0, 1fr); } .hero { text-align: left; } }
+
+.tabs { display: flex; gap: 6px; flex-wrap: wrap; }
+.tab { border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 6px 14px; cursor: pointer; display: inline-flex; gap: 8px; align-items: center; }
+.tab[aria-selected="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.tab .amt { font-family: var(--f-num); font-size: 13px; opacity: .85; }
+
+.grid { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 20px; align-items: start; }
+@media (max-width: 980px) { .grid { grid-template-columns: minmax(0, 1fr); } }
+.col { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 18px 18px 20px; display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.card > header { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.card > header h2 { font-size: 19px; font-weight: 700; }
+.card > header .step { font: 600 12px var(--f-num); color: var(--accent); }
+.card > header .grow { flex: 1; }
+
+.btn { border: 1px solid var(--line); background: var(--surface); border-radius: 8px; padding: 7px 12px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
+.btn:hover { border-color: var(--ink-3); }
+.btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.btn.ghost { border-color: transparent; background: transparent; color: var(--ink-2); }
+.btn.sm { padding: 4px 9px; font-size: 13px; }
+
+.fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px 12px; }
+.field { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.field label { font-size: 12.5px; color: var(--ink-2); }
+.field input, .field select { border: 1px solid var(--line); background: var(--surface-2); border-radius: 7px; padding: 7px 9px; min-width: 0; width: 100%; }
+.field input[type="number"] { font-family: var(--f-num); }
+.field .hint { font-size: 11.5px; color: var(--ink-3); }
+.field.wide { grid-column: 1 / -1; }
+
+.job { border: 1px solid var(--line-2); border-radius: 9px; padding: 12px; display: flex; flex-direction: column; gap: 10px; background: var(--surface-2); }
+.job .head { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.job .head input { font: 700 16px var(--f-body); border: 0; background: transparent; padding: 2px 0; min-width: 0; flex: 1 1 180px; }
+.chips { display: flex; gap: 6px; flex-wrap: wrap; }
+.chip { font-size: 12px; padding: 2px 8px; border-radius: 999px; background: var(--accent-soft); color: var(--ink); }
+.chip.warn { background: var(--warn-soft); color: var(--warn); }
+details > summary { cursor: pointer; font-size: 13px; color: var(--ink-2); }
+details[open] > summary { margin-bottom: 8px; }
+.yearbox { border-top: 1px dashed var(--line); padding-top: 8px; margin-top: 8px; }
+.yearbox:first-of-type { border-top: 0; margin-top: 0; }
+
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; flex-wrap: wrap; }
+.seg button { border: 0; background: var(--surface); padding: 6px 12px; cursor: pointer; font-size: 13.5px; }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
+
+/* Result */
+.result { position: sticky; top: 16px; }
+.big { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.big .v { font: 700 40px/1 var(--f-display); color: var(--refund); }
+.big .v.pay { color: var(--pay); }
+.status { display: flex; gap: 6px; flex-wrap: wrap; }
+.pill { font-size: 12.5px; padding: 3px 9px; border-radius: 999px; border: 1px solid var(--line); display: inline-flex; gap: 6px; align-items: center; }
+.pill.must { border-color: var(--warn); color: var(--warn); background: var(--warn-soft); }
+.pill.ok { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
+
+.bars { display: flex; flex-direction: column; gap: 8px; }
+.bar-row { display: grid; grid-template-columns: 120px minmax(0, 1fr) 96px; gap: 10px; align-items: center; font-size: 13.5px; }
+.bar-row .track { height: 10px; background: var(--line-2); border-radius: 5px; overflow: hidden; }
+.bar-row .track i { display: block; height: 100%; border-radius: 5px; }
+.bar-row .track i.w { background: var(--accent); }
+.bar-row .track i.d { background: var(--pay); opacity: .8; }
+.bar-row .num { text-align: right; }
+
+.calc { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+.calc td { padding: 5px 0; border-bottom: 1px solid var(--line-2); vertical-align: top; }
+.calc td:last-child { text-align: right; font-family: var(--f-num); white-space: nowrap; padding-left: 12px; }
+.calc tr.sub td { color: var(--ink-2); padding-left: 12px; }
+.calc tr.tot td { font-weight: 700; border-bottom: 0; padding-top: 8px; }
+
+.list { list-style: none; padding: 0; display: flex; flex-direction: column; gap: 6px; font-size: 13.5px; }
+.list li { display: grid; grid-template-columns: 18px minmax(0, 1fr); gap: 8px; }
+.list li::before { content: "•"; color: var(--ink-3); }
+.list.todo li::before { content: "○"; color: var(--warn); }
+.list.note li::before { content: "!"; color: var(--warn); font-weight: 700; }
+
+.form { border: 1px solid var(--line); border-radius: 9px; overflow: hidden; }
+.form h3 { font: 700 14px var(--f-body); padding: 8px 12px; background: var(--surface-2); border-bottom: 1px solid var(--line); display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
+.form h3 .why { font-weight: 400; font-size: 12.5px; color: var(--ink-2); }
+.form .row { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 10px; align-items: center; padding: 7px 12px; border-top: 1px solid var(--line-2); font-size: 13.5px; }
+.form .row:first-of-type { border-top: 0; }
+.form .row .val { font-family: var(--f-num); white-space: nowrap; }
+.form .row .val.est { color: var(--warn); }
+.form .row em { font-style: normal; font-size: 12px; color: var(--ink-3); display: block; }
+.copy { border: 1px solid var(--line); background: var(--surface); border-radius: 6px; padding: 2px 7px; font-size: 12px; cursor: pointer; color: var(--ink-2); }
+
+.note-box { background: var(--accent-soft); border-radius: 9px; padding: 12px 14px; font-size: 13.5px; display: flex; flex-direction: column; gap: 6px; }
+.empty { color: var(--ink-2); font-size: 13.5px; }
+.saved { font-size: 12px; color: var(--ink-3); }
+footer { color: var(--ink-3); font-size: 12px; max-width: 80ch; }
+@media (max-width: 520px) { .bar-row { grid-template-columns: 90px minmax(0, 1fr) 80px; } .big .v { font-size: 34px; } }
+@media (prefers-reduced-motion: no-preference) { .bar-row .track i { transition: width .4s ease; } }
+</style>
+
+<div class="wrap" id="app">
+  <section class="top">
+    <div><h1>Steuererklärung 2024–2026</h1><p>Get back the wage tax withheld from your internships. As a student your yearly income stays near or below the basic allowance (Grundfreibetrag), so most or all of it is refunded. Enter each internship once; the page splits it into tax years and lists what to type into ELSTER.</p></div>
+    <div class="hero" id="hero"></div>
+  </section>
+  <nav class="tabs" id="tabs" role="tablist" aria-label="Tax year"></nav>
+  <div class="grid">
+    <div class="col" id="inputs"></div>
+    <div class="col result" id="result"></div>
+  </div>
+  <footer>Estimates for preparing your return, based on § 32a EStG for 2024–2026 and the allowances in force (Arbeitnehmer-Pauschbetrag 1.230 €, Sparer-Pauschbetrag 1.000 €, Sonderausgaben-Pauschbetrag 36 €). The Finanzamt's assessment is binding. Not tax advice: for unusual cases ask a Lohnsteuerhilfeverein or a Steuerberater. Your entries are stored privately in your account.</footer>
+</div>
+
+<script>
+/*__JS__*/
+</script>

@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "ArtifactData",
+      "mcp__Quiver_Quant",
+      "Bash(node jobs/quotes.mjs:*)",
+      "Bash(node jobs/prices.mjs:*)",
+      "Bash(python3 jobs/logos.py:*)",
+      "Bash(pip install pillow)",
+      "Bash(git fetch:*)",
+      "Bash(git checkout:*)"
+    ]
+  }
+}
