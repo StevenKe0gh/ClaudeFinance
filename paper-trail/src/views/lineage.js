@@ -66,6 +66,7 @@ export function createLineageView(ctx) {
       </dl><dl class="kv">
       ${row('Last job', j ? j.state : 'never', j ? j.state === 'ok' : null, j && j.finishedAt ? `${fmtDate(new Date(j.finishedAt).toISOString().slice(0, 10))} ${fmtClock(j.finishedAt)}` : '')}
       ${(j?.steps || []).map(s => row(`· ${s.label || s.key}`, s.status, s.status === 'ok' ? true : s.status === 'error' || s.status === 'blocked' ? false : null, s.detail || ''))}
+      ${row('Member track records', c.track ? `${fmtInt(Object.keys(c.track.members || {}).length)} members` : 'not computed yet', c.track ? true : null, c.track ? `${fmtDate(c.track.asOf)} · ${c.track.horizon}-day excess return vs SPY` : 'needs Yahoo price history in the job')}
       ${row('Briefs stored', fmtInt((c.briefs || []).length), (c.briefs || []).length ? true : null)}
       ${row('Daily snapshots', fmtInt((c.snapshots || []).length), (c.snapshots || []).length ? true : null, 'top 120 per window, for day-over-day changes')}
       ${row('Schedule', c.config?.schedule || 'not set up', c.config?.triggerId ? true : null)}

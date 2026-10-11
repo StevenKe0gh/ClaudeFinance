@@ -13,7 +13,7 @@ export const FACTORS = [
   { key: 'iSize', group: 'insider', label: 'Insider dollars', short: 'Dollars', desc: 'Dollars put in by insiders, seniority- and recency-weighted. $25K scores 0, $10M scores 1 (log scale).' },
   { key: 'iStake', group: 'insider', label: 'Stake increase', short: 'Stake Δ', desc: 'Median increase in each buyer’s holding. A new position counts as 100%; 50% or more scores 1.' },
   { key: 'iSenior', group: 'insider', label: 'Seniority', short: 'Senior', desc: 'Most senior buyer: CEO, CFO, COO, president or chair scores 1; other officers 0.6; directors 0.5.' },
-  { key: 'cBreadth', group: 'congress', label: 'Congress breadth', short: 'Members', desc: 'Different members of Congress buying, recency-weighted. Same-day buy-and-sell pairs are ignored.' },
+  { key: 'cBreadth', group: 'congress', label: 'Congress breadth', short: 'Members', desc: 'Different members of Congress buying. Each counts by how recent the trade itself is (half-life 30 days, so late filings count less) and by their track record (0.5× for a poor record up to 1.5× for a strong one). Same-day buy-and-sell pairs are ignored.' },
   { key: 'cSize', group: 'congress', label: 'Congress dollars', short: 'Cong. $', desc: 'Midpoint of reported ranges. $1K scores 0, the common $1K–15K range about 0.3, $1M scores 1 (log scale).' },
   { key: 'cBipartisan', group: 'congress', label: 'Bipartisan', short: 'Bipart.', desc: 'Democrats and Republicans both bought.' },
   { key: 'cOversight', group: 'congress', label: 'Committee oversight', short: 'Oversight', desc: 'A buyer sits on a committee or subcommittee whose jurisdiction covers the company’s industry (for example Armed Services and defense contractors). One recent buyer scores about 0.75; a chair or ranking member counts 1.3×.' },
@@ -23,7 +23,7 @@ export const FACTORS = [
 export const FACTOR_BY_KEY = Object.fromEntries(FACTORS.map(f => [f.key, f]));
 
 export const PRESETS = {
-  congressLed: { label: 'Congress-led', short: 'Congress-led', tiers: { A: 34, B: 27, C: 20 }, weights: { iBreadth: 12, iSize: 10, iStake: 5, iSenior: 9, cBreadth: 16, cSize: 9, cBipartisan: 4, cOversight: 24, convergence: 12, freshness: 10 } },
+  congressLed: { label: 'Congress-led', short: 'Congress-led', tiers: { A: 31, B: 25, C: 19 }, weights: { iBreadth: 12, iSize: 10, iStake: 5, iSenior: 9, cBreadth: 16, cSize: 9, cBipartisan: 4, cOversight: 24, convergence: 12, freshness: 10 } },
   balanced: { label: 'Balanced', short: 'Balanced', tiers: { A: 50, B: 38, C: 25 }, weights: { iBreadth: 20, iSize: 18, iStake: 8, iSenior: 14, cBreadth: 10, cSize: 5, cBipartisan: 3, cOversight: 8, convergence: 12, freshness: 10 } },
   insider: { label: 'Insider-first', short: 'Insider', tiers: { A: 60, B: 48, C: 35 }, weights: { iBreadth: 25, iSize: 22, iStake: 10, iSenior: 17, cBreadth: 5, cSize: 2, cBipartisan: 1, cOversight: 3, convergence: 8, freshness: 10 } },
   congress: { label: 'Congress-first', short: 'Congress', tiers: { A: 34, B: 24, C: 15 }, weights: { iBreadth: 8, iSize: 6, iStake: 3, iSenior: 5, cBreadth: 22, cSize: 13, cBipartisan: 8, cOversight: 24, convergence: 12, freshness: 10 } }
@@ -35,6 +35,9 @@ export const DEFAULT_MODEL = Object.freeze({
   halfLife: 21,
   tiers: { ...PRESETS.congressLed.tiers }
 });
+
+/** Half-life in days for the age of a congressional trade (trade date, not filing date). */
+export const CONGRESS_HALF_LIFE = 30;
 
 export const ROLE_WEIGHT = { csuite: 1, officer: 0.7, director: 0.8, fund: 0.45, holder: 0.4 };
 const SENIORITY = { csuite: 1, officer: 0.6, director: 0.5, fund: 0.25, holder: 0.2 };
@@ -59,10 +62,16 @@ const logNorm = (v, lo, hi) => (v > 0 ? clamp(Math.log10(v / lo) / Math.log10(hi
  * @param {object} p.model
  * @param {string|null} [p.lastSeen] ISO timestamp of the previous visit
  * @param {((ticker:string, bioguide:string|null) => object|null)|null} [p.oversight] committee-oversight lookup (model/oversight.js)
+ * @param {((bioguide:string|null) => {score:number, n:number, ex:number, hit:number}|null)|null} [p.track] member track record (0–1 score, neutral 0.5)
  */
-export function buildSignals({ insiderBuys, congressRows, congressAgg = new Map(), convergence90 = new Map(), enrichment = new Map(), asOf, windowDays, model = DEFAULT_MODEL, lastSeen = null, oversight = null }) {
+export function buildSignals({ insiderBuys, congressRows, congressAgg = new Map(), convergence90 = new Map(), enrichment = new Map(), asOf, windowDays, model = DEFAULT_MODEL, lastSeen = null, oversight = null, track = null }) {
   const H = model.halfLife || 21;
   const rec = d => (d ? Math.pow(0.5, Math.max(0, dayDiff(d, asOf)) / H) : 0);
+  // Congressional trades age from the trade date, not the filing: a purchase
+  // disclosed 40 days late is 40-day-old information.
+  const recTrade = d => (d ? Math.pow(0.5, Math.max(0, dayDiff(d, asOf)) / CONGRESS_HALF_LIFE) : 0);
+  // Track record scales each member between 0.5× and 1.5×; unknown is neutral.
+  const trackWeight = m => 0.5 + (m.track && Number.isFinite(m.track.score) ? m.track.score : 0.5);
   const wsum = FACTORS.reduce((s, f) => s + (model.weights[f.key] || 0), 0) || 1;
   const from = addDays(asOf, -(windowDays - 1));
   const days = dayRange(from, asOf);
@@ -112,7 +121,8 @@ export function buildSignals({ insiderBuys, congressRows, congressAgg = new Map(
         lastTraded: g.reduce((m, r) => (r.traded > m ? r.traded : m), ''),
         late: g.filter(r => r.lagDays > 45).length,
         ranges: [...new Set(g.map(r => r.amount))],
-        oversees: oversight ? oversight(ticker, g[0].bioguide_id || null) : null
+        oversees: oversight ? oversight(ticker, g[0].bioguide_id || null) : null,
+        track: track ? track(g[0].bioguide_id || null) : null
       });
       for (const r of g) { const i = dayIndex.get(r.filed); if (i != null) daily[i]++; }
     }
@@ -130,9 +140,10 @@ export function buildSignals({ insiderBuys, congressRows, congressAgg = new Map(
     const B = buyers.reduce((s, b) => s + ROLE_WEIGHT[b.role] * rec(b.lastDate), 0);
     const D = buyers.reduce((s, b) => s + b.usd * ROLE_WEIGHT[b.role] * rec(b.lastDate), 0);
     const stake = median(buyers.map(b => (b.stakePct == null ? null : Math.min(b.stakePct, 300))).filter(x => x != null));
-    const M = realMembers.reduce((s, m) => s + rec(m.lastFiled), 0) || (agg && !cRows.length && agg.buys > 0 ? 0.5 : 0);
+    const memberRec = m => recTrade(m.lastTraded || m.lastFiled) * trackWeight(m);
+    const M = realMembers.reduce((s, m) => s + memberRec(m), 0) || (agg && !cRows.length && agg.buys > 0 ? 0.5 : 0);
     const overseers = realMembers.filter(m => m.oversees);
-    const O = overseers.reduce((s, m) => s + rec(m.lastFiled) * (m.oversees.leader ? 1.3 : 1), 0);
+    const O = overseers.reduce((s, m) => s + memberRec(m) * (m.oversees.leader ? 1.3 : 1), 0);
     const last = insiderLast > congressLast ? insiderLast : congressLast;
 
     const norm = {
@@ -189,6 +200,18 @@ export function buildSignals({ insiderBuys, congressRows, congressAgg = new Map(
       const lead = o.oversees.role === 'chair' ? 'chairs' : o.oversees.role === 'ranking' ? 'is ranking member on' : 'sits on';
       flags.push({ id: 'oversight', tone: 'pos', label: overseers.length > 1 ? `Oversight ×${overseers.length}` : 'Oversight', detail: `${o.name} ${lead} ${o.oversees.committee}, which oversees ${o.oversees.themeLabel}${overseers.length > 1 ? `; ${overseers.length - 1} more buyer${overseers.length > 2 ? 's' : ''} also oversee${overseers.length > 2 ? '' : 's'} the industry` : ''}.` });
     }
+    const proven = realMembers.filter(m => m.track && m.track.n >= 8 && m.track.score >= 0.65).sort((a, b) => b.track.score - a.track.score);
+    const weak = realMembers.filter(m => m.track && m.track.n >= 8 && m.track.score <= 0.35);
+    if (proven.length) {
+      const t = proven[0].track;
+      flags.push({ id: 'track', tone: 'pos', label: proven.length > 1 ? `Strong track record ×${proven.length}` : 'Strong track record', detail: `${proven[0].name}'s past purchases beat the S&P 500 by ${t.ex >= 0 ? '+' : ''}${(t.ex * 100).toFixed(1)}% on average ${t.horizon || 90} days later (${t.n} trades, ${Math.round(t.hit * 100)}% beat it).` });
+    }
+    if (weak.length && !proven.length) {
+      const t = weak[0].track;
+      flags.push({ id: 'track-weak', tone: 'warn', label: 'Weak track record', detail: `${weak[0].name}'s past purchases trailed the S&P 500 by ${(Math.abs(t.ex) * 100).toFixed(1)}% on average ${t.horizon || 90} days later (${t.n} trades).` });
+    }
+    const late = realMembers.filter(m => m.lastTraded && m.lastFiled && dayDiff(m.lastTraded, m.lastFiled) > 30);
+    if (late.length && late.length === realMembers.length) flags.push({ id: 'stale', tone: 'warn', label: 'Old trades', detail: `Disclosed more than 30 days after the trade; the information is ${dayDiff(late[0].lastTraded, asOf)} days old.` });
     const sen = buyers.filter(b => b.role === 'csuite');
     const insidersProper = buyers.filter(b => b.role === 'csuite' || b.role === 'officer' || b.role === 'director');
     if (sen.length >= 2) flags.push({ id: 'csuite-cluster', tone: 'pos', label: `C-suite cluster ×${sen.length}`, detail: `${sen.map(b => b.name).join(', ')} bought on the open market.` });

@@ -212,7 +212,12 @@ function crumbs() {
 /* ---------- Store → UI ---------- */
 let portfolioSeen = false;
 let logoCount = 0;
+let lastTrack = null;
 store.subscribe((st, changed) => {
+  if (changed.includes('cloud') && st.cloud.track !== lastTrack) {
+    lastTrack = st.cloud.track;
+    if (st.data) pipeline.recompute();
+  }
   if (changed.includes('cloud') && (st.cloud.logoCount || 0) !== logoCount) {
     logoCount = st.cloud.logoCount || 0;
     setLogos(st.cloud.logos);

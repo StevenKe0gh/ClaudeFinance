@@ -7,6 +7,7 @@ import { fmtUSD, fmtInt, fmtDate, fmtPct, isoDate, addDays, ts, groupBy, cleanCo
 import { cleanInsider, cleanCongress, ROLE_LABEL } from '../model/clean.js';
 import { buildSignals } from '../model/score.js';
 import { oversight, seatsOf } from '../core/committees.js';
+import { trackLookup } from '../app/pipeline.js';
 import { memoPrompt, sampleErrorCopy, streamInto } from '../ai/claude.js';
 
 const SECTIONS = ['congress', 'insider', 'contracts', 'lobbying', 'darkpool', 'news', 'ownership'];
@@ -78,7 +79,7 @@ export function createDossierView(ctx) {
       congressRows: cg.filter(r => (r.filed || r.traded) >= from),
       convergence90: new Map([[e.ticker, cg.filter(r => r.kind === 'buy' && (r.filed || '') >= addDays(e.asOf, -89)).length]]),
       enrichment: st.enrichment,
-      asOf: e.asOf, windowDays: W, model: st.model, oversight
+      asOf: e.asOf, windowDays: W, model: st.model, oversight, track: trackLookup(st)
     })[0] || null;
     const screened = st.signals.find(s => s.ticker === e.ticker) || null;
     const contracts = (e.data.contracts || []).filter(c => +c.total_dollars_obligated > 0);

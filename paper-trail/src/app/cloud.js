@@ -14,6 +14,7 @@ import { isoDate } from '../core/util.js';
  *   portfolio/tx-<YYYY-MM> { rows }                               page (import)
  *   portfolio/overrides { map: { name: { ticker } } }             page
  *   config/app          { triggerId, schedule }                   setup
+ *   members/track       { asOf, horizon, members: { bioguide: { n, ex, hit, score } } }  daily job (weekly)
  *
  * Owner-only collections (portfolio, briefs, jobs, config) are enforced by
  * db rules declared at publish.
@@ -48,6 +49,7 @@ export function createCloud({ store }) {
       });
       watchDoc('quotes/latest', d => set({ quotes: d }));
       watchDoc('jobs/status', d => set({ job: d }));
+      watchDoc('members/track', d => set({ track: d }));
       watchDoc('config/app', d => set({ config: d }));
       watchCollection('briefs', docs => set({ briefs: docs.sort((a, b) => (a.id < b.id ? 1 : -1)) }), q => q.orderBy('date', 'desc').limit(30));
       watchCollection('daily', docs => set({ snapshots: docs }), q => q.orderBy('date', 'desc').limit(20));

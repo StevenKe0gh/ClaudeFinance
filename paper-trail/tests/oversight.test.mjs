@@ -70,3 +70,19 @@ test('scoring without an oversight lookup still works', () => {
   const sigs = buildSignals({ insiderBuys: [], congressRows: [], asOf: '2026-10-09', windowDays: 30, model: DEFAULT_MODEL });
   assert.deepEqual(sigs, []);
 });
+
+test('recent trades and a strong track record count for more', () => {
+  const row = (ticker, rep, bioguide, traded) => ({ ticker, representative: rep, bioguide_id: bioguide, party: 'R', chamber: 'House', kind: 'buy', transaction: 'Purchase', amount: '$15,001 - $50,000', mid: 32500, traded, filed: '2026-10-05', lagDays: 0, wash: false, owner: null });
+  const base = { insiderBuys: [], asOf: '2026-10-09', windowDays: 30, model: DEFAULT_MODEL };
+  const fresh = buildSignals({ ...base, congressRows: [row('AAA', 'Same Member', 'Z1', '2026-10-01')] })[0];
+  const stale = buildSignals({ ...base, congressRows: [row('AAA', 'Same Member', 'Z1', '2026-08-25')] })[0];
+  assert.ok(fresh.score > stale.score, `${fresh.score} vs ${stale.score}`);
+  const good = { score: 0.9, n: 30, ex: 0.08, hit: 0.7, horizon: 90 };
+  const bad = { score: 0.1, n: 30, ex: -0.06, hit: 0.3, horizon: 90 };
+  const withGood = buildSignals({ ...base, congressRows: [row('AAA', 'Same Member', 'Z1', '2026-10-01')], track: () => good })[0];
+  const withBad = buildSignals({ ...base, congressRows: [row('AAA', 'Same Member', 'Z1', '2026-10-01')], track: () => bad })[0];
+  assert.ok(withGood.score > fresh.score && fresh.score > withBad.score, `${withGood.score} > ${fresh.score} > ${withBad.score}`);
+  assert.ok(withGood.flags.some(f => f.id === 'track'));
+  assert.ok(withBad.flags.some(f => f.id === 'track-weak'));
+  assert.equal(withGood.congress.members[0].track.n, 30);
+});

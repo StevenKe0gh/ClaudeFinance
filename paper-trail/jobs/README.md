@@ -17,10 +17,11 @@ Artifact: `https://claude.ai/artifact/1gh8sjDSWsEiajQoPW6NWU`
 | `prices/<TICKER>` | `{ ticker, t: [date], c: [close], last, hi52, lo52, cur, name, exch, asOf, src: 'yahoo' }` | prices |
 | `logos/p<N>` | `{ logos: { TICKER: 'data:image/png;base64,…' } }` (each < 200 KB) | logos |
 | `logos/index` | `{ tickers: [TICKER…], missing: [TICKER…], packs: N, updatedAt }` | logos |
+| `members/track` | `{ asOf, horizon, benchmark, method, members: { BIOGUIDE: { name, n, ex, med, hit, score, horizon } } }` | track record (weekly) |
 | `briefs/<YYYY-MM-DD>` | `{ date, generatedAt, headline, markdown, picks: [{ ticker, name, why }], alerts: [{ tone: 'pos'\|'warn'\|'neg'\|'info', ticker, name, text }], sources }` | brief |
 
 Step keys for `jobs/status.steps`: `quiver`, `holdings`, `quotes`, `prices`,
-`logos`, `brief`. Step status: `ok`, `skipped`, `blocked` (network policy),
+`logos`, `track`, `brief`. Step status: `ok`, `skipped`, `blocked` (network policy),
 `error`. Timestamps are epoch milliseconds.
 
 The page writes `daily/<date>_<W>d` snapshots (`top: [[ticker, score, tier], …]`,
@@ -87,6 +88,23 @@ All commands run from `paper-trail/`. Use a scratch directory such as
    (`pip install pillow`). Write each new pack as `logos/p<N>` and update
    `logos/index` with the new tickers, misses and pack count. Skip the step
    when there is nothing new.
+
+7b. **Track record (step `track`, weekly).** Skip unless `members/track` is
+   missing or its `asOf` is more than 7 days old, and skip (status `blocked`)
+   when step 6 found Yahoo blocked. Otherwise:
+   - For every member who bought in the last 90 days, fetch their purchases
+     over the last three years with `get_congress_trades` (`politician`,
+     `transaction_type: "Purchase"`, `date_field: "traded"`), paging with
+     `offset` by the number of rows returned. Save every result to
+     `/tmp/pt/congress/` (one file per call; large results are saved to files
+     automatically, copy those).
+   - `node jobs/prices.mjs --range 3y --tickers <SPY + every ticker in those
+     purchases> --out /tmp/pt/prices3y`
+   - `node jobs/track-record.mjs --trades /tmp/pt/congress --prices
+     /tmp/pt/prices3y --out /tmp/pt/track.json` and `set` `members/track`
+     from that file.
+   The page then weights each member's buys between 0.5× (poor record) and
+   1.5× (strong record); members without a record count 1×.
 
 8. **Brief (step `brief`).** `set` `briefs/<today>` (a new document each day).
    - `headline`: one sentence, the most important thing today.

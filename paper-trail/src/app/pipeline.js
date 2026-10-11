@@ -4,6 +4,12 @@ import { cleanInsider, cleanCongress, cleanTicker, mergeDrops } from '../model/c
 import { buildSignals } from '../model/score.js';
 import { oversight } from '../core/committees.js';
 
+/** Member track-record lookup from the members/track document the daily job writes. */
+export function trackLookup(st) {
+  const T = st.cloud && st.cloud.track && st.cloud.track.members;
+  return T ? (b => (b && T[b]) || null) : null;
+}
+
 const STAGES = [
   { key: 'insider', label: 'Form 4 purchases' },
   { key: 'congress', label: 'Congressional trades' },
@@ -39,7 +45,8 @@ export function createPipeline({ store, quiver }) {
       windowDays: data.windowDays,
       model,
       lastSeen: (session && session.lastSeenPrev) || null,
-      oversight
+      oversight,
+      track: trackLookup(store.get())
     });
     store.set({ signals });
   }

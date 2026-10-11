@@ -5,6 +5,7 @@ import { FACTORS, PRESETS, DEFAULT_MODEL, MULT, buildSignals, weightShares } fro
 import { fmtInt } from '../core/util.js';
 import { brand, nameOf } from '../ui/brand.js';
 import { oversight } from '../core/committees.js';
+import { trackLookup } from '../app/pipeline.js';
 
 /**
  * Model workbench: weights, recency half-life and tier cut-offs, with a live
@@ -49,7 +50,7 @@ export function createModelView(ctx) {
     if (!st.data) { mount(host, html`<div class="empty"><h3>Waiting for data</h3><span>The impact table fills in after the first pull.</span></div>`); return; }
     const key = `${st.data.fetchedAt}|${st.enrichment.size}`;
     if (key !== baselineKey) {
-      const base = buildSignals({ ...st.data, insiderBuys: st.data.insiderBuys, congressRows: st.data.congressRows, enrichment: st.enrichment, model: DEFAULT_MODEL, oversight });
+      const base = buildSignals({ ...st.data, insiderBuys: st.data.insiderBuys, congressRows: st.data.congressRows, enrichment: st.enrichment, model: DEFAULT_MODEL, oversight, track: trackLookup(st) });
       baseline = new Map(base.map(s => [s.ticker, s]));
       baselineKey = key;
     }

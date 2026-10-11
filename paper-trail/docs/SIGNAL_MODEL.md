@@ -13,7 +13,7 @@ The model ranks **evidence of informed buying**. It does not forecast returns, i
 
 ## Factors
 
-Each factor is normalised to 0–1. `rec(d) = 0.5^(age_days / half_life)`, with a default half-life of 21 days. Role weights: C-suite 1.0, director 0.8, officer 0.7, fund 0.45, holder 0.4.
+Each factor is normalised to 0–1. `rec(d) = 0.5^(age_days / half_life)`, with a default half-life of 21 days. Congressional trades use `recₜ`, which ages from the **trade date** with a 30-day half-life: disclosures arrive a median 23 days after the trade (up to 45 days, sometimes later), so a late filing is old information and counts less. Each member's contribution is also multiplied by their **track record weight**, 0.5 + score, where score (0–1) comes from how their past purchases did against the S&P 500 90 days later (see below). Members without a record count 1×. Role weights: C-suite 1.0, director 0.8, officer 0.7, fund 0.45, holder 0.4.
 
 | Factor | Raw value | Normalisation |
 |---|---|---|
@@ -21,10 +21,10 @@ Each factor is normalised to 0–1. `rec(d) = 0.5^(age_days / half_life)`, with 
 | Insider dollars | Σ $ × role weight × rec over buyers | log scale, $25K → 0, $10M → 1 |
 | Stake increase | median % increase in each buyer's holding (new position = 100%, capped at 300%) | ÷ 50%, capped at 1 |
 | Seniority | most senior buyer | C-suite 1, officer 0.6, director 0.5, fund 0.25, holder 0.2 |
-| Congress breadth | Σ rec(last filing) over members, ignoring same-day buy/sell pairs | 1 − e^(−M/1.4) |
+| Congress breadth | Σ recₜ(trade date) × track weight over members, ignoring same-day buy/sell pairs | 1 − e^(−M/1.4) |
 | Congress dollars | midpoint of reported ranges | log scale, $1K → 0, $1M → 1 (the common $1K–15K range ≈ 0.3) |
 | Bipartisan | Democrats and Republicans both bought | 0 or 1 |
-| Committee oversight | Σ rec(last filing) over buying members whose committee covers the company's industry, × 1.3 for a chair or ranking member | 1 − e^(−O/0.7) |
+| Committee oversight | Σ recₜ(trade date) × track weight over buying members whose committee covers the company's industry, × 1.3 for a chair or ranking member | 1 − e^(−O/0.7) |
 | Convergence | insiders bought, and Congress bought in the window (1) or in the last 90 days (0.7) | — |
 | Freshness | age of the latest buy | 0.5^(age/10) |
 
@@ -38,6 +38,16 @@ Each factor is normalised to 0–1. `rec(d) = 0.5^(age_days / half_life)`, with 
 | Congress-first | 8 / 6 / 3 / 5 | 22 / 13 / 8 / 24 | 12 / 10 | 34 / 24 / 15 |
 
 Congress-led puts 53 of 111 weight points on congressional buying, almost half of it on committee oversight: one recent purchase by a member whose committee covers the company scores about as high as a C-suite insider cluster, and two such members outrank almost anything insiders alone can produce. Each preset carries its own tier cut-offs, set so that roughly the top 1% of tickers land in tier A, the next 3% in B and the next 10–15% in C. Any weight or cut-off can be changed on the Model page.
+
+## Track record
+
+`jobs/track-record.mjs` (run weekly by the daily job) takes each active member's purchases over the last three years, measures the return from the trade date to 90 days later minus SPY's return over the same days, caps single trades at ±100 %, and averages per member. Small samples are shrunk towards zero (mean × n ÷ (n + 10)) and mapped to a 0–1 score with a logistic curve: +4 % shrunk excess ≈ 0.73, 0 = 0.5. A member with 30 purchases averaging +8 % ends up near 0.85 and counts 1.35×; one with three lucky trades stays close to neutral. Flags name members with eight or more measured trades and a score of at least 0.65 (strong) or at most 0.35 (weak).
+
+The record needs daily price history, which comes from Yahoo Finance; until the job's network policy allows it, every member counts the same.
+
+## How often Congress discloses
+
+Measured on Quiver data from October 2025 to September 2026: about 3,000–3,400 congressional trades are disclosed per quarter (roughly 1,000 a month, 50 per trading day) by 75–90 members. Activity is concentrated: Ro Khanna's managed accounts alone account for 950–1,500 a quarter, and a handful of members (Cisneros, McCaul, McClain Delaney, McCormick, Armstrong) for most of the rest. Most lines are in the $1,001–15,000 bracket. Purchases sampled in the 30 days to 2026-10-09 were disclosed a median 23 days after the trade (middle half 21–33 days; 4 of 170 past the 45-day deadline).
 
 ## Committee oversight
 

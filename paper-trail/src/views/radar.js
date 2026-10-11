@@ -7,6 +7,7 @@ import { fmtUSD, fmtMoney, fmtInt, fmtAge, fmtDate, fmtSignedPct, dayDiff, title
 import { allocate } from '../model/allocate.js';
 import { ROLE_LABEL } from '../model/clean.js';
 import { PRESETS } from '../model/score.js';
+import { trackChip, trackLine } from '../ui/track.js';
 import { quoteFor } from './signals.js';
 
 const KIND_LABEL = { insider: 'Insiders', congress: 'Congress', cross: 'Both' };
@@ -333,7 +334,7 @@ export function createRadarView(ctx) {
         ${q && q.sinceInsider != null ? html`<div class="rd-block"><span class="label">What insiders paid vs. today</span>${paidGauge(s, q)}</div>` : ''}
         <div class="rd-block" id="rd-px"></div>
         ${s.insider.buyers.length || members.length ? html`<div class="rd-block"><span class="label">Who bought</span><ul class="rd-who">
-          ${members.slice(0, 4).map(m => html`<li${m.oversees ? html` class="ovs"` : ''}><span class="who-k">${partyChip(m.party)}</span><span class="nm">${m.name}<em>${m.oversees ? html`<b class="ovs-t" data-tip="${m.oversees.seats.map(x => x.committee + (x.role ? ` (${ROLE_WORD[x.role] || x.role})` : '')).join('\n')}">◆ ${m.oversees.committee}${m.oversees.role ? ` · ${ROLE_WORD[m.oversees.role] || m.oversees.role}` : ''}</b>` : `${m.chamber} · ${m.ranges.join(', ')}`}</em><span class="bar"><i data-k="congress" style="width:${Math.max(3, (100 * m.usd) / whoMax)}%"></i></span></span><span class="mono xs" data-tip="${m.ranges.join(', ')}">${m.ranges.length === 1 ? shortRange(m.ranges[0]) : `≈${fmtUSD(m.usd)}`}</span></li>`)}
+          ${members.slice(0, 4).map(m => html`<li${m.oversees ? html` class="ovs"` : ''}><span class="who-k">${partyChip(m.party)}</span><span class="nm">${m.name}<em>${m.oversees ? html`<b class="ovs-t" data-tip="${m.oversees.seats.map(x => x.committee + (x.role ? ` (${ROLE_WORD[x.role] || x.role})` : '')).join('\n')}">◆ ${m.oversees.committee}${m.oversees.role ? ` · ${ROLE_WORD[m.oversees.role] || m.oversees.role}` : ''}</b>` : `${m.chamber} · ${m.ranges.join(', ')}`}</em><span class="bar"><i data-k="congress" style="width:${Math.max(3, (100 * m.usd) / whoMax)}%"></i></span></span><span class="mono xs" data-tip="${m.ranges.join(', ')}">${m.ranges.length === 1 ? shortRange(m.ranges[0]) : `≈${fmtUSD(m.usd)}`}${m.track ? html`<br>${trackChip(m.track)}` : ''}</span></li>`)}
           ${s.insider.buyers.slice(0, 4).map(b => html`<li><span class="who-k">${roleChip(b.role)}</span><span class="nm" title="${b.name}">${titleCase(b.name)}<em>${b.title || ROLE_LABEL[b.role]}${b.stakePct != null ? ` · stake +${Math.round(Math.min(b.stakePct, 999))}%` : b.newPosition ? ' · new position' : ''}</em><span class="bar"><i data-k="insider" style="width:${Math.max(3, (100 * b.usd) / whoMax)}%"></i></span></span><span class="mono xs">${fmtUSD(b.usd)}</span></li>`)}
         </ul>${s.insider.buyers.length > 4 ? html`<span class="xs muted">+${s.insider.buyers.length - 4} more insiders</span>` : ''}</div>` : ''}
         ${pros.length || cons.length ? html`<div class="rd-block"><span class="label">Checks</span><ul class="rd-checks">
@@ -365,6 +366,10 @@ export function createRadarView(ctx) {
       if (m.length > 1) out.push(`${m.length - 1} more member${m.length > 2 ? 's' : ''} of Congress bought too${over.length > 1 ? `, ${over.length - 1} of them also with oversight` : ''}.`);
     } else if (m.length) out.push(m.length === 1 ? `${m[0].name} (${m[0].party || '?'}) disclosed a purchase of ${m[0].ranges.join(', ')}.` : `${m.length} members of Congress disclosed purchases worth about ${fmtUSD(s.congress.usd)}.`);
     else if (s.congress.conv90) out.push(`Members of Congress bought it ${s.congress.conv90} time${s.congress.conv90 > 1 ? 's' : ''} in the last 90 days.`);
+    const tracked = m.filter(x => x.track && x.track.n >= 8).sort((a, b) => b.track.score - a.track.score)[0];
+    if (tracked) out.push(`${tracked.name}'s past purchases: ${trackLine(tracked.track)}.`);
+    const freshest = m.map(x => x.lastTraded).filter(Boolean).sort().pop();
+    if (freshest && asOf) { const age = dayDiff(freshest, asOf); if (age > 30) out.push(`The congressional trade itself is ${age} days old, so it counts for less.`); }
     if (b.length) {
       const top = b[0];
       const who = `${titleCase(top.name)} (${(top.title || ROLE_LABEL[top.role]).replace(/\s+/g, ' ')})`;
