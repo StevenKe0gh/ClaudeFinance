@@ -56,6 +56,24 @@ export function createQuiver(conn) {
     politician: ({ bioguideId, name, refresh }) =>
       conn.call(TOOLS.politician, bioguideId ? { bioguide_id: bioguideId } : { politician: name }, { refresh, stage: 'member' }),
 
+    /* Policy monitor. Feed summaries run ~1,200 characters, so pages stay at 40 rows to keep under the response cap. */
+
+    /** Newest bill introductions and press releases, with the tickers Quiver tagged. */
+    legislationFeed: ({ query, from, pages = 2, refresh, stage = 'policy' } = {}) =>
+      conn.paged(TOOLS.news,
+        { category: 'legislation_automated', ...(query ? { query } : {}), ...(from ? { date_from: from } : {}), sort_by: 'datetime', sort_order: 'desc' },
+        { pageSize: 40, maxPages: pages, refresh, stage }),
+
+    /** Bills whose title contains `query`, at their latest stage. */
+    bills: (query, { pages = 2, refresh, stage = 'policy' } = {}) =>
+      conn.paged(TOOLS.legislation, { query, sort_by: 'congress', sort_order: 'desc' }, { pageSize: 40, maxPages: pages, refresh, stage }),
+
+    /** Federal awards of at least `minAmount` dated in [from, to], newest first. */
+    recentContracts: ({ from, to, minAmount = 1e7, refresh, stage = 'policy' }) =>
+      conn.paged(TOOLS.contracts,
+        { date_from: from, date_to: to, min_amount: minAmount, sort_by: 'action_date', sort_order: 'desc' },
+        { pageSize: 200, maxPages: 2, refresh, stage }),
+
     memberTrades: (name, { from, refresh }) =>
       conn.paged(TOOLS.congress,
         { politician: name, date_from: from, date_field: 'traded', sort_by: 'traded', sort_order: 'desc' },

@@ -21,7 +21,7 @@ Artifact: `https://claude.ai/artifact/1gh8sjDSWsEiajQoPW6NWU`
 | `briefs/<YYYY-MM-DD>` | `{ date, generatedAt, headline, markdown, picks: [{ ticker, name, why }], alerts: [{ tone: 'pos'\|'warn'\|'neg'\|'info', ticker, name, text }], sources }` | brief |
 
 Step keys for `jobs/status.steps`: `quiver`, `holdings`, `quotes`, `prices`,
-`logos`, `track`, `brief`. Step status: `ok`, `skipped`, `blocked` (network policy),
+`logos`, `track`, `policy`, `brief`. Step status: `ok`, `skipped`, `blocked` (network policy),
 `error`. Timestamps are epoch milliseconds.
 
 The page writes `daily/<date>_<W>d` snapshots (`top: [[ticker, score, tier], …]`,
@@ -106,10 +106,27 @@ All commands run from `paper-trail/`. Use a scratch directory such as
    The page then weights each member's buys between 0.5× (poor record) and
    1.5× (strong record); members without a record count 1×.
 
+7c. **Policy (step `policy`).** Using the Quiver Quant connector:
+   - `get_quiver_newsfeed` with `category: "legislation_automated"`, newest
+     40 (`sort_by: "datetime"`). Keep bill introductions whose `tickers`
+     (a string like `"{XOM,CVX}"`) name a company in the depot, the plan or
+     the top 60 of step 2. The sponsor's bioguide id is in the `image` URL
+     (`…/images/W000817_congress.png`); note any sponsor who traded a company
+     their bill names (step 3's trades).
+   - `get_gov_contracts` with `date_from` 30 days back and `min_amount:
+     10000000`; keep awards to the same companies (USAspending lags about two
+     weeks).
+   - `get_congress_legislation` with `query: "diesel"` (and any topic the
+     depot makes relevant, such as `tariff` or `semiconductor`) to see whether
+     a watched bill moved stage.
+   Nothing is written for this step; it feeds the brief.
+
 8. **Brief (step `brief`).** `set` `briefs/<today>` (a new document each day).
    - `headline`: one sentence, the most important thing today.
    - `markdown`: under 350 words, sections `### What changed`, `### Your
-     depot`, `### Worth a closer look`, `### Discount these`. Name companies,
+     depot`, `### Worth a closer look`, `### Washington` (bills and
+     awards from step 7c that touch the depot, the plan or the top names;
+     omit when empty), `### Discount these`. Name companies,
      people, dates and dollar amounts from the data. Describe patterns; never
      accuse anyone. Not investment advice.
    - `picks`: up to 6 `{ ticker, name, why }`, strongest first.

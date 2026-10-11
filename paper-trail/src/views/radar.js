@@ -8,6 +8,7 @@ import { allocate } from '../model/allocate.js';
 import { ROLE_LABEL } from '../model/clean.js';
 import { PRESETS } from '../model/score.js';
 import { trackChip, trackLine } from '../ui/track.js';
+import { policyLines } from '../ui/policy.js';
 import { quoteFor } from './signals.js';
 
 const KIND_LABEL = { insider: 'Insiders', congress: 'Congress', cross: 'Both' };
@@ -337,6 +338,7 @@ export function createRadarView(ctx) {
           ${members.slice(0, 4).map(m => html`<li${m.oversees ? html` class="ovs"` : ''}><span class="who-k">${partyChip(m.party)}</span><span class="nm">${m.name}<em>${m.oversees ? html`<b class="ovs-t" data-tip="${m.oversees.seats.map(x => x.committee + (x.role ? ` (${ROLE_WORD[x.role] || x.role})` : '')).join('\n')}">◆ ${m.oversees.committee}${m.oversees.role ? ` · ${ROLE_WORD[m.oversees.role] || m.oversees.role}` : ''}</b>` : `${m.chamber} · ${m.ranges.join(', ')}`}</em><span class="bar"><i data-k="congress" style="width:${Math.max(3, (100 * m.usd) / whoMax)}%"></i></span></span><span class="mono xs" data-tip="${m.ranges.join(', ')}">${m.ranges.length === 1 ? shortRange(m.ranges[0]) : `≈${fmtUSD(m.usd)}`}${m.track ? html`<br>${trackChip(m.track)}` : ''}</span></li>`)}
           ${s.insider.buyers.slice(0, 4).map(b => html`<li><span class="who-k">${roleChip(b.role)}</span><span class="nm" title="${b.name}">${titleCase(b.name)}<em>${b.title || ROLE_LABEL[b.role]}${b.stakePct != null ? ` · stake +${Math.round(Math.min(b.stakePct, 999))}%` : b.newPosition ? ' · new position' : ''}</em><span class="bar"><i data-k="insider" style="width:${Math.max(3, (100 * b.usd) / whoMax)}%"></i></span></span><span class="mono xs">${fmtUSD(b.usd)}</span></li>`)}
         </ul>${s.insider.buyers.length > 4 ? html`<span class="xs muted">+${s.insider.buyers.length - 4} more insiders</span>` : ''}</div>` : ''}
+        ${ctx.policy && ctx.policy.for(s.ticker) ? html`<div class="rd-block"><span class="label">Washington</span>${policyLines(ctx.policy.for(s.ticker))}</div>` : ''}
         ${pros.length || cons.length ? html`<div class="rd-block"><span class="label">Checks</span><ul class="rd-checks">
           ${pros.map(f => html`<li data-tone="pos"><span class="ic" aria-hidden="true">✓</span><span><b>${f.label}.</b> ${f.detail}</span></li>`)}
           ${cons.map(f => html`<li data-tone="warn"><span class="ic" aria-hidden="true">!</span><span><b>${f.label}.</b> ${f.detail}</span></li>`)}
@@ -547,7 +549,7 @@ export function createRadarView(ctx) {
       if (el.hidden) return;
       if (!changed) { render(st); return; }
       if (changed.some(k => ['signals', 'model', 'windowDays', 'caps'].includes(k)) && st.signals !== lastSig) { lastSig = st.signals; layout.key = null; render(st); return; }
-      if (changed.some(k => ['workspace', 'cloud', 'portfolioLocalAt', 'enrichment'].includes(k))) render(st);
+      if (changed.some(k => ['workspace', 'cloud', 'portfolioLocalAt', 'enrichment', 'policy'].includes(k))) render(st);
     },
     key(ev) {
       if (ev.key === 'ArrowRight' || ev.key === 'j') { step(1); return true; }

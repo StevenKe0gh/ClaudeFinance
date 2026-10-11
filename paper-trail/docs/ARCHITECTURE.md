@@ -114,7 +114,7 @@ Logos cannot be hot-linked (the page may only load scripts from approved CDNs, a
 ```json
 {
   "mcp": { "servers": [
-    { "server": "Quiver Quant", "tools": ["get_congress_trades", "get_insider_trading", "get_gov_contracts", "get_lobbying", "get_dark_pool", "get_quiver_newsfeed", "get_ticker_ownership", "get_congress_politician"] },
+    { "server": "Quiver Quant", "tools": ["get_congress_trades", "get_insider_trading", "get_gov_contracts", "get_lobbying", "get_dark_pool", "get_quiver_newsfeed", "get_ticker_ownership", "get_congress_politician", "get_congress_legislation"] },
     { "server": "Claude Code Remote", "tools": ["fire_trigger"] }
   ] },
   "sample": {},
@@ -130,7 +130,7 @@ Logos cannot be hot-linked (the page may only load scripts from approved CDNs, a
 }
 ```
 
-The depot, briefs, job status and job configuration are readable only by the artifact's owner, even if the page is shared. Each capability can be missing for a given viewer, and the UI degrades per capability. Without `mcp` the page explains how to get live data. Without `sample` the memo, brief and coach buttons are disabled with a reason. Without `db` the workspace and an imported depot are kept in local storage, and the daily data is absent.
+The depot, briefs, job status and job configuration are readable only by the artifact's owner, even if the page is shared. Each capability can be missing for a given viewer, and the UI degrades per capability. Without `mcp` the page explains how to get live data. Without `sample` the memo, brief and coach buttons are disabled with a reason. **Who profits?** in the Policy view passes page functions to Claude (`search_bills`, `company_exposure`) where `sample.limits()` reports tool support, so Claude can search more bills and check federal awards, lobbying and the screen for its candidate companies; elsewhere it answers from the bills the page searched first. Without `db` the workspace and an imported depot are kept in local storage, and the daily data is absent.
 
 ## Build and test
 

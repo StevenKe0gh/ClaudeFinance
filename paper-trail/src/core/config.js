@@ -16,7 +16,8 @@ export const TOOLS = Object.freeze({
   darkpool: 'get_dark_pool',
   news: 'get_quiver_newsfeed',
   ownership: 'get_ticker_ownership',
-  politician: 'get_congress_politician'
+  politician: 'get_congress_politician',
+  legislation: 'get_congress_legislation'
 });
 
 /**

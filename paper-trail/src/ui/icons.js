@@ -12,6 +12,7 @@ export const ICON = {
   radar: svg('<circle cx="10" cy="10" r="7.5"/><circle cx="10" cy="10" r="4"/><path d="M10 10 15.3 4.7"/><circle cx="13.2" cy="12.6" r="1.3" fill="currentColor" stroke="none"/><circle cx="6.6" cy="7.4" r="1" fill="currentColor" stroke="none"/>'),
   briefing: svg('<path d="M3.5 4.5h13v11h-13z"/><path d="M6.5 8h7M6.5 11h7M6.5 14h4"/><circle cx="15.5" cy="4.5" r="2.2" fill="currentColor" stroke="none"/>'),
   holdings: svg('<path d="M3 6.5h14v9.5H3z"/><path d="M7 6.5V4.5h6v2M3 10.5h14"/>'),
+  policy: svg('<path d="M3 17h14M4.5 17v-6.5h11V17M7.5 10.5V17M10 10.5V17M12.5 10.5V17M5 10.5a5 5 0 0 1 10 0M10 3v2.5"/>'),
   trades: svg('<path d="M4 7h10l-3-3M16 13H6l3 3"/>'),
   edit: svg('<path d="M12.5 4.5l3 3L7 16H4v-3z"/>', 14),
   play: svg('<path d="M6 4.5v11l9-5.5z"/>', 14),

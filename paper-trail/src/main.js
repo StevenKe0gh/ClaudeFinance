@@ -20,6 +20,8 @@ import { createBriefingView } from './views/briefing.js';
 import { createRadarView } from './views/radar.js';
 import { createHoldingsView } from './views/holdings.js';
 import { createTradesView } from './views/trades.js';
+import { createPolicyView } from './views/policy.js';
+import { createPolicy, EMPTY_POLICY } from './app/policy.js';
 import { createCloud } from './app/cloud.js';
 import { createPortfolio } from './app/portfolio.js';
 import { setLogos, nameOf } from './ui/brand.js';
@@ -29,6 +31,7 @@ const NAV = [
   { key: 'radar', label: 'Radar', icon: ICON.radar, go: 'r' },
   { key: 'briefing', label: 'Briefing', icon: ICON.briefing, go: 'o' },
   { key: 'signals', label: 'Signals', icon: ICON.signals, go: 's' },
+  { key: 'policy', label: 'Policy', icon: ICON.policy, go: 'w' },
   { key: 'graph', label: 'Link analysis', icon: ICON.graph, go: 'g' },
   { key: 'dossier', label: 'Dossier', icon: ICON.dossier, go: 'd' },
   { key: 'member', label: 'Member', icon: ICON.member, go: 'c' },
@@ -62,6 +65,7 @@ const store = createStore({
   filters: { ...DEFAULT_FILTERS, tiers: { ...DEFAULT_FILTERS.tiers } },
   sort: { key: 'score', dir: 'desc' },
   workspace: null,
+  policy: { ...EMPTY_POLICY, topics: {} },
   session: { lastSeenPrev: null }
 });
 
@@ -71,6 +75,7 @@ const quiver = createQuiver(conn);
 const pipeline = createPipeline({ store, quiver });
 const cloud = createCloud({ store });
 const portfolio = createPortfolio({ store, quiver, cloud });
+const policy = createPolicy({ store, quiver });
 const workspace = createWorkspace({
   store,
   onRemote: ws => { if (validModel(ws.model)) { store.set({ model: ws.model }); pipeline.recompute(); } }
@@ -84,7 +89,7 @@ const workspace = createWorkspace({
 /* ---------- Context shared with views ---------- */
 let firstRunDone = false;
 const ctx = {
-  store, conn, quiver, pipeline, workspace, cloud, portfolio,
+  store, conn, quiver, pipeline, workspace, cloud, portfolio, policy,
   caps: { sample: null, downloads: null },
   async runPipeline(opts = {}) {
     if (!mcp) { toast('Live data needs the claude.ai viewer with the Quiver Quant connector.', 'error'); return; }
@@ -93,6 +98,7 @@ const ctx = {
     if (p.status === 'done') {
       if (!firstRunDone) { firstRunDone = true; workspace.update({ lastSeen: new Date().toISOString() }); }
       snapshot();
+      if (store.get().policy.status === 'idle' || opts.refresh) policy.load({ refresh: !!opts.refresh });
       if (opts.refresh) toast(`Refreshed · ${fmtInt(store.get().signals.length)} tickers scored`, 'ok');
     }
   },
@@ -167,6 +173,7 @@ const views = {
   radar: createRadarView(ctx),
   briefing: createBriefingView(ctx),
   signals: createSignalsView(ctx),
+  policy: createPolicyView(ctx),
   graph: createGraphView(ctx),
   dossier: createDossierView(ctx),
   member: createMemberView(ctx),
@@ -300,6 +307,7 @@ function paletteItems() {
   for (const n of NAV) items.push({ kind: 'Go to', label: n.label, hint: `G ${n.go.toUpperCase()}`, rank: 3, run: () => nav(n.key) });
   items.push({ kind: 'Action', label: 'Refresh from Quiver', hint: 'R', rank: 2, run: () => ctx.runPipeline({ refresh: true }) });
   items.push({ kind: 'Action', label: 'Desk brief from Claude', hint: 'B', rank: 2, run: openBrief });
+  items.push({ kind: 'Action', label: 'Who profits? Trace an event with Claude', hint: 'Policy', rank: 2, run: () => { nav('policy'); views.policy.trace(''); } });
   for (const d of WINDOWS) items.push({ kind: 'Window', label: `Look back ${d} days`, hint: st.windowDays === d ? 'current' : '', rank: 1, run: () => { store.set({ windowDays: d }); ctx.runPipeline(); } });
   for (const [k, p] of Object.entries(PRESETS)) items.push({ kind: 'Model', label: `${p.label} weights`, hint: st.model.preset === k ? 'current' : '', rank: 1, run: () => ctx.applyPreset(k) });
   for (const s of st.signals.slice(0, 400)) items.push({ kind: 'Company', label: nameOf(s.ticker, s.company), hint: `${s.ticker} · tier ${s.tier} · ${s.score}`, rank: 2 - s.rank / 1000, run: () => ctx.openDossier(s.ticker) });
