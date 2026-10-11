@@ -2,7 +2,7 @@ import { clamp, dayDiff, median, groupBy, dayRange, addDays } from '../core/util
 import { insiderPatterns } from './patterns.js';
 
 /**
- * Conviction model. Nine factors, each normalised to 0–1, combined by
+ * Conviction model. Ten factors, each normalised to 0–1, combined by
  * user-adjustable weights into a 0–100 score, with multipliers for patterns
  * that make buying less informative. Every number shown in the UI can be
  * traced back to a factor here (see docs/SIGNAL_MODEL.md).
@@ -14,24 +14,26 @@ export const FACTORS = [
   { key: 'iStake', group: 'insider', label: 'Stake increase', short: 'Stake Δ', desc: 'Median increase in each buyer’s holding. A new position counts as 100%; 50% or more scores 1.' },
   { key: 'iSenior', group: 'insider', label: 'Seniority', short: 'Senior', desc: 'Most senior buyer: CEO, CFO, COO, president or chair scores 1; other officers 0.6; directors 0.5.' },
   { key: 'cBreadth', group: 'congress', label: 'Congress breadth', short: 'Members', desc: 'Different members of Congress buying, recency-weighted. Same-day buy-and-sell pairs are ignored.' },
-  { key: 'cSize', group: 'congress', label: 'Congress dollars', short: 'Cong. $', desc: 'Midpoint of reported ranges. $15K scores 0, $1M scores 1 (log scale).' },
+  { key: 'cSize', group: 'congress', label: 'Congress dollars', short: 'Cong. $', desc: 'Midpoint of reported ranges. $1K scores 0, the common $1K–15K range about 0.3, $1M scores 1 (log scale).' },
   { key: 'cBipartisan', group: 'congress', label: 'Bipartisan', short: 'Bipart.', desc: 'Democrats and Republicans both bought.' },
+  { key: 'cOversight', group: 'congress', label: 'Committee oversight', short: 'Oversight', desc: 'A buyer sits on a committee or subcommittee whose jurisdiction covers the company’s industry (for example Armed Services and defense contractors). One recent buyer scores about 0.75; a chair or ranking member counts 1.3×.' },
   { key: 'convergence', group: 'cross', label: 'Convergence', short: 'Converge', desc: 'Insiders bought and members of Congress bought in the window (1) or in the last 90 days (0.7).' },
   { key: 'freshness', group: 'cross', label: 'Freshness', short: 'Fresh', desc: 'How recent the latest buy is; halves every 10 days.' }
 ];
 export const FACTOR_BY_KEY = Object.fromEntries(FACTORS.map(f => [f.key, f]));
 
 export const PRESETS = {
-  balanced: { label: 'Balanced', short: 'Balanced', weights: { iBreadth: 20, iSize: 18, iStake: 8, iSenior: 14, cBreadth: 10, cSize: 5, cBipartisan: 3, convergence: 12, freshness: 10 } },
-  insider: { label: 'Insider-first', short: 'Insider', weights: { iBreadth: 25, iSize: 22, iStake: 10, iSenior: 17, cBreadth: 5, cSize: 2, cBipartisan: 1, convergence: 8, freshness: 10 } },
-  congress: { label: 'Congress-first', short: 'Congress', weights: { iBreadth: 10, iSize: 8, iStake: 4, iSenior: 6, cBreadth: 24, cSize: 14, cBipartisan: 10, convergence: 14, freshness: 10 } }
+  congressLed: { label: 'Congress-led', short: 'Congress-led', tiers: { A: 34, B: 27, C: 20 }, weights: { iBreadth: 12, iSize: 10, iStake: 5, iSenior: 9, cBreadth: 16, cSize: 9, cBipartisan: 4, cOversight: 24, convergence: 12, freshness: 10 } },
+  balanced: { label: 'Balanced', short: 'Balanced', tiers: { A: 50, B: 38, C: 25 }, weights: { iBreadth: 20, iSize: 18, iStake: 8, iSenior: 14, cBreadth: 10, cSize: 5, cBipartisan: 3, cOversight: 8, convergence: 12, freshness: 10 } },
+  insider: { label: 'Insider-first', short: 'Insider', tiers: { A: 60, B: 48, C: 35 }, weights: { iBreadth: 25, iSize: 22, iStake: 10, iSenior: 17, cBreadth: 5, cSize: 2, cBipartisan: 1, cOversight: 3, convergence: 8, freshness: 10 } },
+  congress: { label: 'Congress-first', short: 'Congress', tiers: { A: 34, B: 24, C: 15 }, weights: { iBreadth: 8, iSize: 6, iStake: 3, iSenior: 5, cBreadth: 22, cSize: 13, cBipartisan: 8, cOversight: 24, convergence: 12, freshness: 10 } }
 };
 
 export const DEFAULT_MODEL = Object.freeze({
-  preset: 'balanced',
-  weights: { ...PRESETS.balanced.weights },
+  preset: 'congressLed',
+  weights: { ...PRESETS.congressLed.weights },
   halfLife: 21,
-  tiers: { A: 50, B: 38, C: 25 }
+  tiers: { ...PRESETS.congressLed.tiers }
 });
 
 export const ROLE_WEIGHT = { csuite: 1, officer: 0.7, director: 0.8, fund: 0.45, holder: 0.4 };
@@ -56,8 +58,9 @@ const logNorm = (v, lo, hi) => (v > 0 ? clamp(Math.log10(v / lo) / Math.log10(hi
  * @param {number} p.windowDays
  * @param {object} p.model
  * @param {string|null} [p.lastSeen] ISO timestamp of the previous visit
+ * @param {((ticker:string, bioguide:string|null) => object|null)|null} [p.oversight] committee-oversight lookup (model/oversight.js)
  */
-export function buildSignals({ insiderBuys, congressRows, congressAgg = new Map(), convergence90 = new Map(), enrichment = new Map(), asOf, windowDays, model = DEFAULT_MODEL, lastSeen = null }) {
+export function buildSignals({ insiderBuys, congressRows, congressAgg = new Map(), convergence90 = new Map(), enrichment = new Map(), asOf, windowDays, model = DEFAULT_MODEL, lastSeen = null, oversight = null }) {
   const H = model.halfLife || 21;
   const rec = d => (d ? Math.pow(0.5, Math.max(0, dayDiff(d, asOf)) / H) : 0);
   const wsum = FACTORS.reduce((s, f) => s + (model.weights[f.key] || 0), 0) || 1;
@@ -108,7 +111,8 @@ export function buildSignals({ insiderBuys, congressRows, congressAgg = new Map(
         lastFiled: g.reduce((m, r) => (r.filed > m ? r.filed : m), ''),
         lastTraded: g.reduce((m, r) => (r.traded > m ? r.traded : m), ''),
         late: g.filter(r => r.lagDays > 45).length,
-        ranges: [...new Set(g.map(r => r.amount))]
+        ranges: [...new Set(g.map(r => r.amount))],
+        oversees: oversight ? oversight(ticker, g[0].bioguide_id || null) : null
       });
       for (const r of g) { const i = dayIndex.get(r.filed); if (i != null) daily[i]++; }
     }
@@ -127,6 +131,8 @@ export function buildSignals({ insiderBuys, congressRows, congressAgg = new Map(
     const D = buyers.reduce((s, b) => s + b.usd * ROLE_WEIGHT[b.role] * rec(b.lastDate), 0);
     const stake = median(buyers.map(b => (b.stakePct == null ? null : Math.min(b.stakePct, 300))).filter(x => x != null));
     const M = realMembers.reduce((s, m) => s + rec(m.lastFiled), 0) || (agg && !cRows.length && agg.buys > 0 ? 0.5 : 0);
+    const overseers = realMembers.filter(m => m.oversees);
+    const O = overseers.reduce((s, m) => s + rec(m.lastFiled) * (m.oversees.leader ? 1.3 : 1), 0);
     const last = insiderLast > congressLast ? insiderLast : congressLast;
 
     const norm = {
@@ -135,8 +141,9 @@ export function buildSignals({ insiderBuys, congressRows, congressAgg = new Map(
       iStake: stake == null ? 0 : clamp(stake / 50, 0, 1),
       iSenior: buyers.length ? Math.max(...buyers.map(b => SENIORITY[b.role])) : 0,
       cBreadth: 1 - Math.exp(-M / 1.4),
-      cSize: logNorm(cUsd, 15e3, 1e6),
+      cSize: logNorm(cUsd, 1e3, 1e6),
       cBipartisan: parties.has('D') && parties.has('R') ? 1 : 0,
+      cOversight: 1 - Math.exp(-O / 0.7),
       convergence: buyers.length && realMembers.length ? 1 : buyers.length && conv90 > 0 ? 0.7 : 0,
       freshness: last ? Math.pow(0.5, Math.max(0, dayDiff(last, asOf)) / 10) : 0
     };
@@ -177,6 +184,11 @@ export function buildSignals({ insiderBuys, congressRows, congressAgg = new Map(
 
     // ---- flags (what a reviewer should notice)
     const flags = [];
+    if (overseers.length) {
+      const o = overseers[0];
+      const lead = o.oversees.role === 'chair' ? 'chairs' : o.oversees.role === 'ranking' ? 'is ranking member on' : 'sits on';
+      flags.push({ id: 'oversight', tone: 'pos', label: overseers.length > 1 ? `Oversight ×${overseers.length}` : 'Oversight', detail: `${o.name} ${lead} ${o.oversees.committee}, which oversees ${o.oversees.themeLabel}${overseers.length > 1 ? `; ${overseers.length - 1} more buyer${overseers.length > 2 ? 's' : ''} also oversee${overseers.length > 2 ? '' : 's'} the industry` : ''}.` });
+    }
     const sen = buyers.filter(b => b.role === 'csuite');
     const insidersProper = buyers.filter(b => b.role === 'csuite' || b.role === 'officer' || b.role === 'director');
     if (sen.length >= 2) flags.push({ id: 'csuite-cluster', tone: 'pos', label: `C-suite cluster ×${sen.length}`, detail: `${sen.map(b => b.name).join(', ')} bought on the open market.` });
@@ -210,7 +222,7 @@ export function buildSignals({ insiderBuys, congressRows, congressAgg = new Map(
       mult: { insider: mI, congress: mC },
       flags,
       insider: { buyers, usd: insiderUsd, tx: buys.length, lastDate: insiderLast, stakeMedian: stake, patterns: pat, avgPrice: buys.length ? insiderUsd / buys.reduce((n, b) => n + b.shares, 0) : null },
-      congress: { members, buys: cBuys, sells: cSells, usd: cUsd, lastFiled: congressLast, conv90, washes },
+      congress: { members, buys: cBuys, sells: cSells, usd: cUsd, lastFiled: congressLast, conv90, washes, overseers: overseers.length },
       lastActivity: last,
       daily,
       enriched: !!enr,

@@ -118,10 +118,15 @@ test('insider selling from enrichment lowers the score', () => {
 
 test('presets cover every factor and tiers follow thresholds', () => {
   for (const p of Object.values(PRESETS)) for (const f of FACTORS) assert.ok(Number.isFinite(p.weights[f.key]), `${p.label}.${f.key}`);
-  assert.equal(tierOf(50), 'A');
-  assert.equal(tierOf(49), 'B');
-  assert.equal(tierOf(25), 'C');
-  assert.equal(tierOf(24), 'D');
+  const t = { A: 50, B: 38, C: 25 };
+  assert.equal(tierOf(50, t), 'A');
+  assert.equal(tierOf(49, t), 'B');
+  assert.equal(tierOf(25, t), 'C');
+  assert.equal(tierOf(24, t), 'D');
+  // Every preset carries ordered cut-offs, and the default is Congress-led.
+  for (const p of Object.values(PRESETS)) assert.ok(p.tiers.A > p.tiers.B && p.tiers.B > p.tiers.C, p.label);
+  assert.equal(DEFAULT_MODEL.preset, 'congressLed');
+  assert.deepEqual(DEFAULT_MODEL.tiers, PRESETS.congressLed.tiers);
 });
 
 test('allocate respects reserve and per-position cap and reports idle cash', () => {

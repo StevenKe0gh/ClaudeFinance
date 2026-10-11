@@ -114,7 +114,7 @@ const ctx = {
   applyPreset(key) {
     const p = PRESETS[key];
     if (!p) return;
-    ctx.setModel({ ...store.get().model, preset: key, weights: { ...p.weights } });
+    ctx.setModel({ ...store.get().model, preset: key, weights: { ...p.weights }, tiers: { ...(p.tiers || store.get().model.tiers) } });
   },
   setModel(model) {
     store.set({ model });

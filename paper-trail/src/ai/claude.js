@@ -6,7 +6,7 @@ import { ROLE_LABEL } from '../model/clean.js';
  * (no browsing, no memory), so each prompt carries its data and its format.
  */
 
-const RULES = `Rules: use only the data given. Prices, where present, are the last US close from a daily snapshot; there are no valuations or earnings, so never state any; say what to check instead. Congressional amounts are ranges and can be filed up to 45 days late. Form 4 code P is an open-market purchase and S a sale. Describe patterns; never accuse anyone of wrongdoing. Be specific with names, dates and dollar figures from the data.`;
+const RULES = `Rules: use only the data given. The investor weighs congressional buying above insider buying, above all when the member sits on a committee that oversees the company's industry (marked committee_oversight); lead with those. Prices, where present, are the last US close from a daily snapshot; there are no valuations or earnings, so never state any; say what to check instead. Congressional amounts are ranges and can be filed up to 45 days late. Form 4 code P is an open-market purchase and S a sale. Describe patterns; never accuse anyone of wrongdoing. Be specific with names, dates and dollar figures from the data.`;
 
 const compactSignal = (s, quotes) => ({
   ticker: s.ticker,
@@ -21,7 +21,7 @@ const compactSignal = (s, quotes) => ({
   flags: s.flags.map(f => f.label),
   insiders: s.insider.buyers.slice(0, 5).map(b => ({ name: b.name, role: ROLE_LABEL[b.role], title: b.title || undefined, usd: Math.round(b.usd), buys: b.tx, last: b.lastDate, stake_increase_pct: b.stakePct == null ? undefined : Math.round(b.stakePct) })),
   insider_total_usd: Math.round(s.insider.usd),
-  congress: s.congress.members.slice(0, 5).map(m => ({ name: m.name, party: m.party, chamber: m.chamber, est_usd: Math.round(m.usd), ranges: m.ranges, filed: m.lastFiled, same_day_sell: m.washOnly || undefined })),
+  congress: s.congress.members.slice(0, 5).map(m => ({ name: m.name, party: m.party, chamber: m.chamber, est_usd: Math.round(m.usd), ranges: m.ranges, filed: m.lastFiled, same_day_sell: m.washOnly || undefined, committee_oversight: m.oversees ? `${m.oversees.committee}${m.oversees.role ? ` (${m.oversees.role})` : ''} oversees ${m.oversees.themeLabel}` : undefined })),
   congress_buys_window: s.congress.buys,
   congress_sells_window: s.congress.sells,
   congress_buys_90d: s.congress.conv90

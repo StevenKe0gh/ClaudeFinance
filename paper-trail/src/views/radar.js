@@ -6,11 +6,13 @@ import { monogram } from '../core/names.js';
 import { fmtUSD, fmtMoney, fmtInt, fmtAge, fmtDate, fmtSignedPct, dayDiff, titleCase, clamp } from '../core/util.js';
 import { allocate } from '../model/allocate.js';
 import { ROLE_LABEL } from '../model/clean.js';
+import { PRESETS } from '../model/score.js';
 import { quoteFor } from './signals.js';
 
 const KIND_LABEL = { insider: 'Insiders', congress: 'Congress', cross: 'Both' };
 const VERDICT = { A: 'Strong signal', B: 'Worth a look', C: 'Weak signal', D: 'Noise' };
-const SOURCES = [['all', 'All'], ['insider', 'Insiders'], ['congress', 'Congress'], ['cross', 'Both']];
+const SOURCES = [['all', 'All'], ['oversight', 'Oversight'], ['congress', 'Congress'], ['insider', 'Insiders'], ['cross', 'Both']];
+const ROLE_WORD = { chair: 'chair', ranking: 'ranking member' };
 const MAX_NODES = 90;
 
 /**
@@ -69,14 +71,14 @@ export function createRadarView(ctx) {
     const plan = new Set(st.workspace.watch.map(w => w.ticker));
     return st.signals
       .filter(s => (s.tier !== 'D' || owned.has(s.ticker) || plan.has(s.ticker)))
-      .filter(s => source === 'all' || kindOf(s) === source)
+      .filter(s => source === 'all' || (source === 'oversight' ? s.congress.overseers > 0 : kindOf(s) === source))
       .filter(s => showSkipped || !isSkipped(st, s))
       .slice(0, MAX_NODES)
       .map(s => ({
         s, t: s.ticker, name: nameOf(s.ticker, s.company), sector: sectorOf(s.ticker) || 'Other',
         usd: s.insider.usd + s.congress.usd, kind: kindOf(s),
         fresh: s.lastActivity && st.data ? dayDiff(s.lastActivity, st.data.asOf) <= 3 : false,
-        owned: owned.has(s.ticker), planned: plan.has(s.ticker), skipped: isSkipped(st, s)
+        owned: owned.has(s.ticker), planned: plan.has(s.ticker), skipped: isSkipped(st, s), oversight: s.congress.overseers > 0
       }));
   }
 
@@ -91,7 +93,7 @@ export function createRadarView(ctx) {
     if (layout.key === key) return layout;
     const cx = S / 2, cy = S / 2;
     const R = S / 2 - (S < 480 ? 52 : 54);
-    const top = Math.max(60, ...items.map(n => n.s.score + 2));
+    const top = Math.max(st.model.tiers.A + 10, ...items.map(n => n.s.score + 2));
     const floor = Math.min(st.model.tiers.C - 3, ...items.map(n => n.s.score - 1));
     const rOf = sc => R * (0.1 + 0.9 * clamp((top - sc) / (top - floor), 0, 1));
     const sorted = items.map(n => n.usd).sort((a, b) => a - b);
@@ -270,7 +272,7 @@ export function createRadarView(ctx) {
   function nodeSvg(st, n, cx, cy) {
     const src = logoSrc(n.t);
     const r = n.r;
-    const tip = `${n.name} (${n.t})\nTier ${n.s.tier} · score ${n.s.score} · ${KIND_LABEL[n.kind]}\n${fmtUSD(n.usd)} bought${n.s.insider.buyers.length ? ` · ${n.s.insider.buyers.length} insider${n.s.insider.buyers.length > 1 ? 's' : ''}` : ''}${n.s.congress.members.filter(m => !m.washOnly).length ? ` · ${n.s.congress.members.filter(m => !m.washOnly).length} in Congress` : ''}\nLast filing ${fmtAge(n.s.lastActivity, st.data.asOf)}${n.owned ? '\nIn your depot' : ''}${n.planned ? '\nIn your plan' : ''}`;
+    const tip = `${n.name} (${n.t})\nTier ${n.s.tier} · score ${n.s.score} · ${KIND_LABEL[n.kind]}\n${fmtUSD(n.usd)} bought${n.s.insider.buyers.length ? ` · ${n.s.insider.buyers.length} insider${n.s.insider.buyers.length > 1 ? 's' : ''}` : ''}${n.s.congress.members.filter(m => !m.washOnly).length ? ` · ${n.s.congress.members.filter(m => !m.washOnly).length} in Congress` : ''}\nLast filing ${fmtAge(n.s.lastActivity, st.data.asOf)}${n.oversight ? `\n◆ ${overseerLine(n.s)}` : ''}${n.owned ? '\nIn your depot' : ''}${n.planned ? '\nIn your plan' : ''}`;
     let inner = '';
     if (src && r >= 9) inner = `<image href="${src}" x="${-r * 0.62}" y="${-r * 0.62}" width="${r * 1.24}" height="${r * 1.24}" clip-path="url(#rd-clip)" preserveAspectRatio="xMidYMid meet"/>`;
     else if (r >= 10) inner = `<text class="rd-mono" y="${(r * 0.26).toFixed(1)}" text-anchor="middle" style="font-size:${(r * 0.72).toFixed(1)}px">${esc(monogram(n.name, n.t))}</text>`;
@@ -278,6 +280,7 @@ export function createRadarView(ctx) {
       ${n.fresh ? `<circle class="rd-halo" r="${(r + 5).toFixed(1)}"/>` : ''}
       ${n.owned ? `<circle class="rd-own" r="${(r + 3.5).toFixed(1)}"/>` : ''}
       <circle class="rd-dot" r="${r.toFixed(1)}"/>${inner}
+      ${n.oversight ? `<g class="rd-gavel" transform="translate(${(-r * 0.72).toFixed(1)},${(r * 0.72).toFixed(1)})"><path d="M0 -6 L6 0 L0 6 L-6 0 Z"/></g>` : ''}
       ${n.planned ? `<g class="rd-badge" transform="translate(${(r * 0.72).toFixed(1)},${(-r * 0.72).toFixed(1)})"><circle r="5.5"/><path d="M-2.5 0 L-0.6 2 L2.8 -2"/></g>` : ''}
       <circle class="rd-hit" r="${Math.max(r + 3, 12).toFixed(1)}" data-tip="${esc(tip)}"/></g>`;
   }
@@ -286,6 +289,7 @@ export function createRadarView(ctx) {
     const kinds = new Set(L.nodes.map(n => n.kind));
     mount($('#rd-legend', el), html`
       ${['insider', 'congress', 'cross'].filter(k => kinds.has(k)).map(k => html`<span><i class="lg-dot" data-k="${k}"></i>${KIND_LABEL[k] === 'Both' ? 'Insiders and Congress' : KIND_LABEL[k]}</span>`)}
+      ${L.nodes.some(n => n.oversight) ? html`<span><i class="lg-gavel"></i>A buyer’s committee oversees the company</span>` : ''}
       <span><i class="lg-size"></i>Bubble area = dollars bought</span>
       <span><i class="lg-ring"></i>Closer to the centre = stronger</span>
       ${L.nodes.some(n => n.fresh) ? html`<span><i class="lg-halo"></i>Filed in the last 3 days</span>` : ''}
@@ -322,15 +326,15 @@ export function createRadarView(ctx) {
         <div class="rd-id">${brandHead(s.ticker, { name: nameOf(s.ticker, s.company), size: 48 })}</div>
         <div class="rd-verdict" data-tier="${s.tier}">
           ${tierChip(s.tier, true)}
-          <div><b>${VERDICT[s.tier]}</b><span>score ${s.score} of 100 · rank ${s.rank} of ${fmtInt(st.signals.length)}</span></div>
-          <div class="rd-tags">${owned ? html`<span class="rd-tag own">In your depot</span>` : ''}${planned ? html`<span class="rd-tag plan">In your plan</span>` : ''}${skipped ? html`<span class="rd-tag">Skipped</span>` : ''}</div>
+          <div><b>${VERDICT[s.tier]}</b><span>score ${s.score} · rank ${s.rank} of ${fmtInt(st.signals.length)} · ${PRESETS[st.model.preset] ? `${PRESETS[st.model.preset].label} model` : 'custom weights'}</span></div>
+          <div class="rd-tags">${s.congress.overseers ? html`<span class="rd-tag ovs" data-tip="${overseerLine(s)}">◆ Oversight</span>` : ''}${owned ? html`<span class="rd-tag own">In your depot</span>` : ''}${planned ? html`<span class="rd-tag plan">In your plan</span>` : ''}${skipped ? html`<span class="rd-tag">Skipped</span>` : ''}</div>
         </div>
         <p class="rd-story">${storyText(st, s, q)}</p>
-        ${q && s.insider.avgPrice ? html`<div class="rd-block"><span class="label">What insiders paid vs. today</span>${paidGauge(s, q)}</div>` : ''}
+        ${q && q.sinceInsider != null ? html`<div class="rd-block"><span class="label">What insiders paid vs. today</span>${paidGauge(s, q)}</div>` : ''}
         <div class="rd-block" id="rd-px"></div>
         ${s.insider.buyers.length || members.length ? html`<div class="rd-block"><span class="label">Who bought</span><ul class="rd-who">
+          ${members.slice(0, 4).map(m => html`<li${m.oversees ? html` class="ovs"` : ''}><span class="who-k">${partyChip(m.party)}</span><span class="nm">${m.name}<em>${m.oversees ? html`<b class="ovs-t" data-tip="${m.oversees.seats.map(x => x.committee + (x.role ? ` (${ROLE_WORD[x.role] || x.role})` : '')).join('\n')}">◆ ${m.oversees.committee}${m.oversees.role ? ` · ${ROLE_WORD[m.oversees.role] || m.oversees.role}` : ''}</b>` : `${m.chamber} · ${m.ranges.join(', ')}`}</em><span class="bar"><i data-k="congress" style="width:${Math.max(3, (100 * m.usd) / whoMax)}%"></i></span></span><span class="mono xs" data-tip="${m.ranges.join(', ')}">${m.ranges.length === 1 ? shortRange(m.ranges[0]) : `≈${fmtUSD(m.usd)}`}</span></li>`)}
           ${s.insider.buyers.slice(0, 4).map(b => html`<li><span class="who-k">${roleChip(b.role)}</span><span class="nm" title="${b.name}">${titleCase(b.name)}<em>${b.title || ROLE_LABEL[b.role]}${b.stakePct != null ? ` · stake +${Math.round(Math.min(b.stakePct, 999))}%` : b.newPosition ? ' · new position' : ''}</em><span class="bar"><i data-k="insider" style="width:${Math.max(3, (100 * b.usd) / whoMax)}%"></i></span></span><span class="mono xs">${fmtUSD(b.usd)}</span></li>`)}
-          ${members.slice(0, 3).map(m => html`<li><span class="who-k">${partyChip(m.party)}</span><span class="nm">${m.name}<em>${m.chamber} · ${m.ranges.join(', ')}</em><span class="bar"><i data-k="congress" style="width:${Math.max(3, (100 * m.usd) / whoMax)}%"></i></span></span><span class="mono xs">${fmtUSD(m.usd)}</span></li>`)}
         </ul>${s.insider.buyers.length > 4 ? html`<span class="xs muted">+${s.insider.buyers.length - 4} more insiders</span>` : ''}</div>` : ''}
         ${pros.length || cons.length ? html`<div class="rd-block"><span class="label">Checks</span><ul class="rd-checks">
           ${pros.map(f => html`<li data-tone="pos"><span class="ic" aria-hidden="true">✓</span><span><b>${f.label}.</b> ${f.detail}</span></li>`)}
@@ -353,6 +357,14 @@ export function createRadarView(ctx) {
     const out = [];
     const b = s.insider.buyers;
     const asOf = st.data?.asOf;
+    const m = s.congress.members.filter(x => !x.washOnly);
+    const over = m.filter(x => x.oversees);
+    if (over.length) {
+      const o = over[0];
+      out.push(`${o.name} (${o.party || '?'}), ${o.oversees.role ? `${ROLE_WORD[o.oversees.role] || o.oversees.role} on` : 'who sits on'} ${o.oversees.committee}, disclosed a purchase of ${o.ranges.join(', ')}. That committee oversees ${o.oversees.themeLabel}.`);
+      if (m.length > 1) out.push(`${m.length - 1} more member${m.length > 2 ? 's' : ''} of Congress bought too${over.length > 1 ? `, ${over.length - 1} of them also with oversight` : ''}.`);
+    } else if (m.length) out.push(m.length === 1 ? `${m[0].name} (${m[0].party || '?'}) disclosed a purchase of ${m[0].ranges.join(', ')}.` : `${m.length} members of Congress disclosed purchases worth about ${fmtUSD(s.congress.usd)}.`);
+    else if (s.congress.conv90) out.push(`Members of Congress bought it ${s.congress.conv90} time${s.congress.conv90 > 1 ? 's' : ''} in the last 90 days.`);
     if (b.length) {
       const top = b[0];
       const who = `${titleCase(top.name)} (${(top.title || ROLE_LABEL[top.role]).replace(/\s+/g, ' ')})`;
@@ -360,9 +372,6 @@ export function createRadarView(ctx) {
         ? `${who} bought ${fmtUSD(top.usd)} on the open market${top.tx > 1 ? ` in ${top.tx} purchases` : ''}, last on ${fmtDate(top.lastDate, { year: false })}.`
         : `${b.length} insiders bought ${fmtUSD(s.insider.usd)} on the open market, led by ${who} with ${fmtUSD(top.usd)}.`);
     }
-    const m = s.congress.members.filter(x => !x.washOnly);
-    if (m.length) out.push(m.length === 1 ? `${m[0].name} (${m[0].party || '?'}) disclosed a purchase of ${m[0].ranges.join(', ')}.` : `${m.length} members of Congress disclosed purchases worth about ${fmtUSD(s.congress.usd)}.`);
-    else if (s.congress.conv90) out.push(`Members of Congress bought it ${s.congress.conv90} time${s.congress.conv90 > 1 ? 's' : ''} in the last 90 days.`);
     if (q && q.sinceInsider != null) out.push(q.sinceInsider >= 0 ? `The stock is now ${fmtSignedPct(q.sinceInsider)} above what insiders paid.` : `The stock is now ${Math.abs(q.sinceInsider).toFixed(1)}% below what insiders paid.`);
     if (asOf && s.lastActivity) { const d = dayDiff(s.lastActivity, asOf); out.push(d <= 0 ? 'The latest filing is from today.' : `The latest filing is ${d} day${d > 1 ? 's' : ''} old.`); }
     return out.join(' ');
@@ -545,6 +554,19 @@ export function createRadarView(ctx) {
     },
     onResize() { if (!el.hidden) { layout.key = null; render(store.get()); } }
   };
+}
+
+/** "$1,001 - $15,000" → "$1K–15K". */
+function shortRange(r) {
+  const nums = String(r).match(/\$[\d,]+/g);
+  if (!nums) return String(r);
+  const f = x => { const v = +x.replace(/[$,]/g, ''); return v >= 1e6 ? `${Math.round(v / 1e6)}M` : v >= 1e3 ? `${Math.round(v / 1e3)}K` : String(v); };
+  return nums.length > 1 ? `$${f(nums[0])}–${f(nums[1])}` : `$${f(nums[0])}+`;
+}
+
+function overseerLine(s) {
+  const o = s.congress.members.find(m => m.oversees && !m.washOnly);
+  return o ? `${o.name} sits on ${o.oversees.committee}, which oversees ${o.oversees.themeLabel}` : '';
 }
 
 function arcPath(cx, cy, R, a0, a1) {

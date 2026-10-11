@@ -118,3 +118,6 @@
 .grid tr.row-warn td { background: color-mix(in srgb, var(--warn) 8%, transparent); }
 .brief-hero .md { font-size: var(--t-md); }
 .brief-hero .md h3 { margin-top: 6px; }
+
+/* Committee oversight marker */
+.ovs-sub { color: #F2C77E; }

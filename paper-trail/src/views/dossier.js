@@ -6,6 +6,7 @@ import { brandHead, nameOf } from '../ui/brand.js';
 import { fmtUSD, fmtInt, fmtDate, fmtPct, isoDate, addDays, ts, groupBy, cleanCompany } from '../core/util.js';
 import { cleanInsider, cleanCongress, ROLE_LABEL } from '../model/clean.js';
 import { buildSignals } from '../model/score.js';
+import { oversight, seatsOf } from '../core/committees.js';
 import { memoPrompt, sampleErrorCopy, streamInto } from '../ai/claude.js';
 
 const SECTIONS = ['congress', 'insider', 'contracts', 'lobbying', 'darkpool', 'news', 'ownership'];
@@ -77,7 +78,7 @@ export function createDossierView(ctx) {
       congressRows: cg.filter(r => (r.filed || r.traded) >= from),
       convergence90: new Map([[e.ticker, cg.filter(r => r.kind === 'buy' && (r.filed || '') >= addDays(e.asOf, -89)).length]]),
       enrichment: st.enrichment,
-      asOf: e.asOf, windowDays: W, model: st.model
+      asOf: e.asOf, windowDays: W, model: st.model, oversight
     })[0] || null;
     const screened = st.signals.find(s => s.ticker === e.ticker) || null;
     const contracts = (e.data.contracts || []).filter(c => +c.total_dollars_obligated > 0);
@@ -187,7 +188,7 @@ export function createDossierView(ctx) {
   function whoBlock(s) {
     if (!s) return html`<p class="small muted">No buying in the window.</p>`;
     return html`${s.insider.buyers.length ? html`<ul class="rows">${s.insider.buyers.slice(0, 8).map(b => html`<li>${roleChip(b.role)}<div class="grow"><div class="t1">${b.name}</div><div class="t2">${b.title || ROLE_LABEL[b.role]} · ${b.tx} buy${b.tx > 1 ? 's' : ''} · avg $${b.avgPrice.toFixed(2)}${b.stakePct != null ? ` · stake +${fmtPct(Math.min(b.stakePct, 999))}` : b.newPosition ? ' · new position' : ''}</div></div><span class="mono">${fmtUSD(b.usd)}</span></li>`)}</ul>` : ''}
-      ${s.congress.members.length ? html`<ul class="rows">${s.congress.members.map(m => html`<li>${partyChip(m.party)}<div class="grow"><button class="linkish t1" type="button" data-member="${m.name}">${m.name}</button><div class="t2">${m.chamber} · ${m.ranges.join(', ')}</div></div><span class="mono">${m.washOnly ? '0' : fmtUSD(m.usd)}</span></li>`)}</ul>` : ''}
+      ${s.congress.members.length ? html`<ul class="rows">${s.congress.members.map(m => html`<li>${partyChip(m.party)}<div class="grow"><button class="linkish t1" type="button" data-member="${m.name}">${m.name}</button><div class="t2">${m.oversees ? html`<span class="ovs-sub" data-tip="${`Oversees ${m.oversees.themeLabel}`}">◆ ${m.oversees.committee}</span> · ` : ''}${m.chamber} · ${m.ranges.join(', ')}</div></div><span class="mono">${m.washOnly ? '0' : fmtUSD(m.usd)}</span></li>`)}</ul>` : ''}
       ${!s.insider.buyers.length && !s.congress.members.length ? html`<p class="small muted">No buyers in the window.</p>` : ''}`;
   }
 
@@ -205,7 +206,7 @@ export function createDossierView(ctx) {
   function congressLedger(x) {
     if (!x.cg.length) return html`<p class="small muted">No congressional trades in two years.</p>`;
     return html`<div class="table-wrap" style="max-height:620px"><table class="grid"><thead><tr><th>Member</th><th>Trade</th><th>Amount</th><th>Traded</th><th>Filed</th><th class="num">Days to file</th><th>Owner</th></tr></thead><tbody>
-      ${x.cg.map(r => html`<tr><td><span class="cell-row">${partyChip(r.party)}<button class="linkish" type="button" data-member="${r.representative}">${r.representative}</button></span></td><td><span class="side">${r.kind === 'buy' ? tri('buy', 4) : r.kind === 'sell' ? tri('sell', 4) : ''}${r.transaction}${r.wash ? html` <span class="flag" data-tone="warn" data-tip="Bought and sold the same day; nets to zero">offset</span>` : ''}</span></td><td class="mono small nowrap">${r.amount}</td><td class="nowrap">${fmtDate(r.traded)}</td><td class="nowrap">${fmtDate(r.filed)}</td><td class="num ${r.lagDays > 45 ? 'status-err' : ''}" ${r.lagDays > 45 ? html`data-tip="Past the 45-day STOCK Act deadline"` : ''}>${r.lagDays ?? '—'}</td><td class="small muted">${r.owner || '—'}</td></tr>`)}
+      ${x.cg.map(r => { const o = oversight(cur.ticker, r.bioguide_id); return html`<tr><td><span class="cell-row">${partyChip(r.party)}<div class="two"><button class="linkish" type="button" data-member="${r.representative}">${r.representative}</button>${o ? html`<span class="sub ovs-sub" data-tip="${`${o.committee} oversees ${o.themeLabel}`}">◆ ${o.committee}${o.role ? ` · ${o.role === 'chair' ? 'chair' : 'ranking member'}` : ''}</span>` : ''}</div></span></td><td><span class="side">${r.kind === 'buy' ? tri('buy', 4) : r.kind === 'sell' ? tri('sell', 4) : ''}${r.transaction}${r.wash ? html` <span class="flag" data-tone="warn" data-tip="Bought and sold the same day; nets to zero">offset</span>` : ''}</span></td><td class="mono small nowrap">${r.amount}</td><td class="nowrap">${fmtDate(r.traded)}</td><td class="nowrap">${fmtDate(r.filed)}</td><td class="num ${r.lagDays > 45 ? 'status-err' : ''}" ${r.lagDays > 45 ? html`data-tip="Past the 45-day STOCK Act deadline"` : ''}>${r.lagDays ?? '—'}</td><td class="small muted">${r.owner || '—'}</td></tr>`; })}
       </tbody></table></div>`;
   }
 
@@ -263,7 +264,7 @@ export function createDossierView(ctx) {
       flags: s ? s.flags.map(f => f.label) : [],
       insider_trades_recent: x.ins.filter(r => r.transaction_type === 'P' || r.transaction_type === 'S').slice(0, 25).map(r => ({ name: r.owner, role: ROLE_LABEL[r.role], title: r.officer_title || undefined, code: r.transaction_type, shares: r.shares, price: r.price, usd: Math.round(r.value), date: r.date, filed_days_later: r.lateDays, owned_after: r.shares_owned_after })),
       insider_90d: { buy_usd: Math.round(x.p90.reduce((a, r) => a + r.value, 0)), sell_usd: Math.round(x.s90.reduce((a, r) => a + r.value, 0)) },
-      congress_trades_recent: x.cg.slice(0, 20).map(r => ({ member: r.representative, party: r.party, chamber: r.chamber, type: r.transaction, amount: r.amount, traded: r.traded, filed: r.filed, same_day_offset: r.wash || undefined })),
+      congress_trades_recent: x.cg.slice(0, 20).map(r => { const o = oversight(cur.ticker, r.bioguide_id); return { member: r.representative, party: r.party, chamber: r.chamber, type: r.transaction, amount: r.amount, traded: r.traded, filed: r.filed, same_day_offset: r.wash || undefined, committee_oversight: o ? `${o.committee}${o.role ? ` (${o.role})` : ''} oversees ${o.themeLabel}` : undefined }; }),
       federal_awards_12mo: cur.err.contracts ? 'unavailable' : { total_usd: Math.round(x.contracts.reduce((a, c) => a + +c.total_dollars_obligated, 0)), count: x.contracts.length, largest: [...x.contracts].sort((a, b) => b.total_dollars_obligated - a.total_dollars_obligated).slice(0, 4).map(c => ({ usd: Math.round(c.total_dollars_obligated), agency: c.funding_agency_name, what: c.award_description, date: String(c.action_date).slice(0, 10) })) },
       lobbying_by_quarter: x.quarters.map(q => ({ quarter: q.key, usd: q.value })),
       dark_pool_dpi: x.dp.length ? { latest: +(+x.dp.at(-1).dpi).toFixed(3), avg_20d: avg(x.dp.slice(-20)), avg_60d: avg(x.dp) } : 'unavailable',

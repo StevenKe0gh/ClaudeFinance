@@ -1,4 +1,4 @@
-// Builds src/data/directory.json: ticker → [company, sector index, country index]
+// Builds src/data/directory.json: ticker → [company, sector index, country index, industry index]
 // from the NASDAQ/NYSE/AMEX listings mirrored daily at
 // github.com/rreichel3/US-Stock-Symbols. Run when you want fresher names:
 //
@@ -25,6 +25,7 @@ async function load(x) {
 
 const sectors = [];
 const countries = [];
+const industries = [];
 const idx = (list, v) => { const k = v || ''; let i = list.indexOf(k); if (i < 0) { i = list.length; list.push(k); } return i; };
 const t = {};
 let rows = 0;
@@ -34,11 +35,11 @@ for (const x of EXCHANGES) {
     if (!/^[A-Z][A-Z0-9.]{0,6}$/.test(sym) || t[sym]) continue; // skip preferreds, warrants (^, /)
     const name = shortCompany(r.name);
     if (!name) continue;
-    t[sym] = [name, idx(sectors, r.sector), idx(countries, r.country)];
+    t[sym] = [name, idx(sectors, r.sector), idx(countries, r.country), idx(industries, String(r.industry || '').trim())];
     rows++;
   }
 }
-const out = { v: 1, source: 'github.com/rreichel3/US-Stock-Symbols', built: new Date().toISOString().slice(0, 10), sectors, countries, t };
+const out = { v: 2, source: 'github.com/rreichel3/US-Stock-Symbols', built: new Date().toISOString().slice(0, 10), sectors, countries, industries, t };
 await mkdir(path.join(root, 'src/data'), { recursive: true });
 await writeFile(path.join(root, 'src/data/directory.json'), JSON.stringify(out));
-console.log(`directory.json: ${rows} tickers, ${sectors.length} sectors, ${countries.length} countries`);
+console.log(`directory.json: ${rows} tickers, ${sectors.length} sectors, ${industries.length} industries, ${countries.length} countries`);

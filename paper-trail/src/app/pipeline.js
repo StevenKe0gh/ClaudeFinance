@@ -2,6 +2,7 @@ import { CONVERGENCE_DAYS, ENRICH_TOP_N } from '../core/config.js';
 import { isoDate, addDays, debounce } from '../core/util.js';
 import { cleanInsider, cleanCongress, cleanTicker, mergeDrops } from '../model/clean.js';
 import { buildSignals } from '../model/score.js';
+import { oversight } from '../core/committees.js';
 
 const STAGES = [
   { key: 'insider', label: 'Form 4 purchases' },
@@ -37,7 +38,8 @@ export function createPipeline({ store, quiver }) {
       asOf: data.asOf,
       windowDays: data.windowDays,
       model,
-      lastSeen: (session && session.lastSeenPrev) || null
+      lastSeen: (session && session.lastSeenPrev) || null,
+      oversight
     });
     store.set({ signals });
   }

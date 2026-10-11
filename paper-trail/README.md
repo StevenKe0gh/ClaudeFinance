@@ -6,7 +6,7 @@ It runs as a claude.ai artifact on the viewer's own Quiver Quant connector, so t
 
 | View | What it is for |
 |---|---|
-| **Radar** | The whole workflow in one window. A radar puts the strongest signals closest to the centre (angle = sector, bubble size = dollars bought, colour = insiders, Congress or both). Pick one to read a plain-language story with what insiders paid against today's price, then add it to your plan or skip it; the $10k plan strip on top redraws as you decide. Keys: <kbd>←</kbd>/<kbd>→</kbd>, <kbd>A</kbd> add, <kbd>X</kbd> skip, <kbd>Enter</kbd> dossier |
+| **Radar** | The whole workflow in one window. A radar puts the strongest signals closest to the centre (angle = sector, bubble size = dollars bought, colour = insiders, Congress or both, an amber diamond when a buyer's committee oversees the company). Pick one to read a plain-language story with what insiders paid against today's price, then add it to your plan or skip it; the $10k plan strip on top redraws as you decide. Keys: <kbd>←</kbd>/<kbd>→</kbd>, <kbd>A</kbd> add, <kbd>X</kbd> skip, <kbd>Enter</kbd> dossier |
 | **Briefing** | The morning page: the daily brief, today's strongest signals with price moves, changes since yesterday, alerts on your holdings, and the daily job's status with a **Run now** button |
 | **Signals** | A ranked screen with filters, a score breakdown for any row, and daily activity you can drag to filter by date |
 | **Link analysis** | A force-directed graph of tickers, insiders and members of Congress; people tied to several tickers stand out as bridges |
@@ -27,6 +27,9 @@ npm ci
 npm test         # unit tests for the data and model layers
 npm run build    # writes dist/index.html
 npm run check    # CI: fails if dist/index.html is out of date
+
+node scripts/build-directory.mjs     # refresh company names, sectors and industries
+python3 scripts/build-committees.py  # refresh committee seats (needs PyYAML)
 ```
 
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md): layers, connector behaviour, pipeline, state, persistence, capabilities.

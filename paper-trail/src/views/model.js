@@ -4,6 +4,7 @@ import { tierChip } from '../ui/parts.js';
 import { FACTORS, PRESETS, DEFAULT_MODEL, MULT, buildSignals, weightShares } from '../model/score.js';
 import { fmtInt } from '../core/util.js';
 import { brand, nameOf } from '../ui/brand.js';
+import { oversight } from '../core/committees.js';
 
 /**
  * Model workbench: weights, recency half-life and tier cut-offs, with a live
@@ -48,7 +49,7 @@ export function createModelView(ctx) {
     if (!st.data) { mount(host, html`<div class="empty"><h3>Waiting for data</h3><span>The impact table fills in after the first pull.</span></div>`); return; }
     const key = `${st.data.fetchedAt}|${st.enrichment.size}`;
     if (key !== baselineKey) {
-      const base = buildSignals({ ...st.data, insiderBuys: st.data.insiderBuys, congressRows: st.data.congressRows, enrichment: st.enrichment, model: DEFAULT_MODEL });
+      const base = buildSignals({ ...st.data, insiderBuys: st.data.insiderBuys, congressRows: st.data.congressRows, enrichment: st.enrichment, model: DEFAULT_MODEL, oversight });
       baseline = new Map(base.map(s => [s.ticker, s]));
       baselineKey = key;
     }
@@ -93,7 +94,7 @@ export function createModelView(ctx) {
   on(el, 'input', '[data-w]', (_, i) => { const m = store.get().model; setModel({ preset: 'custom', weights: { ...m.weights, [i.dataset.w]: +i.value } }); });
   on(el, 'input', '#m-hl', (_, i) => setModel({ halfLife: +i.value }));
   on(el, 'change', '[data-tier]', (_, i) => { const m = store.get().model; const v = Math.max(1, Math.min(99, +i.value || m.tiers[i.dataset.tier])); setModel({ tiers: { ...m.tiers, [i.dataset.tier]: v } }); });
-  on(el, 'click', '#m-reset', () => ctx.applyPreset('balanced'));
+  on(el, 'click', '#m-reset', () => ctx.applyPreset(DEFAULT_MODEL.preset));
 
   return {
     el,

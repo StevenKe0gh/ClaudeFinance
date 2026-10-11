@@ -4,6 +4,8 @@ import { tri } from '../ui/charts.js';
 import { fmtUSD, fmtInt, fmtDate, isoDate, addDays, groupBy, initials, cleanCompany } from '../core/util.js';
 import { cleanCongress, partyOf } from '../model/clean.js';
 import { brand, nameOf } from '../ui/brand.js';
+import { oversight, seatsOf } from '../core/committees.js';
+import { THEMES } from '../model/oversight.js';
 
 /** Member of Congress profile: disclosure stats, a year of trades, and overlap with the current signals. */
 export function createMemberView(ctx) {
@@ -44,6 +46,12 @@ export function createMemberView(ctx) {
     const overlap = [...new Set(buys.map(r => r.ticker))].filter(t => sigs.has(t)).map(t => sigs.get(t)).sort((a, b) => b.score - a.score);
     const byTicker = [...groupBy(trades, r => r.ticker)].map(([t, rows]) => ({ t, buys: rows.filter(r => r.kind === 'buy').length, sells: rows.filter(r => r.kind === 'sell').length, usd: rows.filter(r => r.kind === 'buy' && !r.wash).reduce((s, r) => s + r.mid, 0), company: rows[0].company })).sort((a, b) => b.buys - a.buys || b.usd - a.usd).slice(0, 10);
     const loading = !cur.trades && !cur.err.trades;
+    // Trades carry the bioguide id Quiver matched; prefer it over a profile lookup by name.
+    const bid = trades.find(r => r.bioguide_id)?.bioguide_id || cur.bioguide || (p && p.bioguide_id) || null;
+    const seats = bid ? seatsOf(bid) : [];
+    const ovs = r => (bid ? oversight(r.ticker, bid) : null);
+    const overseenBuys = buys.filter(r => ovs(r));
+    const ROLE = { chair: 'Chair', ranking: 'Ranking member' };
 
     mount(el, html`
       <div class="panel"><div class="dz-head">
@@ -56,14 +64,15 @@ export function createMemberView(ctx) {
         ${kpi('Purchases', loading ? '…' : fmtInt(buys.length), `${fmtUSD(buys.filter(r => !r.wash).reduce((s, r) => s + r.mid, 0))} est.`)}
         ${kpi('Sales', loading ? '…' : fmtInt(sells.length), `${fmtUSD(sells.reduce((s, r) => s + r.mid, 0))} est.`)}
         ${kpi('Late filings', loading ? '…' : fmtInt(late), 'over 45 days')}
-        ${kpi('In current signals', loading ? '…' : fmtInt(overlap.length), 'tickers this member bought')}
+        ${kpi('Buys they oversee', loading ? '…' : fmtInt(overseenBuys.length), buys.length ? `${Math.round((100 * overseenBuys.length) / buys.length)}% of purchases are in industries their committees cover` : 'committee jurisdiction')}
       </div>
       <div class="dz-grid">
-        <section class="panel span-4"><div class="panel-h"><h2>Overlap with signals</h2></div><div class="panel-b">${loading ? html`<div class="skel"></div>` : overlap.length ? html`<ul class="rows">${overlap.map(s => html`<li>${tierChip(s.tier)}<button class="linkish grow t1 mono" type="button" data-open="${s.ticker}">${s.ticker}</button><span class="mono">${s.score}</span></li>`)}</ul>` : html`<p class="small muted">None of this member’s purchases are in the current signal set.</p>`}</div></section>
-        <section class="panel span-8"><div class="panel-h"><h2>Most-traded tickers</h2><span class="src">12 months</span></div><div class="panel-b flush">${loading ? html`<div class="panel-b"><div class="skel"></div></div>` : html`<div class="table-wrap"><table class="grid"><thead><tr><th>Company</th><th class="num">Buys</th><th class="num">Sales</th><th class="num">Est. bought</th></tr></thead><tbody>${byTicker.map(r => html`<tr><td>${brand(r.t, { name: nameOf(r.t, cleanCompany(r.company)) })}</td><td class="num">${r.buys}</td><td class="num">${r.sells}</td><td class="num">${fmtUSD(r.usd)}</td></tr>`)}</tbody></table></div>`}</div></section>
+        <section class="panel span-6"><div class="panel-h"><h2>Committees</h2><span class="src">${seats.length ? 'current seats' : ''}</span></div><div class="panel-b">${seats.length ? html`<ul class="rows">${seats.filter(x => x.id.length === 4).map(c => { const subs = seats.filter(x => x.id.length > 4 && x.id.startsWith(c.id)); return html`<li><div class="grow"><div class="t1">${c.committee}${c.role ? html` <span class="flag" data-tone="pos">${ROLE[c.role]}</span>` : ''}</div>${subs.length ? html`<div class="t2">${subs.map(x => `${x.committee.split(': ')[1] || x.committee}${x.role ? ` (${ROLE[x.role].toLowerCase()})` : ''}`).join(' · ')}</div>` : ''}${c.themes.length || subs.some(x => x.themes.length) ? html`<div class="t2 ovs-sub">◆ oversees ${[...new Set([...c.themes, ...subs.flatMap(x => x.themes)])].map(t => THEMES[t].label).join(', ')}</div>` : ''}</div></li>`; })}</ul>` : html`<p class="small muted">${bid ? 'No current committee seats on record.' : 'Committee seats appear once the member’s ID is known.'}</p>`}</div></section>
+        <section class="panel span-6"><div class="panel-h"><h2>Overlap with signals</h2></div><div class="panel-b">${loading ? html`<div class="skel"></div>` : overlap.length ? html`<ul class="rows">${overlap.map(s => html`<li>${tierChip(s.tier)}<button class="linkish grow t1 mono" type="button" data-open="${s.ticker}">${s.ticker}</button><span class="mono">${s.score}</span></li>`)}</ul>` : html`<p class="small muted">None of this member’s purchases are in the current signal set.</p>`}</div></section>
+        <section class="panel span-12"><div class="panel-h"><h2>Most-traded tickers</h2><span class="src">12 months</span></div><div class="panel-b flush">${loading ? html`<div class="panel-b"><div class="skel"></div></div>` : html`<div class="table-wrap"><table class="grid"><thead><tr><th>Company</th><th>Oversight</th><th class="num">Buys</th><th class="num">Sales</th><th class="num">Est. bought</th></tr></thead><tbody>${byTicker.map(r => html`<tr><td>${brand(r.t, { name: nameOf(r.t, cleanCompany(r.company)) })}</td><td class="small">${(() => { const o = bid ? oversight(r.t, bid) : null; return o ? html`<span class="ovs-sub" data-tip="${`${o.committee} oversees ${o.themeLabel}`}">◆ ${o.committee.replace(/^(House|Senate) /, '')}</span>` : html`<span class="dim">—</span>`; })()}</td><td class="num">${r.buys}</td><td class="num">${r.sells}</td><td class="num">${fmtUSD(r.usd)}</td></tr>`)}</tbody></table></div>`}</div></section>
         <section class="panel span-12"><div class="panel-h"><h2>Trades</h2><span class="src">House and Senate PTRs · 12 months</span></div><div class="panel-b flush">
           ${cur.err.trades ? html`<div class="panel-b">${errorAlert(cur.err.trades)}</div>` : loading ? html`<div class="panel-b"><div class="skel"></div><div class="skel"></div></div>` : !trades.length ? html`<div class="panel-b"><p class="small muted">No trades with tickers in 12 months.</p></div>` : html`<div class="table-wrap" style="max-height:560px"><table class="grid"><thead><tr><th>Traded</th><th>Ticker</th><th>Trade</th><th>Amount</th><th>Filed</th><th class="num">Days to file</th><th>Owner</th></tr></thead><tbody>
-            ${trades.map(r => html`<tr><td class="nowrap">${fmtDate(r.traded)}</td><td><button class="tk" type="button" data-open="${r.ticker}">${r.ticker}</button></td><td><span class="side">${r.kind === 'buy' ? tri('buy', 4) : r.kind === 'sell' ? tri('sell', 4) : ''}${r.transaction}</span></td><td class="mono small nowrap">${r.amount}</td><td class="nowrap">${fmtDate(r.filed)}</td><td class="num ${r.lagDays > 45 ? 'status-err' : ''}">${r.lagDays ?? '—'}</td><td class="small muted">${r.owner || '—'}</td></tr>`)}
+            ${trades.map(r => html`<tr><td class="nowrap">${fmtDate(r.traded)}</td><td><span class="cell-row"><button class="tk" type="button" data-open="${r.ticker}">${r.ticker}</button>${ovs(r) ? html`<span class="ovs-sub" data-tip="${`${ovs(r).committee} oversees ${ovs(r).themeLabel}`}">◆</span>` : ''}</span></td><td><span class="side">${r.kind === 'buy' ? tri('buy', 4) : r.kind === 'sell' ? tri('sell', 4) : ''}${r.transaction}</span></td><td class="mono small nowrap">${r.amount}</td><td class="nowrap">${fmtDate(r.filed)}</td><td class="num ${r.lagDays > 45 ? 'status-err' : ''}">${r.lagDays ?? '—'}</td><td class="small muted">${r.owner || '—'}</td></tr>`)}
           </tbody></table></div>`}
         </div></section>
       </div>`);

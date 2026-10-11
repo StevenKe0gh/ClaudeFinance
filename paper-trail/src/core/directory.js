@@ -6,5 +6,5 @@ export const directory = DIR;
 export function companyOf(ticker) {
   const r = DIR.t[ticker];
   if (!r) return null;
-  return { name: r[0], sector: DIR.sectors[r[1]] || '', country: DIR.countries[r[2]] || '' };
+  return { name: r[0], sector: DIR.sectors[r[1]] || '', country: DIR.countries[r[2]] || '', industry: (DIR.industries && DIR.industries[r[3]]) || '' };
 }
