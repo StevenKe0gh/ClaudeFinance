@@ -1,0 +1,23 @@
+name: steuer
+
+on:
+  push:
+    paths:
+      - "steuer/**"
+      - ".github/workflows/steuer.yml"
+  pull_request:
+    paths:
+      - "steuer/**"
+      - ".github/workflows/steuer.yml"
+
+jobs:
+  test-and-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: node --test steuer/tests/*.test.mjs
+      - name: Built page is up to date
+        run: node steuer/build.mjs --check

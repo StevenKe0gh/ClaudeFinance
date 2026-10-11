@@ -1,0 +1,716 @@
+<title>Steuererklärung 2024–2026</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: the paper form beside its assessment. Inputs run down the left like
+   the Mantelbogen and its Anlagen; the live result for the chosen year sits on
+   the right and turns into the ELSTER fill-in list. */
+:root {
+  color-scheme: light;
+  --bg: #F3F5F2;
+  --surface: #FFFFFF;
+  --surface-2: #F8FAF8;
+  --ink: #14211B;
+  --ink-2: #4A5A52;
+  --ink-3: #6F7F77;
+  --line: #DCE3DE;
+  --line-2: #E9EEEA;
+  --accent: #1D6B4C;
+  --accent-ink: #FFFFFF;
+  --accent-soft: #E3F0EA;
+  --refund: #146B42;
+  --pay: #B3361F;
+  --warn: #9A6200;
+  --warn-soft: #FBF1DD;
+  --focus: #2F7DE1;
+
+  --f-display: "Bricolage Grotesque", "Atkinson Hyperlegible", system-ui, sans-serif;
+  --f-body: "Atkinson Hyperlegible", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-num: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  --r: 10px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --bg: #0E1412; --surface: #151D1A; --surface-2: #121916; --ink: #E6EEEA; --ink-2: #A9B8B1; --ink-3: #7F8F88;
+    --line: #26332E; --line-2: #1D2824; --accent: #4FB386; --accent-ink: #06140E; --accent-soft: #17312A;
+    --refund: #5BD69A; --pay: #F07A62; --warn: #E3A63B; --warn-soft: #2B2412; --focus: #6AA8F5;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #0E1412; --surface: #151D1A; --surface-2: #121916; --ink: #E6EEEA; --ink-2: #A9B8B1; --ink-3: #7F8F88;
+  --line: #26332E; --line-2: #1D2824; --accent: #4FB386; --accent-ink: #06140E; --accent-soft: #17312A;
+  --refund: #5BD69A; --pay: #F07A62; --warn: #E3A63B; --warn-soft: #2B2412; --focus: #6AA8F5;
+}
+* { box-sizing: border-box; margin: 0; }
+body { background: var(--bg); color: var(--ink); font: 15px/1.5 var(--f-body); padding-inline: 16px; padding-block: 24px 48px; }
+.wrap { max-width: 1240px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px; }
+h1, h2, h3 { font-family: var(--f-display); text-wrap: balance; letter-spacing: -0.01em; }
+.num { font-family: var(--f-num); font-variant-numeric: tabular-nums; }
+.label { font: 700 11px/1.2 var(--f-body); letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); }
+.muted { color: var(--ink-2); }
+.small { font-size: 13px; }
+.xs { font-size: 12px; }
+button, input, select { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+
+/* Header */
+.top { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 16px 32px; align-items: end; }
+.top h1 { font-size: clamp(28px, 4vw, 40px); font-weight: 700; line-height: 1.05; }
+.top p { max-width: 62ch; color: var(--ink-2); margin-top: 6px; }
+.hero { text-align: right; }
+.hero .v { font: 700 clamp(32px, 5vw, 48px)/1 var(--f-display); color: var(--refund); }
+.hero .v.pay { color: var(--pay); }
+.hero .s { color: var(--ink-2); font-size: 13px; margin-top: 4px; }
+@media (max-width: 720px) { .top { grid-template-columns: minmax(0, 1fr); } .hero { text-align: left; } }
+
+.tabs { display: flex; gap: 6px; flex-wrap: wrap; }
+.tab { border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 6px 14px; cursor: pointer; display: inline-flex; gap: 8px; align-items: center; }
+.tab[aria-selected="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.tab .amt { font-family: var(--f-num); font-size: 13px; opacity: .85; }
+
+.grid { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 20px; align-items: start; }
+@media (max-width: 980px) { .grid { grid-template-columns: minmax(0, 1fr); } }
+.col { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 18px 18px 20px; display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.card > header { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.card > header h2 { font-size: 19px; font-weight: 700; }
+.card > header .step { font: 600 12px var(--f-num); color: var(--accent); }
+.card > header .grow { flex: 1; }
+
+.btn { border: 1px solid var(--line); background: var(--surface); border-radius: 8px; padding: 7px 12px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
+.btn:hover { border-color: var(--ink-3); }
+.btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.btn.ghost { border-color: transparent; background: transparent; color: var(--ink-2); }
+.btn.sm { padding: 4px 9px; font-size: 13px; }
+
+.fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px 12px; }
+.field { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.field label { font-size: 12.5px; color: var(--ink-2); }
+.field input, .field select { border: 1px solid var(--line); background: var(--surface-2); border-radius: 7px; padding: 7px 9px; min-width: 0; width: 100%; }
+.field input[type="number"] { font-family: var(--f-num); }
+.field .hint { font-size: 11.5px; color: var(--ink-3); }
+.field.wide { grid-column: 1 / -1; }
+
+.job { border: 1px solid var(--line-2); border-radius: 9px; padding: 12px; display: flex; flex-direction: column; gap: 10px; background: var(--surface-2); }
+.job .head { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.job .head input { font: 700 16px var(--f-body); border: 0; background: transparent; padding: 2px 0; min-width: 0; flex: 1 1 180px; }
+.chips { display: flex; gap: 6px; flex-wrap: wrap; }
+.chip { font-size: 12px; padding: 2px 8px; border-radius: 999px; background: var(--accent-soft); color: var(--ink); }
+.chip.warn { background: var(--warn-soft); color: var(--warn); }
+details > summary { cursor: pointer; font-size: 13px; color: var(--ink-2); }
+details[open] > summary { margin-bottom: 8px; }
+.yearbox { border-top: 1px dashed var(--line); padding-top: 8px; margin-top: 8px; }
+.yearbox:first-of-type { border-top: 0; margin-top: 0; }
+
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; flex-wrap: wrap; }
+.seg button { border: 0; background: var(--surface); padding: 6px 12px; cursor: pointer; font-size: 13.5px; }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
+
+/* Result */
+.result { position: sticky; top: 16px; }
+.big { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.big .v { font: 700 40px/1 var(--f-display); color: var(--refund); }
+.big .v.pay { color: var(--pay); }
+.status { display: flex; gap: 6px; flex-wrap: wrap; }
+.pill { font-size: 12.5px; padding: 3px 9px; border-radius: 999px; border: 1px solid var(--line); display: inline-flex; gap: 6px; align-items: center; }
+.pill.must { border-color: var(--warn); color: var(--warn); background: var(--warn-soft); }
+.pill.ok { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
+
+.bars { display: flex; flex-direction: column; gap: 8px; }
+.bar-row { display: grid; grid-template-columns: 120px minmax(0, 1fr) 96px; gap: 10px; align-items: center; font-size: 13.5px; }
+.bar-row .track { height: 10px; background: var(--line-2); border-radius: 5px; overflow: hidden; }
+.bar-row .track i { display: block; height: 100%; border-radius: 5px; }
+.bar-row .track i.w { background: var(--accent); }
+.bar-row .track i.d { background: var(--pay); opacity: .8; }
+.bar-row .num { text-align: right; }
+
+.calc { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+.calc td { padding: 5px 0; border-bottom: 1px solid var(--line-2); vertical-align: top; }
+.calc td:last-child { text-align: right; font-family: var(--f-num); white-space: nowrap; padding-left: 12px; }
+.calc tr.sub td { color: var(--ink-2); padding-left: 12px; }
+.calc tr.tot td { font-weight: 700; border-bottom: 0; padding-top: 8px; }
+
+.list { list-style: none; padding: 0; display: flex; flex-direction: column; gap: 6px; font-size: 13.5px; }
+.list li { display: grid; grid-template-columns: 18px minmax(0, 1fr); gap: 8px; }
+.list li::before { content: "•"; color: var(--ink-3); }
+.list.todo li::before { content: "○"; color: var(--warn); }
+.list.note li::before { content: "!"; color: var(--warn); font-weight: 700; }
+
+.form { border: 1px solid var(--line); border-radius: 9px; overflow: hidden; }
+.form h3 { font: 700 14px var(--f-body); padding: 8px 12px; background: var(--surface-2); border-bottom: 1px solid var(--line); display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
+.form h3 .why { font-weight: 400; font-size: 12.5px; color: var(--ink-2); }
+.form .row { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 10px; align-items: center; padding: 7px 12px; border-top: 1px solid var(--line-2); font-size: 13.5px; }
+.form .row:first-of-type { border-top: 0; }
+.form .row .val { font-family: var(--f-num); white-space: nowrap; }
+.form .row .val.est { color: var(--warn); }
+.form .row em { font-style: normal; font-size: 12px; color: var(--ink-3); display: block; }
+.copy { border: 1px solid var(--line); background: var(--surface); border-radius: 6px; padding: 2px 7px; font-size: 12px; cursor: pointer; color: var(--ink-2); }
+
+.note-box { background: var(--accent-soft); border-radius: 9px; padding: 12px 14px; font-size: 13.5px; display: flex; flex-direction: column; gap: 6px; }
+.empty { color: var(--ink-2); font-size: 13.5px; }
+.saved { font-size: 12px; color: var(--ink-3); }
+footer { color: var(--ink-3); font-size: 12px; max-width: 80ch; }
+@media (max-width: 520px) { .bar-row { grid-template-columns: 90px minmax(0, 1fr) 80px; } .big .v { font-size: 34px; } }
+@media (prefers-reduced-motion: no-preference) { .bar-row .track i { transition: width .4s ease; } }
+</style>
+
+<div class="wrap" id="app">
+  <section class="top">
+    <div><h1>Steuererklärung 2024–2026</h1><p>Get back the wage tax withheld from your internships. As a student your yearly income stays near or below the basic allowance (Grundfreibetrag), so most or all of it is refunded. Enter each internship once; the page splits it into tax years and lists what to type into ELSTER.</p></div>
+    <div class="hero" id="hero"></div>
+  </section>
+  <nav class="tabs" id="tabs" role="tablist" aria-label="Tax year"></nav>
+  <div class="grid">
+    <div class="col" id="inputs"></div>
+    <div class="col result" id="result"></div>
+  </div>
+  <footer>Estimates for preparing your return, based on § 32a EStG for 2024–2026 and the allowances in force (Arbeitnehmer-Pauschbetrag 1.230 €, Sparer-Pauschbetrag 1.000 €, Sonderausgaben-Pauschbetrag 36 €). The Finanzamt's assessment is binding. Not tax advice: for unusual cases ask a Lohnsteuerhilfeverein or a Steuerberater. Your entries are stored privately in your account.</footer>
+</div>
+
+<script>
+(function () {
+'use strict';
+// German income tax for a single filer (Einzelveranlagung), 2024–2026.
+// Pure functions, no DOM: the worksheet page and the tests share this file.
+// Estimates for planning a return, not a binding assessment.
+
+const YEARS = [2024, 2025, 2026];
+
+/** Statutory parameters per year (EStG as amended by the Steuerfortentwicklungsgesetz, Dec 2024). */
+const PARAMS = {
+  2024: {
+    // § 32a: Grundfreibetrag raised retroactively from 11,604 to 11,784.
+    tariff: { gfb: 11784, z2: 17005, a2: 954.8, z3: 66760, a3: 181.19, c3: 991.21, c4: 10636.31, c5: 18971.06 },
+    soliFree: 18130, minijob: 538, kmLow: 0.30, kmHigh: 0.38,
+    deadlineMandatory: '2025-07-31', deadlineVoluntary: '2028-12-31'
+  },
+  2025: {
+    tariff: { gfb: 12096, z2: 17443, a2: 932.3, z3: 68480, a3: 176.64, c3: 1015.13, c4: 10911.92, c5: 19246.67 },
+    soliFree: 19950, minijob: 556, kmLow: 0.30, kmHigh: 0.38,
+    deadlineMandatory: '2026-07-31', deadlineVoluntary: '2029-12-31'
+  },
+  2026: {
+    tariff: { gfb: 12348, z2: 17799, a2: 914.51, z3: 69878, a3: 173.1, c3: 1034.87, c4: 11135.63, c5: 19470.38 },
+    soliFree: 20350, minijob: 603, kmLow: 0.38, kmHigh: 0.38,
+    deadlineMandatory: '2027-07-31', deadlineVoluntary: '2030-12-31'
+  }
+};
+
+const CONST = {
+  employeeAllowance: 1230,   // Arbeitnehmer-Pauschbetrag
+  specialAllowance: 36,      // Sonderausgaben-Pauschbetrag
+  saverAllowance: 1000,      // Sparer-Pauschbetrag
+  flatRate: 0.25,            // Abgeltungsteuer
+  soliRate: 0.055,
+  firstDegreeCap: 6000,      // Erstausbildung as Sonderausgaben, § 10 (1) Nr. 7
+  homeOfficePerDay: 6, homeOfficeCap: 1260,
+  laptopInstantLimit: 952,   // GWG limit 800 € net ≈ 952 € gross; computers may be written off in one year anyway
+  otherIncomeLimit: 410      // § 46 (2) Nr. 1: income without wage tax above this makes filing mandatory
+};
+
+/** Income tax per § 32a EStG on taxable income (zvE), rounded down to whole euros as the statute does. */
+function incomeTax(zvE, year) {
+  const t = PARAMS[year].tariff;
+  const x = Math.floor(Math.max(0, zvE));
+  let tax;
+  if (x <= t.gfb) tax = 0;
+  else if (x <= t.z2) { const y = (x - t.gfb) / 10000; tax = (t.a2 * y + 1400) * y; }
+  else if (x <= t.z3) { const z = (x - t.z2) / 10000; tax = (t.a3 * z + 2397) * z + t.c3; }
+  else if (x <= 277825) tax = 0.42 * x - t.c4;
+  else tax = 0.45 * x - t.c5;
+  return Math.floor(tax);
+}
+
+/** Solidarity surcharge with the exemption threshold and the 11.9 % phase-in. */
+function soli(tax, year) {
+  const free = PARAMS[year].soliFree;
+  if (tax <= free) return 0;
+  return Math.min(tax * CONST.soliRate, (tax - free) * 0.119);
+}
+
+const DAY = 864e5;
+const d = s => (s ? new Date(s + 'T00:00:00Z') : null);
+
+/** Days of a job that fall inside a calendar year (inclusive), 0 when dates are missing. */
+function daysInYear(from, to, year) {
+  const a = d(from), b = d(to);
+  if (!a || !b || b < a) return 0;
+  const y0 = Date.UTC(year, 0, 1), y1 = Date.UTC(year, 11, 31);
+  const s = Math.max(a.getTime(), y0), e = Math.min(b.getTime(), y1);
+  return e < s ? 0 : Math.round((e - s) / DAY) + 1;
+}
+
+/**
+ * Rough monthly wage-tax withholding (tax class I) when the Lohnsteuerbescheinigung
+ * is not at hand: the payroll annualises the monthly wage, deducts the allowances
+ * and a pension/health allowance (Vorsorgepauschale), and withholds a twelfth.
+ */
+function estimateWithholding(monthlyGross, months, year, { socialSecurity = true, church = 0 } = {}) {
+  if (!(monthlyGross > 0) || !(months > 0)) return { lst: 0, soli: 0, kist: 0 };
+  const annual = monthlyGross * 12;
+  const vsp = socialSecurity ? annual * 0.1945 : Math.min(annual * 0.12, 1900);
+  const zvE = annual - CONST.employeeAllowance - CONST.specialAllowance - vsp;
+  const monthly = incomeTax(zvE, year) / 12;
+  const lst = Math.round(monthly * months * 100) / 100;
+  return { lst, soli: 0, kist: Math.round(lst * church * 100) / 100 };
+}
+
+/** Employee social-security share for an estimate: full rates above 20 h/week, pension only for working students. */
+function estimateSocial(gross, type, hoursPerWeek) {
+  if (type !== 'payroll' || !(gross > 0)) return { rv: 0, kv: 0, pv: 0, av: 0 };
+  const r = x => Math.round(gross * x * 100) / 100;
+  if (hoursPerWeek && hoursPerWeek <= 20) return { rv: r(0.093), kv: 0, pv: 0, av: 0 };
+  return { rv: r(0.093), kv: r(0.0815), pv: r(0.023), av: r(0.013) };
+}
+
+const JOB_TYPES = {
+  payroll: { label: 'Paid internship on payroll', short: 'Payroll' },
+  mandatory: { label: 'Mandatory internship (Pflichtpraktikum) on payroll', short: 'Pflichtpraktikum' },
+  minijob: { label: 'Minijob (flat-taxed by employer)', short: 'Minijob' },
+  freelance: { label: 'No contract / paid on invoice (freelance)', short: 'No contract' },
+  unpaid: { label: 'Unpaid', short: 'Unpaid' }
+};
+
+/**
+ * One job's contribution to one tax year: actual figures from the
+ * Lohnsteuerbescheinigung win over estimates from dates × hours × rate.
+ */
+function jobYear(job, year, church) {
+  const days = daysInYear(job.from, job.to, year);
+  const act = (job.actual && job.actual[year]) || {};
+  const has = k => act[k] !== '' && act[k] != null && Number.isFinite(+act[k]);
+  const months = days / (365 / 12);
+  const estGross = days > 0 ? Math.round((days / 7) * (+job.hoursPerWeek || 0) * (+job.rate || 0) * 100) / 100 : 0;
+  const gross = has('gross') ? +act.gross : estGross;
+  const out = { id: job.id, employer: job.employer || 'Unnamed', type: job.type, days, months, gross, grossIsActual: has('gross'), monthly: months > 0 ? gross / Math.max(1, months) : 0 };
+  if (!(gross > 0) && !days) return null;
+  if (job.type === 'payroll' || job.type === 'mandatory') {
+    const est = estimateWithholding(months > 0 ? gross / Math.max(1, months) : 0, Math.max(1, Math.round(months)), year, { socialSecurity: job.type === 'payroll', church });
+    out.lst = has('lst') ? +act.lst : est.lst;
+    out.soli = has('soli') ? +act.soli : est.soli;
+    out.kist = has('kist') ? +act.kist : est.kist;
+    out.taxIsActual = has('lst');
+    const soc = estimateSocial(gross, job.type, +job.hoursPerWeek);
+    for (const k of ['rv', 'kv', 'pv', 'av']) out[k] = has(k) ? +act[k] : soc[k];
+  } else {
+    out.lst = out.soli = out.kist = 0;
+    out.rv = out.kv = out.pv = out.av = 0;
+  }
+  if (job.type === 'freelance') out.expenses = +(act.expenses || 0);
+  return out;
+}
+
+/**
+ * Full estimate for one year.
+ * @param {object} state  { profile: { church: 0|0.08|0.09 }, jobs: [...], years: { [year]: { study, costs, capital } } }
+ */
+function computeYear(state, year) {
+  const P = PARAMS[year];
+  const church = +state.profile?.church || 0;
+  const y = state.years?.[year] || {};
+  const costs = y.costs || {};
+  const cap = y.capital || {};
+  const study = y.study || 'none';
+  const jobs = (state.jobs || []).map(j => jobYear(j, year, church)).filter(Boolean);
+  const notes = [];
+
+  // Employment income (Anlage N)
+  const payroll = jobs.filter(j => j.type === 'payroll' || j.type === 'mandatory');
+  const wage = sum(payroll, j => j.gross);
+  const km = +costs.commuteKm || 0, kmDays = +costs.commuteDays || 0;
+  const commute = Math.round(kmDays * (Math.min(km, 20) * P.kmLow + Math.max(0, km - 20) * P.kmHigh));
+  const homeOffice = Math.min(CONST.homeOfficeCap, (+costs.homeOfficeDays || 0) * CONST.homeOfficePerDay);
+  const workTools = +costs.workTools || 0;
+  const studyCosts = (+costs.studyFees || 0) + (+costs.studyMaterials || 0) + (+costs.laptop || 0) + (+costs.studyTravel || 0) + (+costs.otherStudy || 0);
+  const secondDegree = study === 'second';
+  const actualWk = commute + homeOffice + workTools + (secondDegree ? studyCosts : 0);
+  const wk = wage > 0 ? Math.max(CONST.employeeAllowance, actualWk) : actualWk;
+  const wkUsesAllowance = wage > 0 && actualWk < CONST.employeeAllowance;
+  const incomeN = wage - wk;
+
+  // Freelance work without payroll (Anlage G/S + EÜR)
+  const free = jobs.filter(j => j.type === 'freelance');
+  const freeRevenue = sum(free, j => j.gross);
+  const freeExpenses = sum(free, j => j.expenses || 0);
+  const incomeFree = freeRevenue - freeExpenses;
+
+  // Special expenses (Sonderausgaben)
+  const vorsorge = sum(payroll, j => j.rv + j.kv * 0.96 + j.pv + j.av) + (+costs.healthInsurance || 0);
+  const firstDegree = study === 'first' ? Math.min(CONST.firstDegreeCap, studyCosts) : 0;
+  const sonder = firstDegree > 0 ? firstDegree : CONST.specialAllowance;
+
+  const gde = incomeN + incomeFree;
+  const zvE = Math.max(0, gde - vorsorge - sonder);
+  const lossCarry = secondDegree && gde < 0 ? -gde : 0;
+
+  // Capital income: flat tax vs. inclusion at the personal rate (Günstigerprüfung)
+  const capIncome = +cap.income || 0;
+  const capTaxable = Math.max(0, capIncome - CONST.saverAllowance);
+  const flatTax = Math.round(capTaxable * CONST.flatRate * 100) / 100;
+  const flatSoli = Math.round(flatTax * CONST.soliRate * 100) / 100;
+  const flatKist = Math.round(flatTax * church * 100) / 100;
+  const taxExcl = incomeTax(zvE, year);
+  const taxIncl = incomeTax(zvE + capTaxable, year);
+  const flatTotal = taxExcl + soli(taxExcl, year) + taxExcl * church + flatTax + flatSoli + flatKist;
+  const inclTotal = taxIncl + soli(taxIncl, year) + taxIncl * church;
+  const guenstiger = capTaxable > 0 && inclTotal < flatTotal - 0.5;
+  const est = guenstiger ? taxIncl : taxExcl;
+  const due = {
+    est, soli: Math.round(soli(est, year) * 100) / 100, kist: Math.round(est * church * 100) / 100,
+    capFlat: guenstiger ? 0 : flatTax + flatSoli + flatKist
+  };
+  due.total = Math.round((due.est + due.soli + due.kist + due.capFlat) * 100) / 100;
+
+  const withheld = {
+    lst: sum(payroll, j => j.lst), soli: sum(payroll, j => j.soli), kist: sum(payroll, j => j.kist),
+    kapest: +cap.kapest || 0, kapSoli: +cap.soli || 0, kapKist: +cap.kist || 0
+  };
+  withheld.total = Math.round((withheld.lst + withheld.soli + withheld.kist + withheld.kapest + withheld.kapSoli + withheld.kapKist) * 100) / 100;
+  const refund = Math.round((withheld.total - due.total) * 100) / 100;
+
+  // Is filing mandatory?
+  const reasons = [];
+  if (incomeFree > CONST.otherIncomeLimit) reasons.push(`income without wage tax (${fmt(incomeFree)}) above ${fmt(CONST.otherIncomeLimit)}`);
+  const overlapping = payroll.some((a, i) => payroll.some((b, k) => k > i && overlaps(state.jobs.find(j => j.id === a.id), state.jobs.find(j => j.id === b.id))));
+  if (overlapping) reasons.push('two payroll employers at the same time (tax class VI)');
+  const mandatory = reasons.length > 0;
+
+  // Data still missing
+  const missing = [];
+  for (const j of state.jobs || []) {
+    if (j.type === 'unpaid') continue;
+    if (!j.from || !j.to) missing.push(`${j.employer || 'A job'}: start and end dates`);
+  }
+  for (const j of payroll) if (!j.taxIsActual) missing.push(`${j.employer}: wage tax from the ${year} Lohnsteuerbescheinigung (using an estimate)`);
+  if (capIncome === 0 && !cap.none) missing.push(`Broker tax certificate ${year} (Jahressteuerbescheinigung) for capital gains and tax withheld`);
+  for (const j of jobs) if (j.type === 'minijob' && j.monthly > P.minijob + 0.5) notes.push(`${j.employer}: about ${fmt(j.monthly)} a month is above the ${fmt(P.minijob)} minijob limit; it was probably taxed as a normal job. Check the payslips.`);
+
+  return {
+    year, P, jobs, payroll, free, wage, wk, wkUsesAllowance, commute, homeOffice, workTools, studyCosts, secondDegree,
+    incomeN, freeRevenue, freeExpenses, incomeFree, vorsorge, firstDegree, sonder, gde, zvE, lossCarry,
+    capIncome, capTaxable, guenstiger, guenstigerSaves: Math.round((flatTotal - inclTotal) * 100) / 100,
+    due, withheld, refund, mandatory, reasons, missing: [...new Set(missing)], notes
+  };
+}
+
+function overlaps(a, b) {
+  if (!a || !b || !a.from || !a.to || !b.from || !b.to) return false;
+  return a.from <= b.to && b.from <= a.to;
+}
+function sum(xs, f) { return xs.reduce((s, x) => s + (+f(x) || 0), 0); }
+function fmt(n, cents = false) {
+  return (+n || 0).toLocaleString('de-DE', { style: 'currency', currency: 'EUR', minimumFractionDigits: cents ? 2 : 0, maximumFractionDigits: cents ? 2 : 0 });
+}
+
+// Worksheet UI. Depends on tax.mjs (inlined before this file by build.mjs).
+
+const KEY = 'steuer.worksheet.v1';
+const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const $ = (s, el = document) => el.querySelector(s);
+const uid = () => Math.random().toString(36).slice(2, 9);
+const fmtDate = s => (s ? new Date(s + 'T00:00:00Z').toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'UTC' }) : '');
+const de = (n, cents = true) => (+n || 0).toLocaleString('de-DE', { minimumFractionDigits: cents ? 2 : 0, maximumFractionDigits: cents ? 2 : 0 });
+
+function blank() {
+  return {
+    v: 1,
+    profile: { church: 0 },
+    jobs: [{ id: uid(), employer: 'Strategybridge', type: 'freelance', from: '', to: '', hoursPerWeek: '', rate: 15, actual: {} }],
+    years: Object.fromEntries(YEARS.map(y => [y, { study: 'first', costs: {}, capital: {} }])),
+    updatedAt: 0
+  };
+}
+function normalise(s) {
+  const b = blank();
+  if (!s || s.v !== 1) return b;
+  s.profile = { ...b.profile, ...(s.profile || {}) };
+  s.jobs = Array.isArray(s.jobs) ? s.jobs : [];
+  s.years = { ...b.years, ...(s.years || {}) };
+  for (const y of YEARS) s.years[y] = { study: 'first', costs: {}, capital: {}, ...(s.years[y] || {}) };
+  return s;
+}
+
+let state = (() => { try { return normalise(JSON.parse(localStorage.getItem(KEY) || 'null')); } catch { return blank(); } })();
+let year = 2025;
+let dbRef = null;
+let saveState = 'local';
+let writing = Promise.resolve();
+let saveTimer = 0;
+
+function save() {
+  state.updatedAt = Date.now();
+  try { localStorage.setItem(KEY, JSON.stringify(state)); } catch { /* storage blocked: keep in memory */ }
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => {
+    if (!dbRef) { setSaved(); return; }
+    const snap = JSON.parse(JSON.stringify(state));
+    writing = writing.then(() => dbRef.set(snap)).then(() => { saveState = 'saved'; setSaved(); }).catch(() => { saveState = 'error'; setSaved(); });
+  }, 700);
+}
+function setSaved() {
+  const el = $('#saved');
+  if (el) el.textContent = saveState === 'saved' ? `Saved to your account · ${new Date(state.updatedAt).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}` : saveState === 'error' ? 'Could not save to your account; kept in this browser' : 'Kept in this browser';
+}
+
+/* ---------- Rendering ---------- */
+function render() {
+  renderTabs();
+  renderInputs();
+  renderResult();
+}
+function renderLive() {
+  renderTabs();
+  renderResult();
+  for (const j of state.jobs) { const c = $(`#chips-${j.id}`); if (c) c.innerHTML = jobChips(j); }
+}
+
+function renderTabs() {
+  const totals = YEARS.map(y => computeYear(state, y));
+  const past = totals.filter(r => r.year < 2026);
+  const refund = past.reduce((s, r) => s + r.refund, 0);
+  $('#hero').innerHTML = `<div class="label">Estimated refund 2024 + 2025</div><div class="v ${refund < 0 ? 'pay' : ''}">${esc(fmt(refund))}</div><div class="s">${totals[2].refund ? `2026 so far: ${esc(fmt(totals[2].refund))} · file from January 2027` : 'File 2024 and 2025 now; 2026 from January 2027'}</div>`;
+  $('#tabs').innerHTML = totals.map(r => `<button class="tab" role="tab" type="button" data-year="${r.year}" aria-selected="${r.year === year}">${r.year}${r.year === 2026 ? ' (running)' : ''}<span class="amt">${esc(fmt(r.refund))}</span></button>`).join('');
+}
+
+function jobYears(j) { return YEARS.filter(y => daysInYear(j.from, j.to, y) > 0); }
+function jobChips(j) {
+  const parts = [];
+  if (j.type !== 'unpaid' && (!j.from || !j.to)) parts.push(`<span class="chip warn">Add start and end dates</span>`);
+  for (const y of jobYears(j)) {
+    const r = jobYear(j, y, +state.profile.church || 0);
+    if (!r) continue;
+    const hours = (r.days / 7) * (+j.hoursPerWeek || 0);
+    parts.push(`<span class="chip">${y}: ${r.grossIsActual ? '' : '≈ '}${esc(fmt(r.gross))}${hours && !r.grossIsActual ? ` · ${Math.round(hours)} h` : ''}${r.lst ? ` · tax ${r.taxIsActual ? '' : '≈ '}${esc(fmt(r.lst))}` : ''}</span>`);
+  }
+  return parts.join('');
+}
+
+function jobCard(j) {
+  const types = Object.entries(JOB_TYPES).map(([k, t]) => `<option value="${k}" ${j.type === k ? 'selected' : ''}>${esc(t.label)}</option>`).join('');
+  const ys = jobYears(j);
+  const payroll = j.type === 'payroll' || j.type === 'mandatory';
+  const lstFields = y => {
+    const a = (j.actual && j.actual[y]) || {};
+    const f = (k, label, hint = '') => `<div class="field"><label for="a-${j.id}-${y}-${k}">${label}</label><input type="number" step="0.01" min="0" id="a-${j.id}-${y}-${k}" data-job="${j.id}" data-y="${y}" data-a="${k}" value="${esc(a[k] ?? '')}" placeholder="from line">${hint ? `<span class="hint">${hint}</span>` : ''}</div>`;
+    if (payroll) return `<div class="yearbox"><div class="label">${y} · Lohnsteuerbescheinigung</div><div class="fields">${f('gross', 'Gross wage (line 3)')}${f('lst', 'Wage tax (line 4)')}${f('soli', 'Soli (line 5)')}${f('kist', 'Church tax (line 6)')}${f('rv', 'Pension, your share (line 23a)')}${f('kv', 'Health, your share (line 25)')}${f('pv', 'Care, your share (line 26)')}${f('av', 'Unemployment (line 27)')}</div></div>`;
+    if (j.type === 'freelance') return `<div class="yearbox"><div class="label">${y} · actual figures</div><div class="fields">${f('gross', 'Amount received', 'if different from hours × rate')}${f('expenses', 'Business expenses', 'laptop share, travel, software')}</div></div>`;
+    return '';
+  };
+  return `<div class="job" data-card="${j.id}">
+    <div class="head"><input aria-label="Employer" value="${esc(j.employer)}" data-job="${j.id}" data-f="employer" placeholder="Company"><button class="btn ghost sm" type="button" data-del="${j.id}" aria-label="Remove ${esc(j.employer || 'job')}">Remove</button></div>
+    <div class="fields">
+      <div class="field wide"><label for="t-${j.id}">How it was paid</label><select id="t-${j.id}" data-job="${j.id}" data-f="type">${types}</select></div>
+      <div class="field"><label for="f-${j.id}">From</label><input type="date" id="f-${j.id}" data-job="${j.id}" data-f="from" value="${esc(j.from)}" min="2024-01-01" max="2026-12-31"></div>
+      <div class="field"><label for="to-${j.id}">To</label><input type="date" id="to-${j.id}" data-job="${j.id}" data-f="to" value="${esc(j.to)}" min="2024-01-01" max="2026-12-31"></div>
+      <div class="field"><label for="h-${j.id}">Hours per week</label><input type="number" min="0" max="60" step="0.5" id="h-${j.id}" data-job="${j.id}" data-f="hoursPerWeek" value="${esc(j.hoursPerWeek)}"></div>
+      <div class="field"><label for="r-${j.id}">€ per hour</label><input type="number" min="0" step="0.01" id="r-${j.id}" data-job="${j.id}" data-f="rate" value="${esc(j.rate)}"></div>
+    </div>
+    <div class="chips" id="chips-${j.id}">${jobChips(j)}</div>
+    ${(payroll || j.type === 'freelance') && ys.length ? `<details ${ys.some(y => j.actual?.[y]?.lst || j.actual?.[y]?.gross) ? 'open' : ''}><summary>${payroll ? 'Exact figures from the Lohnsteuerbescheinigung (replaces the estimate)' : 'Exact amounts received and expenses'}</summary>${ys.map(lstFields).join('')}</details>` : ''}
+    ${j.type === 'freelance' ? `<p class="xs muted">No contract and no payslip means no wage tax was withheld. The money still counts as income (Anlage G or S with an EÜR). Above 410 € a year the return becomes mandatory, but below the basic allowance no tax is due.</p>` : ''}
+    ${j.type === 'minijob' ? `<p class="xs muted">Minijobs are usually flat-taxed by the employer (2 %) and do not appear in your return. If your payslips show wage tax under tax class I, choose “Paid internship on payroll”.</p>` : ''}
+  </div>`;
+}
+
+function renderInputs() {
+  const y = state.years[year];
+  const c = y.costs || {};
+  const cap = y.capital || {};
+  const num = (k, label, hint = '', src = 'cost', val = c[k]) => `<div class="field"><label for="${src}-${k}">${label}</label><input type="number" min="0" step="0.01" id="${src}-${k}" data-${src}="${k}" value="${esc(val ?? '')}">${hint ? `<span class="hint">${hint}</span>` : ''}</div>`;
+  $('#inputs').innerHTML = `
+    <section class="card"><header><span class="step">1</span><h2>Your internships</h2><span class="grow"></span><button class="btn primary sm" type="button" id="add-job">+ Add internship</button></header>
+      <p class="small muted">Enter every job since January 2024 once. Dates decide which tax year the money belongs to. Without the Lohnsteuerbescheinigung the page estimates gross pay from hours × rate and the tax withheld from a tax-class-I payroll.</p>
+      ${state.jobs.length ? state.jobs.map(jobCard).join('') : '<p class="empty">No internships yet.</p>'}
+    </section>
+    <section class="card"><header><span class="step">2</span><h2>Studies and work costs in ${year}</h2></header>
+      <div class="field wide"><span class="label">What were you studying in ${year}?</span>
+        <div class="seg" role="group" aria-label="Study status">${[['first', 'Bachelor (first degree)'], ['second', 'Master or second degree'], ['none', 'Not enrolled']].map(([k, l]) => `<button type="button" data-study="${k}" aria-pressed="${y.study === k}">${l}</button>`).join('')}</div>
+        <span class="hint">${y.study === 'second' ? 'Second degree: study costs are business expenses (Werbungskosten). What your income does not absorb is carried forward as a loss into your first working years.' : y.study === 'first' ? 'First degree: study costs count as special expenses up to 6.000 € but only reduce tax in the same year; nothing carries forward.' : 'Not enrolled: study costs are ignored.'}</span></div>
+      <div class="fields">
+        ${num('studyFees', 'Semester fees', 'Semesterbeitrag, tuition')}
+        ${num('studyMaterials', 'Books and materials')}
+        ${num('laptop', 'Laptop and IT', 'share used for study or work')}
+        ${num('studyTravel', 'Travel to university', 'costs or 0,30 €/km')}
+        ${num('otherStudy', 'Other study costs', 'courses, exam fees')}
+        ${num('healthInsurance', 'Own health insurance paid', 'student insurance, if not via parents')}
+      </div>
+      <div class="label">Commuting to internships</div>
+      <div class="fields">
+        ${num('commuteKm', 'Distance, one way (km)')}
+        ${num('commuteDays', 'Days you went in')}
+        ${num('homeOfficeDays', 'Home-office days', '6 € a day, up to 210 days')}
+        ${num('workTools', 'Work equipment', 'bought for the internship')}
+      </div>
+    </section>
+    <section class="card"><header><span class="step">3</span><h2>Investments in ${year}</h2></header>
+      <p class="small muted">Your broker withholds 25 % flat tax on gains above your Freistellungsauftrag. With income this low you can ask for your personal rate instead (Günstigerprüfung) and get most or all of it back. The figures are on the broker's Jahressteuerbescheinigung (Scalable Capital: app → Profile → Documents → Tax).</p>
+      <label class="small" style="display:flex;gap:8px;align-items:center"><input type="checkbox" data-cap="none" ${cap.none ? 'checked' : ''}> No investment income in ${year}</label>
+      ${cap.none ? '' : `<div class="fields">
+        ${num('income', 'Capital income', 'Höhe der Kapitalerträge (gains + dividends)', 'cap', cap.income)}
+        ${num('kapest', 'Kapitalertragsteuer withheld', '', 'cap', cap.kapest)}
+        ${num('soli', 'Soli withheld', '', 'cap', cap.soli)}
+        ${num('kist', 'Church tax withheld', '', 'cap', cap.kist)}
+      </div>`}
+    </section>
+    <section class="card"><header><span class="step">4</span><h2>About you</h2><span class="grow"></span><span class="saved" id="saved"></span></header>
+      <div class="field wide"><span class="label">Church tax</span>
+        <div class="seg" role="group" aria-label="Church tax">${[[0, 'Not a member'], [0.08, '8 % (Bavaria, Baden-Württemberg)'], [0.09, '9 % (other states)']].map(([v, l]) => `<button type="button" data-church="${v}" aria-pressed="${(+state.profile.church || 0) === v}">${l}</button>`).join('')}</div></div>
+    </section>`;
+  setSaved();
+}
+
+function renderResult() {
+  const r = computeYear(state, year);
+  const max = Math.max(1, r.withheld.total, r.due.total);
+  const pay = r.refund < 0;
+  const est = r.payroll.some(j => !j.taxIsActual);
+  const deadline = year === 2026 ? 'File from January 2027' : r.mandatory ? `Filing required · deadline was ${fmtDate(r.P.deadlineMandatory)}` : `Voluntary · file by ${fmtDate(r.P.deadlineVoluntary)}`;
+  const calcRows = [
+    ['Wages (Anlage N)', r.wage],
+    r.wage || r.wk ? [`− Work expenses${r.wkUsesAllowance ? ' (allowance 1.230 €)' : ''}`, -r.wk, true] : null,
+    r.freeRevenue ? ['Freelance income, no contract', r.freeRevenue] : null,
+    r.freeExpenses ? ['− Business expenses', -r.freeExpenses, true] : null,
+    ['= Total income', r.gde],
+    r.vorsorge ? ['− Insurance contributions', -r.vorsorge, true] : null,
+    [`− Special expenses${r.firstDegree ? ' (first-degree costs)' : ' (allowance)'}`, -r.sonder, true],
+    ['= Taxable income', r.zvE],
+    [`Basic allowance ${year}`, r.P.tariff.gfb, true],
+    r.capIncome ? [`Capital income${r.guenstiger ? ' (taxed at your rate)' : ' (25 % flat tax)'}`, r.capIncome] : null
+  ].filter(Boolean);
+  $('#result').innerHTML = `
+    <section class="card">
+      <header><h2>${year}${year === 2026 ? ' so far' : ''}</h2><span class="grow"></span><span class="label">${pay ? 'Estimated payment' : 'Estimated refund'}</span></header>
+      <div class="big"><span class="v ${pay ? 'pay' : ''}">${esc(fmt(Math.abs(r.refund)))}</span>${est ? '<span class="pill must">estimate until you enter the Lohnsteuerbescheinigung</span>' : ''}</div>
+      <div class="status"><span class="pill ${r.mandatory ? 'must' : 'ok'}">${esc(deadline)}</span>${r.guenstiger ? `<span class="pill ok">Günstigerprüfung saves ${esc(fmt(r.guenstigerSaves))}</span>` : ''}${r.lossCarry ? `<span class="pill ok">Loss carried forward ${esc(fmt(r.lossCarry))}</span>` : ''}</div>
+      ${r.mandatory ? `<p class="small muted">Mandatory because of ${esc(r.reasons.join(' and '))}. ${year < 2026 ? 'The deadline has passed. File now; when the result is a refund or no tax, the Finanzamt charges no late fee.' : ''}</p>` : ''}
+      <div class="bars" role="img" aria-label="Tax withheld ${esc(fmt(r.withheld.total))}, tax due ${esc(fmt(r.due.total))}">
+        <div class="bar-row"><span>Already paid</span><span class="track"><i class="w" style="width:${(100 * r.withheld.total) / max}%"></i></span><span class="num">${esc(fmt(r.withheld.total, true))}</span></div>
+        <div class="bar-row"><span>Actually due</span><span class="track"><i class="d" style="width:${(100 * r.due.total) / max}%"></i></span><span class="num">${esc(fmt(r.due.total, true))}</span></div>
+      </div>
+      <table class="calc"><tbody>${calcRows.map(([l, v, sub]) => `<tr class="${sub ? 'sub' : ''}${l.startsWith('= Taxable') ? ' tot' : ''}"><td>${esc(l)}</td><td>${esc(fmt(v))}</td></tr>`).join('')}</tbody></table>
+      ${r.missing.length ? `<div><div class="label" style="margin-bottom:6px">Still needed</div><ul class="list todo">${r.missing.map(m => `<li>${esc(m)}</li>`).join('')}</ul></div>` : ''}
+      ${r.notes.length ? `<ul class="list note">${r.notes.map(m => `<li>${esc(m)}</li>`).join('')}</ul>` : ''}
+    </section>
+    <section class="card"><header><h2>ELSTER, field by field</h2><span class="grow"></span><button class="btn sm" type="button" id="copy-all">Copy all</button></header>
+      <div class="note-box"><b>Fastest route</b><span>In Mein ELSTER open “Einkommensteuererklärung ${year}” and use <b>Belegabruf</b> (vorausgefüllte Steuererklärung): your employers' Lohnsteuerbescheinigungen and insurance data arrive pre-filled. Then check them against the values below and add the rest.</span></div>
+      ${elster(r)}
+    </section>`;
+}
+
+function elster(r) {
+  const row = (label, value, opts = {}) => {
+    const v = typeof value === 'number' ? de(value, opts.cents !== false) : String(value);
+    return `<div class="row"><span>${esc(label)}${opts.note ? `<em>${esc(opts.note)}</em>` : ''}</span><span class="val ${opts.est ? 'est' : ''}" title="${opts.est ? 'Estimate: replace with your document' : ''}">${esc(v)}</span><button class="copy" type="button" data-copy="${esc(v)}" aria-label="Copy ${esc(label)}">Copy</button></div>`;
+  };
+  const forms = [];
+  forms.push(`<div class="form"><h3>Hauptvordruck (ESt 1 A)<span class="why">personal data and the account for the refund</span></h3>${row('Steuerliche Identifikationsnummer', 'from your Steuer-ID letter')}${row('Bankverbindung (IBAN) for the refund', 'your IBAN')}${row('Einzelveranlagung', 'yes')}</div>`);
+  for (const j of r.payroll) {
+    forms.push(`<div class="form"><h3>Anlage N · ${esc(j.employer)}<span class="why">${j.taxIsActual ? 'from the Lohnsteuerbescheinigung' : 'estimated: replace with the Lohnsteuerbescheinigung'}</span></h3>
+      ${row('Bruttoarbeitslohn', j.gross, { est: !j.grossIsActual })}
+      ${row('Einbehaltene Lohnsteuer', j.lst, { est: !j.taxIsActual })}
+      ${row('Einbehaltener Solidaritätszuschlag', j.soli, { est: !j.taxIsActual })}
+      ${row('Einbehaltene Kirchensteuer', j.kist, { est: !j.taxIsActual })}</div>`);
+  }
+  const wk = [];
+  if (r.commute) wk.push(row('Wege zur ersten Tätigkeitsstätte: Arbeitstage', +(state.years[r.year].costs.commuteDays || 0), { cents: false }), row('Entfernung (km, einfach)', +(state.years[r.year].costs.commuteKm || 0), { cents: false, note: `= ${fmt(r.commute)} commuting allowance` }));
+  if (r.homeOffice) wk.push(row('Tagespauschale Homeoffice: Tage', Math.round(r.homeOffice / 6), { cents: false }));
+  if (r.workTools) wk.push(row('Arbeitsmittel', r.workTools));
+  if (r.secondDegree && r.studyCosts) wk.push(row('Fortbildungskosten (Zweitstudium)', r.studyCosts, { note: 'fees, books, laptop, travel to university' }));
+  if (wk.length) forms.push(`<div class="form"><h3>Anlage N · Werbungskosten<span class="why">${r.wkUsesAllowance ? `below the 1.230 € allowance, which applies anyway` : 'above the allowance: enter them'}</span></h3>${wk.join('')}</div>`);
+  if (r.payroll.some(j => j.rv || j.kv)) forms.push(`<div class="form"><h3>Anlage Vorsorgeaufwand<span class="why">usually pre-filled from the Lohnsteuerbescheinigung</span></h3>${row('Arbeitnehmeranteil Rentenversicherung', r.payroll.reduce((s, j) => s + j.rv, 0), { est: r.payroll.some(j => !j.taxIsActual) })}${row('Arbeitnehmeranteil Kranken- und Pflegeversicherung', r.payroll.reduce((s, j) => s + j.kv + j.pv, 0), { est: r.payroll.some(j => !j.taxIsActual) })}${+state.years[r.year].costs.healthInsurance ? row('Eigene Beiträge zur Krankenversicherung (Studenten)', +state.years[r.year].costs.healthInsurance) : ''}</div>`);
+  if (r.firstDegree) forms.push(`<div class="form"><h3>Anlage Sonderausgaben<span class="why">first degree</span></h3>${row('Aufwendungen für die eigene erstmalige Berufsausbildung', r.firstDegree)}</div>`);
+  if (r.capIncome) {
+    const cap = state.years[r.year].capital;
+    forms.push(`<div class="form"><h3>Anlage KAP<span class="why">${r.guenstiger ? 'taxed at your personal rate' : 'checks the flat tax and your allowance'}</span></h3>
+      ${row('Zeile 4: Antrag auf Günstigerprüfung', r.guenstiger ? '1 (ja)' : 'leave empty', { note: r.guenstiger ? `saves about ${fmt(r.guenstigerSaves)}` : 'your rate is not lower than 25 %' })}
+      ${r.guenstiger ? '' : row('Zeile 5: Überprüfung des Steuereinbehalts', '1 (ja)', { note: 'so unused Sparer-Pauschbetrag is credited' })}
+      ${row('Zeile 7: Kapitalerträge (inländische Bank)', +cap.income || 0)}
+      ${row('Zeile 16: In Anspruch genommener Sparer-Pauschbetrag', 'see certificate', { note: 'the amount your broker already applied' })}
+      ${row('Kapitalertragsteuer (Steuerabzugsbeträge)', +cap.kapest || 0)}
+      ${row('Solidaritätszuschlag', +cap.soli || 0)}
+      ${row('Kirchensteuer zur Kapitalertragsteuer', +cap.kist || 0)}</div>`);
+  }
+  if (r.free.length) forms.push(`<div class="form"><h3>Anlage G (or S) and Anlage EÜR<span class="why">${esc(r.free.map(j => j.employer).join(', '))}, no contract</span></h3>
+    ${row('EÜR: Betriebseinnahmen', r.freeRevenue)}
+    ${row('EÜR: Betriebsausgaben', r.freeExpenses)}
+    ${row('Gewinn (Anlage G, Zeile 4, or Anlage S)', r.incomeFree)}
+    ${row('Umsatzsteuer: Kleinunternehmer (§ 19 UStG)', 'yes', { note: 'revenue far below the threshold' })}</div>`);
+  if (r.lossCarry) forms.push(`<div class="form"><h3>Verlustfeststellung<span class="why">Master's costs not absorbed by income</span></h3>${row('Antrag auf Feststellung des verbleibenden Verlustvortrags', 'tick in the Hauptvordruck')}${row('Expected loss carried forward', r.lossCarry)}</div>`);
+  return forms.join('');
+}
+
+/* ---------- Events ---------- */
+function setPath(t) {
+  const v = t.type === 'checkbox' ? t.checked : t.value;
+  if (t.dataset.job) {
+    const j = state.jobs.find(x => x.id === t.dataset.job);
+    if (!j) return false;
+    if (t.dataset.a) { j.actual = j.actual || {}; j.actual[t.dataset.y] = { ...(j.actual[t.dataset.y] || {}), [t.dataset.a]: v }; }
+    else j[t.dataset.f] = v;
+    return t.dataset.f === 'type' || t.dataset.f === 'from' || t.dataset.f === 'to';
+  }
+  if (t.dataset.cost) { state.years[year].costs = { ...state.years[year].costs, [t.dataset.cost]: v }; return false; }
+  if (t.dataset.cap) { state.years[year].capital = { ...state.years[year].capital, [t.dataset.cap]: v }; return t.dataset.cap === 'none'; }
+  return false;
+}
+document.addEventListener('input', ev => {
+  const t = ev.target;
+  if (!t.matches('[data-job],[data-cost],[data-cap]') || t.type === 'checkbox' || t.tagName === 'SELECT') return;
+  setPath(t);
+  save();
+  renderLive();
+});
+document.addEventListener('change', ev => {
+  const t = ev.target;
+  if (!t.matches('[data-job],[data-cost],[data-cap]')) return;
+  const structural = setPath(t);
+  save();
+  if (structural) render(); else renderLive();
+});
+document.addEventListener('click', async ev => {
+  const b = ev.target.closest('button');
+  if (!b) return;
+  if (b.dataset.year) { year = +b.dataset.year; render(); return; }
+  if (b.id === 'add-job') { state.jobs.push({ id: uid(), employer: '', type: 'payroll', from: '', to: '', hoursPerWeek: 40, rate: 15, actual: {} }); save(); render(); const inputs = document.querySelectorAll('.job .head input'); inputs[inputs.length - 1]?.focus(); return; }
+  if (b.dataset.del) { state.jobs = state.jobs.filter(j => j.id !== b.dataset.del); save(); render(); return; }
+  if (b.dataset.study) { state.years[year].study = b.dataset.study; save(); render(); return; }
+  if (b.dataset.church != null) { state.profile.church = +b.dataset.church; save(); render(); return; }
+  if (b.dataset.copy != null || b.id === 'copy-all') {
+    const text = b.id === 'copy-all'
+      ? [...document.querySelectorAll('#result .form')].map(f => `${f.querySelector('h3').firstChild.textContent}\n${[...f.querySelectorAll('.row')].map(r => `  ${r.firstElementChild.firstChild.textContent}: ${r.querySelector('.val').textContent}`).join('\n')}`).join('\n\n')
+      : b.dataset.copy;
+    try { await navigator.clipboard.writeText(text); const old = b.textContent; b.textContent = 'Copied'; setTimeout(() => { b.textContent = old; }, 1200); }
+    catch { const r = document.createRange(); const target = b.id === 'copy-all' ? $('#result') : b.previousElementSibling; r.selectNodeContents(target); const s = getSelection(); s.removeAllRanges(); s.addRange(r); }
+  }
+});
+
+/* ---------- Boot ---------- */
+render();
+(async () => {
+  const C = window.claude;
+  if (!C || typeof C.use !== 'function') return;
+  const [db, user] = await Promise.all([C.use('db').catch(() => null), C.use('user').catch(() => null)]);
+  if (!db || !user) return;
+  const id = await user.id().catch(() => null);
+  if (!id) return;
+  dbRef = db.doc(`data/users/${id}/steuer`);
+  let first = true;
+  dbRef.onSnapshot(snap => {
+    const remote = snap.exists ? normalise(snap.data()) : null;
+    if (first) {
+      first = false;
+      if (remote && remote.updatedAt > (state.updatedAt || 0)) { state = remote; saveState = 'saved'; render(); }
+      else if (state.updatedAt) { saveState = 'saved'; save(); }
+      else { saveState = 'saved'; setSaved(); }
+      return;
+    }
+    if (remote && remote.updatedAt > state.updatedAt && !document.activeElement?.matches('input,select')) { state = remote; render(); }
+  }, () => { saveState = 'error'; setSaved(); });
+})();
+
+})();
+</script>

@@ -15,3 +15,7 @@
 - a data-lineage view
 
 It ships with unit tests and a CI check that the built file is current. See [paper-trail/README.md](paper-trail/README.md) for usage and [paper-trail/docs/](paper-trail/docs/) for the architecture and the signal model.
+
+## Steuererklärung
+
+[`steuer/`](steuer/) is a private worksheet page for a student's German tax returns 2024–2026: internships split by tax year, refund estimates (including the Günstigerprüfung for capital gains) and every ELSTER entry with a copy button. See [steuer/README.md](steuer/README.md).
