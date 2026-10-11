@@ -6,6 +6,7 @@ It runs as a claude.ai artifact on the viewer's own Quiver Quant connector, so t
 
 | View | What it is for |
 |---|---|
+| **Radar** | The whole workflow in one window. A radar puts the strongest signals closest to the centre (angle = sector, bubble size = dollars bought, colour = insiders, Congress or both). Pick one to read a plain-language story with what insiders paid against today's price, then add it to your plan or skip it; the $10k plan strip on top redraws as you decide. Keys: <kbd>←</kbd>/<kbd>→</kbd>, <kbd>A</kbd> add, <kbd>X</kbd> skip, <kbd>Enter</kbd> dossier |
 | **Briefing** | The morning page: the daily brief, today's strongest signals with price moves, changes since yesterday, alerts on your holdings, and the daily job's status with a **Run now** button |
 | **Signals** | A ranked screen with filters, a score breakdown for any row, and daily activity you can drag to filter by date |
 | **Link analysis** | A force-directed graph of tickers, insiders and members of Congress; people tied to several tickers stand out as bridges |

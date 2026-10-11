@@ -17,6 +17,7 @@ import { createModelView } from './views/model.js';
 import { createPortfolioView } from './views/portfolio.js';
 import { createLineageView } from './views/lineage.js';
 import { createBriefingView } from './views/briefing.js';
+import { createRadarView } from './views/radar.js';
 import { createHoldingsView } from './views/holdings.js';
 import { createTradesView } from './views/trades.js';
 import { createCloud } from './app/cloud.js';
@@ -25,6 +26,7 @@ import { setLogos, nameOf } from './ui/brand.js';
 import { deskBriefPrompt, sampleErrorCopy, streamInto } from './ai/claude.js';
 
 const NAV = [
+  { key: 'radar', label: 'Radar', icon: ICON.radar, go: 'r' },
   { key: 'briefing', label: 'Briefing', icon: ICON.briefing, go: 'o' },
   { key: 'signals', label: 'Signals', icon: ICON.signals, go: 's' },
   { key: 'graph', label: 'Link analysis', icon: ICON.graph, go: 'g' },
@@ -45,7 +47,7 @@ function validModel(m) {
 
 /* ---------- State ---------- */
 const store = createStore({
-  view: 'briefing',
+  view: 'radar',
   cloud: { status: 'pending' },
   holdingChecks: null,
   portfolioLocalAt: 0,
@@ -162,6 +164,7 @@ const saveModel = debounce(model => workspace.update({ model }), 600);
 /* ---------- Views and navigation ---------- */
 const main = $('#main');
 const views = {
+  radar: createRadarView(ctx),
   briefing: createBriefingView(ctx),
   signals: createSignalsView(ctx),
   graph: createGraphView(ctx),
@@ -268,7 +271,8 @@ document.addEventListener('keydown', ev => {
   if (ev.key === '?') { showShortcuts(); return; }
   if (ev.key === 'b') { openBrief(); return; }
   if (ev.key === 'r') { ctx.runPipeline({ refresh: true }); return; }
-  if (store.get().view === 'signals' && views.signals.key(ev)) ev.preventDefault();
+  const active = views[store.get().view];
+  if (active.key && active.key(ev)) ev.preventDefault();
 });
 
 window.addEventListener('resize', debounce(() => { const v = views[store.get().view]; v.onResize && v.onResize(); }, 150));
@@ -280,7 +284,7 @@ function showShortcuts() {
     content: html`<dl class="shortcuts">
       ${k('⌘', 'K')}<dd>Command palette (also <kbd>/</kbd>)</dd>
       ${NAV.map(n => html`${k('G', n.go.toUpperCase())}<dd>${n.label}</dd>`)}
-      ${k('J')}<dd>Next signal</dd>${k('K')}<dd>Previous signal</dd>${k('Enter')}<dd>Open dossier for the selected signal</dd>${k('W')}<dd>Add or remove the selected signal from the plan</dd>
+      ${k('←', '→')}<dd>Radar: previous or next company</dd>${k('A')}<dd>Radar: add the focused company to the plan</dd>${k('X')}<dd>Radar: skip it until it files something new</dd>${k('J')}<dd>Next signal</dd>${k('K')}<dd>Previous signal</dd>${k('Enter')}<dd>Open dossier for the selected signal</dd>${k('W')}<dd>Add or remove the selected signal from the plan</dd>
       ${k('B')}<dd>Desk brief from Claude</dd>${k('R')}<dd>Refresh from Quiver</dd>${k('Esc')}<dd>Close the top panel</dd></dl>`
   });
 }
@@ -344,7 +348,7 @@ function boot() {
   const hash = (location.hash || '').slice(1);
   const m = /^dossier-([A-Z0-9.\-]{1,8})$/.exec(hash);
   if (m) nav('dossier', { ticker: m[1] });
-  else nav(NAV.some(n => n.key === hash) ? hash : 'briefing');
+  else nav(NAV.some(n => n.key === hash) ? hash : 'radar');
   chrome(store.get());
 
   const C = window.claude;

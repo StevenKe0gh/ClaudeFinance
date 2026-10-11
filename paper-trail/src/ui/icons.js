@@ -9,6 +9,7 @@ export const ICON = {
   member: svg('<circle cx="10" cy="7" r="3"/><path d="M4 17c.8-3.2 3.2-5 6-5s5.2 1.8 6 5"/>'),
   model: svg('<path d="M4 5h12M4 10h12M4 15h12"/><circle cx="8" cy="5" r="1.6" fill="currentColor"/><circle cx="13" cy="10" r="1.6" fill="currentColor"/><circle cx="6" cy="15" r="1.6" fill="currentColor"/>'),
   portfolio: svg('<path d="M10 3a7 7 0 1 0 7 7h-7z"/><path d="M12.5 2.6A7 7 0 0 1 17.4 7.5H12.5z"/>'),
+  radar: svg('<circle cx="10" cy="10" r="7.5"/><circle cx="10" cy="10" r="4"/><path d="M10 10 15.3 4.7"/><circle cx="13.2" cy="12.6" r="1.3" fill="currentColor" stroke="none"/><circle cx="6.6" cy="7.4" r="1" fill="currentColor" stroke="none"/>'),
   briefing: svg('<path d="M3.5 4.5h13v11h-13z"/><path d="M6.5 8h7M6.5 11h7M6.5 14h4"/><circle cx="15.5" cy="4.5" r="2.2" fill="currentColor" stroke="none"/>'),
   holdings: svg('<path d="M3 6.5h14v9.5H3z"/><path d="M7 6.5V4.5h6v2M3 10.5h14"/>'),
   trades: svg('<path d="M4 7h10l-3-3M16 13H6l3 3"/>'),

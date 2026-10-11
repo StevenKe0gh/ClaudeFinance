@@ -23,7 +23,7 @@ flowchart LR
     PIPE["app/pipeline.js<br/>ingest → clean → score → enrich"]
     MODEL["model/*<br/>clean · patterns · score · allocate · graph"]
     STORE["core/store.js<br/>observable state"]
-    VIEWS["views/*<br/>Briefing · Signals · Graph · Dossier · Member · Holdings · Trades · Plan · Model · Lineage"]
+    VIEWS["views/*<br/>Radar · Briefing · Signals · Graph · Dossier · Member · Holdings · Trades · Plan · Model · Lineage"]
     PERSIST["app/persist.js"]
     CLOUD["app/cloud.js<br/>live db documents"]
     PF["app/portfolio.js<br/>depot · trade review · holdings check"]

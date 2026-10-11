@@ -10,6 +10,7 @@ import { shortCompany, hueOf, monogram } from '../core/names.js';
 let LOGOS = {};
 export function setLogos(map) { LOGOS = map || {}; }
 export const hasLogo = key => !!LOGOS[key];
+export const logoSrc = key => (key && LOGOS[key]) || null;
 
 /** Best display name: directory → given name → ticker. */
 export function nameOf(ticker, fallback = '') {
