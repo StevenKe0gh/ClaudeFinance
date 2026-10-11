@@ -49,10 +49,17 @@ All commands run from `paper-trail/`. Use a scratch directory such as
    - `get_insider_trading` with `transaction_code: "P"` for the last 3
      calendar days (open-market purchases), sorted by value.
    - `get_congress_trades` filed in the last 7 days.
-   Identify what is new and notable: C-suite buys, several insiders buying
-   one stock, large buys relative to the company, members of Congress buying,
-   and overlap between the two. Discount offerings (several insiders at one
+   Identify what is new and notable. Congressional buying ranks above
+   insider buying, and first of all purchases by a member whose committee
+   oversees the company's industry: look up each buyer's seats by
+   `bioguide_id` in `src/data/committees.json` and match them with the
+   committee-to-industry map in `src/model/oversight.js` (industry per ticker
+   is in `src/data/directory.json`). Then C-suite buys, several insiders
+   buying one stock, large buys relative to the company, and overlap between
+   Congress and insiders. Discount offerings (several insiders at one
    identical price on one day), fixed-price programmes and fund-only buying.
+   Lead the brief's "What changed" with oversight purchases and name the
+   committee.
 
 4. **Holdings (step `holdings`).** For every US ticker in the depot: insider
    trades for the last 90 days (`get_insider_trading` with `ticker`) and
