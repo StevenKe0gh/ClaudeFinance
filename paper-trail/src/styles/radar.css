@@ -185,3 +185,12 @@
   .rd-card { position: static; max-height: none; }
   .rd-who li { grid-template-columns: 80px minmax(0, 1fr) 52px; }
 }
+
+/* Probably not buyable at the investor's brokers */
+.rn.nobuy { opacity: .38; }
+.rn.nobuy .rd-dot { stroke-dasharray: 3 2; }
+.rn.nobuy.sel { opacity: 1; }
+.lg-nobuy { display: inline-block; width: 10px; height: 10px; border-radius: 50%; border: 1px dashed var(--fg-2); opacity: .6; }
+.rd-plan-bar .seg.nobuy { background-image: repeating-linear-gradient(135deg, rgba(240, 86, 63, .28) 0 4px, transparent 4px 8px); }
+.rd-buywarn { margin: 0 12px; padding: 6px 8px; border-radius: var(--r); font-size: var(--t-xs); background: var(--sell-bg); color: #FFC2B8; }
+.rd-buywarn[data-s="unlikely"] { background: var(--warn-bg); color: #F2C77E; }

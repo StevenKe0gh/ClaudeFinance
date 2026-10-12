@@ -9,6 +9,7 @@ import { crossReference, contractLeaders, isNewSince } from '../model/policy.js'
 import { DEFAULT_TOPICS, CONTRACT_DAYS } from '../app/policy.js';
 import { analyzeEvent, STATUS, CHANNEL } from '../ai/policy.js';
 import { sampleErrorCopy } from '../ai/claude.js';
+import { buyOf, buyChip } from '../ui/brokers.js';
 
 const EXAMPLES = ['US–Russia diesel deal', 'Ban on Chinese drones', 'Medicare drug price negotiation', 'Ukraine reconstruction fund', 'Stablecoin rules'];
 const FEED_FILTERS = { named: 'Naming companies', mine: 'Your names', all: 'All bills', releases: 'Press releases' };
@@ -110,7 +111,7 @@ export function createPolicyView(ctx) {
     renderOut();
     const step = t => { if (run === mine) { mine.steps.push(t); renderOut(); } };
     try {
-      const r = await analyzeEvent({ sample: ctx.caps.sample, quiver, question: q, signals: st.signals, held: heldSet(), planned: planSet(st), onStep: step, signal: ctl.signal });
+      const r = await analyzeEvent({ sample: ctx.caps.sample, quiver, question: q, signals: st.signals, held: heldSet(), planned: planSet(st), buy: buyOf(st), onStep: step, signal: ctl.signal });
       if (run !== mine) return;
       const saved = { id: `a${Date.now().toString(36)}`, q, at: Date.now(), asOf: r.asOf, result: r.result, exposure: liteExposure(r.exposure), tools: r.usedTools };
       savePws({ analyses: [saved, ...pws().analyses.filter(a => a.q.toLowerCase() !== q.toLowerCase())].slice(0, 8) });
@@ -167,8 +168,10 @@ export function createPolicyView(ctx) {
     const r = a.result;
     const sig = new Map(st.signals.map(s => [s.ticker, s]));
     const held = heldSet(), plan = planSet(st);
+    const buy = buyOf(st);
     const card = (x, side, i) => {
       const s = sig.get(x.ticker);
+      const av = buy(x.ticker, x.company);
       const ex = a.exposure && a.exposure[x.ticker];
       const p = policy.for(x.ticker);
       const cg = s ? s.congress.members.filter(m => !m.washOnly) : [];
@@ -182,6 +185,7 @@ export function createPolicyView(ctx) {
       if (ex && ex.lobby) chips.push(html`<span class="pl-chip lob">Lobbying ${fmtUSD(ex.lobby)}</span>`);
       if (p && p.bills.length) chips.push(html`<span class="pl-chip bill" data-tip="${p.bills.map(b => `${b.billId || b.id}: ${b.title}`).join('\n')}">Named in ${p.bills.length} new bill${p.bills.length > 1 ? 's' : ''}</span>`);
       if (held.has(x.ticker)) chips.push(html`<span class="pl-chip own">In your depot</span>`);
+      chips.push(buyChip(av));
       return html`<article class="pl-co" data-side="${side}" data-conf="${x.confidence}" data-t="${x.ticker}" style="--i:${i}">
         <div class="pl-co-h">${brand(x.ticker, { name: nameOf(x.ticker, x.company), size: 30 })}<span class="grow"></span>${s ? html`<span class="pl-tier" data-tip="${`In the screen: tier ${s.tier}, score ${s.score}, rank ${s.rank}`}">${tierChip(s.tier)}<span class="mono xs">${s.score}</span></span>` : ''}<button class="btn ghost sm icon" type="button" data-watch="${x.ticker}" data-tip="${plan.has(x.ticker) ? 'Remove from your plan' : 'Add to your plan'}" aria-label="${plan.has(x.ticker) ? 'Remove from plan' : 'Add to plan'}">${plan.has(x.ticker) ? ICON.check : ICON.plus}</button></div>
         <p class="pl-why">${x.why}</p>

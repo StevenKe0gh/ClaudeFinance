@@ -35,7 +35,7 @@ export async function searchPolicy(quiver, terms, { perTerm = 6 } = {}) {
 }
 
 /** What the screen, depot and plan say about one ticker, compactly. */
-export function screenFacts(t, { signals, held, planned }) {
+export function screenFacts(t, { signals, held, planned, buy = null }) {
   const s = signals.find(x => x.ticker === t);
   const c = companyOf(t);
   const members = s ? s.congress.members.filter(m => !m.washOnly) : [];
@@ -47,9 +47,13 @@ export function screenFacts(t, { signals, held, planned }) {
     congress_buyers: members.length ? members.slice(0, 4).map(m => `${m.name} (${m.party || '?'})${m.oversees ? `, sits on ${m.oversees.committee} which oversees ${m.oversees.themeLabel}` : ''}`) : undefined,
     insider_buyers: s && s.insider.buyers.length ? `${s.insider.buyers.length} insiders bought ${Math.round(s.insider.usd).toLocaleString('en-US')} USD` : undefined,
     investor_holds: held.has(t) || undefined,
-    investor_plans: planned.has(t) || undefined
+    investor_plans: planned.has(t) || undefined,
+    buyable_for_investor: buy ? buyStatus(buy(t)) : undefined
   };
 }
+
+/** Plain-language availability for Claude: estimate or confirmation, per the investor's German brokers. */
+const buyStatus = av => ({ yes: 'yes (confirmed)', likely: 'likely', maybe: 'uncertain', unlikely: 'unlikely', no: 'no' }[av.status]);
 
 /** Federal awards (12 months) and lobbying (4 quarters) for one ticker. */
 export async function exposureOf(quiver, t) {
@@ -126,7 +130,7 @@ How to work:
 2. Trace the money: who sells more, who supplies them, who competes for the same customers, whose costs rise, and second-order effects (shipping, inputs, substitutes).
 3. ${tools ? 'Check your candidate winners and losers with company_exposure (batch up to 8 tickers per call) before you answer.' : 'Use the screen data in the context for the companies it covers.'}
 
-Rules: US-listed tickers only (ADRs are fine). Separate facts from the data (cite bill ids, awards, screen data) from your own industry reasoning, and label the latter "industry reasoning". Never invent bill numbers, contract values, dates or figures. Never state share prices, valuations or earnings. Describe trading patterns neutrally and never accuse anyone of wrongdoing; congressional buying is context, not proof the event will happen.
+Rules: US-listed tickers only (ADRs are fine). The investor has a German retail account: US-listed ETFs and closed-end funds are not buyable there, so name an operating company instead.${tools ? ' company_exposure reports buyable_for_investor for each ticker.' : ''} Separate facts from the data (cite bill ids, awards, screen data) from your own industry reasoning, and label the latter "industry reasoning". Never invent bill numbers, contract values, dates or figures. Never state share prices, valuations or earnings. Describe trading patterns neutrally and never accuse anyone of wrongdoing; congressional buying is context, not proof the event will happen.
 
 Reply with ONLY a JSON object, no prose before or after:
 {"headline": string (at most 90 characters), "status": one of ${Object.keys(STATUS).map(k => `"${k}"`).join(', ')}, "status_note": string (at most 160 characters; cite bill ids if any), "mechanism": string (2 or 3 sentences on how the money flows), "winners": [{"ticker": string, "company": string, "why": string (at most 160 characters), "channel": one of ${Object.keys(CHANNEL).map(k => `"${k}"`).join(', ')}, "confidence": "high" | "medium" | "low", "evidence": string (at most 120 characters)}] (3 to 7, strongest first), "losers": [same shape] (0 to 5), "bills": [bill ids you relied on], "watch": [2 to 4 short strings: what would confirm or kill this], "caveat": string (at most 160 characters)}
@@ -165,7 +169,7 @@ export function normalizeAnalysis(v) {
  * Runs one analysis. Resolves with { result, exposure, context, usedTools }.
  * `onStep(text)` narrates progress; `signal` stops everything.
  */
-export async function analyzeEvent({ sample, quiver, question, signals, held, planned, onStep, signal }) {
+export async function analyzeEvent({ sample, quiver, question, signals, held, planned, buy = null, onStep, signal }) {
   const asOf = isoDate();
   const terms = searchTerms(question, 3);
   onStep(terms.length ? `Searching bills for ${terms.map(t => `“${t}”`).join(', ')}` : 'Reading the question');
@@ -182,7 +186,7 @@ export async function analyzeEvent({ sample, quiver, question, signals, held, pl
   const lim = await sample.limits().catch(() => null);
   const canTools = !!(lim && lim.tools);
   const exposure = new Map();
-  const facts = t => screenFacts(t, { signals, held, planned });
+  const facts = t => screenFacts(t, { signals, held, planned, buy });
   onStep(canTools ? 'Claude is tracing the money (it may search more bills and check companies)' : 'Claude is tracing the money');
   const opts = { signal, modelTier: 'default' };
   if (canTools) opts.tools = policyTools({ quiver, facts, log: onStep, found: exposure });

@@ -9,6 +9,8 @@ import { ROLE_LABEL } from '../model/clean.js';
 import { PRESETS } from '../model/score.js';
 import { trackChip, trackLine } from '../ui/track.js';
 import { policyLines } from '../ui/policy.js';
+import { buyOf, buyBlock, buyText } from '../ui/brokers.js';
+import { notBuyable, doubtful } from '../model/brokers.js';
 import { quoteFor } from './signals.js';
 
 const KIND_LABEL = { insider: 'Insiders', congress: 'Congress', cross: 'Both' };
@@ -71,8 +73,11 @@ export function createRadarView(ctx) {
   function candidates(st) {
     const owned = new Set(portfolio.derived()?.usTickers || []);
     const plan = new Set(st.workspace.watch.map(w => w.ticker));
+    const buy = buyOf(st);
     return st.signals
       .filter(s => (s.tier !== 'D' || owned.has(s.ticker) || plan.has(s.ticker)))
+      // What the investor's brokers cannot sell leaves the radar, unless they already hold or plan it.
+      .filter(s => owned.has(s.ticker) || plan.has(s.ticker) || !notBuyable(buy(s.ticker, s.company)))
       .filter(s => source === 'all' || (source === 'oversight' ? s.congress.overseers > 0 : kindOf(s) === source))
       .filter(s => showSkipped || !isSkipped(st, s))
       .slice(0, MAX_NODES)
@@ -80,7 +85,8 @@ export function createRadarView(ctx) {
         s, t: s.ticker, name: nameOf(s.ticker, s.company), sector: sectorOf(s.ticker) || 'Other',
         usd: s.insider.usd + s.congress.usd, kind: kindOf(s),
         fresh: s.lastActivity && st.data ? dayDiff(s.lastActivity, st.data.asOf) <= 3 : false,
-        owned: owned.has(s.ticker), planned: plan.has(s.ticker), skipped: isSkipped(st, s), oversight: s.congress.overseers > 0
+        owned: owned.has(s.ticker), planned: plan.has(s.ticker), skipped: isSkipped(st, s), oversight: s.congress.overseers > 0,
+        buy: buy(s.ticker, s.company)
       }));
   }
 
@@ -274,11 +280,11 @@ export function createRadarView(ctx) {
   function nodeSvg(st, n, cx, cy) {
     const src = logoSrc(n.t);
     const r = n.r;
-    const tip = `${n.name} (${n.t})\nTier ${n.s.tier} · score ${n.s.score} · ${KIND_LABEL[n.kind]}\n${fmtUSD(n.usd)} bought${n.s.insider.buyers.length ? ` · ${n.s.insider.buyers.length} insider${n.s.insider.buyers.length > 1 ? 's' : ''}` : ''}${n.s.congress.members.filter(m => !m.washOnly).length ? ` · ${n.s.congress.members.filter(m => !m.washOnly).length} in Congress` : ''}\nLast filing ${fmtAge(n.s.lastActivity, st.data.asOf)}${n.oversight ? `\n◆ ${overseerLine(n.s)}` : ''}${n.owned ? '\nIn your depot' : ''}${n.planned ? '\nIn your plan' : ''}`;
+    const tip = `${n.name} (${n.t})\nTier ${n.s.tier} · score ${n.s.score} · ${KIND_LABEL[n.kind]}\n${fmtUSD(n.usd)} bought${n.s.insider.buyers.length ? ` · ${n.s.insider.buyers.length} insider${n.s.insider.buyers.length > 1 ? 's' : ''}` : ''}${n.s.congress.members.filter(m => !m.washOnly).length ? ` · ${n.s.congress.members.filter(m => !m.washOnly).length} in Congress` : ''}\nLast filing ${fmtAge(n.s.lastActivity, st.data.asOf)}${n.oversight ? `\n◆ ${overseerLine(n.s)}` : ''}${n.owned ? '\nIn your depot' : ''}${n.planned ? '\nIn your plan' : ''}\n${buyText(n.buy)}`;
     let inner = '';
     if (src && r >= 9) inner = `<image href="${src}" x="${-r * 0.62}" y="${-r * 0.62}" width="${r * 1.24}" height="${r * 1.24}" clip-path="url(#rd-clip)" preserveAspectRatio="xMidYMid meet"/>`;
     else if (r >= 10) inner = `<text class="rd-mono" y="${(r * 0.26).toFixed(1)}" text-anchor="middle" style="font-size:${(r * 0.72).toFixed(1)}px">${esc(monogram(n.name, n.t))}</text>`;
-    return `<g class="rn${n.t === focus ? ' sel' : ''}${n.skipped ? ' skipped' : ''}" data-t="${esc(n.t)}" data-k="${n.kind}" style="transform:translate(${cx}px,${cy}px)">
+    return `<g class="rn${n.t === focus ? ' sel' : ''}${n.skipped ? ' skipped' : ''}${doubtful(n.buy) ? ' nobuy' : ''}" data-t="${esc(n.t)}" data-k="${n.kind}" style="transform:translate(${cx}px,${cy}px)">
       ${n.fresh ? `<circle class="rd-halo" r="${(r + 5).toFixed(1)}"/>` : ''}
       ${n.owned ? `<circle class="rd-own" r="${(r + 3.5).toFixed(1)}"/>` : ''}
       <circle class="rd-dot" r="${r.toFixed(1)}"/>${inner}
@@ -296,7 +302,8 @@ export function createRadarView(ctx) {
       <span><i class="lg-ring"></i>Closer to the centre = stronger</span>
       ${L.nodes.some(n => n.fresh) ? html`<span><i class="lg-halo"></i>Filed in the last 3 days</span>` : ''}
       ${L.nodes.some(n => n.owned) ? html`<span><i class="lg-own"></i>In your depot</span>` : ''}
-      ${L.nodes.some(n => n.planned) ? html`<span><i class="lg-plan"></i>In your plan</span>` : ''}`);
+      ${L.nodes.some(n => n.planned) ? html`<span><i class="lg-plan"></i>In your plan</span>` : ''}
+      ${L.nodes.some(n => doubtful(n.buy)) ? html`<span><i class="lg-nobuy"></i>Faded: probably not buyable at your brokers</span>` : ''}`);
   }
 
   /* ---------- Story card ---------- */
@@ -320,6 +327,7 @@ export function createRadarView(ctx) {
     const members = s.congress.members.filter(m => !m.washOnly);
     const whoMax = Math.max(1, ...s.insider.buyers.map(b => b.usd), ...members.map(m => m.usd));
     const suggestion = suggest(st, s);
+    const av = buyOf(st)(s.ticker, s.company);
 
     mount(host, html`
       <div class="panel-h"><h2><span class="step">2</span> Understand</h2><span class="grow"></span>
@@ -339,6 +347,7 @@ export function createRadarView(ctx) {
           ${s.insider.buyers.slice(0, 4).map(b => html`<li><span class="who-k">${roleChip(b.role)}</span><span class="nm" title="${b.name}">${titleCase(b.name)}<em>${b.title || ROLE_LABEL[b.role]}${b.stakePct != null ? ` · stake +${Math.round(Math.min(b.stakePct, 999))}%` : b.newPosition ? ' · new position' : ''}</em><span class="bar"><i data-k="insider" style="width:${Math.max(3, (100 * b.usd) / whoMax)}%"></i></span></span><span class="mono xs">${fmtUSD(b.usd)}</span></li>`)}
         </ul>${s.insider.buyers.length > 4 ? html`<span class="xs muted">+${s.insider.buyers.length - 4} more insiders</span>` : ''}</div>` : ''}
         ${ctx.policy && ctx.policy.for(s.ticker) ? html`<div class="rd-block"><span class="label">Washington</span>${policyLines(ctx.policy.for(s.ticker))}</div>` : ''}
+        <div class="rd-block"><span class="label">Where you can buy it</span>${buyBlock(av, { name: nameOf(s.ticker, s.company) })}</div>
         ${pros.length || cons.length ? html`<div class="rd-block"><span class="label">Checks</span><ul class="rd-checks">
           ${pros.map(f => html`<li data-tone="pos"><span class="ic" aria-hidden="true">✓</span><span><b>${f.label}.</b> ${f.detail}</span></li>`)}
           ${cons.map(f => html`<li data-tone="warn"><span class="ic" aria-hidden="true">!</span><span><b>${f.label}.</b> ${f.detail}</span></li>`)}
@@ -346,6 +355,7 @@ export function createRadarView(ctx) {
       </div>
       <div class="rd-decide">
         <div class="panel-h"><h2><span class="step">3</span> Decide</h2><span class="grow"></span><span class="xs muted">${planned ? 'Already in your plan' : suggestion ? `adds about ${fmtMoney(suggestion.amount)} of ${fmtMoney(suggestion.capital)}` : ''}</span></div>
+        ${doubtful(av) ? html`<p class="rd-buywarn" data-s="${av.status}">${av.status === 'no' ? 'Not buyable at your brokers' : 'Probably not buyable at your brokers'}: check your app before adding it, then mark it above.</p>` : ''}
         <div class="rd-actions">
           <button class="btn ${planned ? 'on' : 'primary'}" type="button" id="rd-add" data-tip="${planned ? 'Remove from your plan' : 'Add to your plan · A'}">${planned ? html`${ICON.check} In plan` : html`${ICON.plus} Add to plan`}</button>
           <button class="btn" type="button" id="rd-skip" data-tip="${skipped ? 'Bring it back' : 'Hide until it files something new · X'}">${skipped ? 'Unskip' : 'Skip'}</button>
@@ -464,10 +474,12 @@ export function createRadarView(ctx) {
       return;
     }
     const a = allocate(list, p);
-    const segs = list.map((it, i) => ({ it, amt: a.amounts[i] })).filter(x => x.amt > 0);
+    const buy = buyOf(st);
+    const segs = list.map((it, i) => ({ it, amt: a.amounts[i], av: buy(it.ticker, it.company) })).filter(x => x.amt > 0);
     const cash = p.capital - a.invested;
     mount(host, html`<div class="rd-plan-bar" role="img" aria-label="${`Plan: ${segs.map(x => `${nameOf(x.it.ticker, x.it.company)} ${fmtMoney(x.amt)}`).join(', ')}, cash ${fmtMoney(cash)}`}">
-        ${segs.map(x => { const pct = (100 * x.amt) / p.capital; return html`<button type="button" class="seg${x.it.ticker === focus ? ' on' : ''}" data-focus="${x.it.ticker}" style="flex:${x.amt}" data-tip="${`${nameOf(x.it.ticker, x.it.company)} · ${fmtMoney(x.amt)} (${pct.toFixed(1)}%)${x.it.tier ? ` · tier ${x.it.tier}` : ''}`}">${pct >= 7 ? html`${logo(x.it.ticker, nameOf(x.it.ticker, x.it.company), 18)}<span class="t">${short(nameOf(x.it.ticker, x.it.company), 16)}</span><span class="v">${fmtMoney(x.amt)}</span>` : pct >= 3.5 ? logo(x.it.ticker, nameOf(x.it.ticker, x.it.company), 16) : ''}</button>`; })}
+        ${segs.map(x => { const pct = (100 * x.amt) / p.capital; return html`<button type="button" class="seg${x.it.ticker === focus ? ' on' : ''}${doubtful(x.av) ? ' nobuy' : ''}" data-focus="${x.it.ticker}" style="flex:${x.amt}" data-tip="${`${nameOf(x.it.ticker, x.it.company)} · ${fmtMoney(x.amt)} (${pct.toFixed(1)}%)${x.it.tier ? ` · tier ${x.it.tier}` : ''}
+${buyText(x.av)}`}">${pct >= 7 ? html`${logo(x.it.ticker, nameOf(x.it.ticker, x.it.company), 18)}<span class="t">${short(nameOf(x.it.ticker, x.it.company), 16)}</span><span class="v">${fmtMoney(x.amt)}</span>` : pct >= 3.5 ? logo(x.it.ticker, nameOf(x.it.ticker, x.it.company), 16) : ''}</button>`; })}
         <span class="seg cash" style="flex:${Math.max(cash, 0.0001)}" data-tip="${`Cash ${fmtMoney(cash)}${a.idle > 1 ? ` · ${fmtMoney(a.idle)} idle because of the per-position cap` : ''}`}">${(100 * cash) / p.capital >= 7 ? html`<span class="t">Cash</span><span class="v">${fmtMoney(cash)}</span>` : ''}</span>
       </div>
       <div class="rd-plan-foot"><span><b>${segs.length}</b> position${segs.length === 1 ? '' : 's'} · <b>${fmtMoney(a.invested)}</b> invested · <b>${fmtMoney(cash)}</b> cash</span>${a.idle > 1 ? html`<span class="muted">Add ${Math.max(1, a.minPositionsForFullInvestment - segs.length)} more to put the idle ${fmtMoney(a.idle)} to work under the ${p.cap}% cap.</span>` : ''}</div>`);

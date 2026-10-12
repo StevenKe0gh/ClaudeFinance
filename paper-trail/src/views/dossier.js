@@ -9,6 +9,7 @@ import { buildSignals } from '../model/score.js';
 import { oversight, seatsOf } from '../core/committees.js';
 import { trackLookup } from '../app/pipeline.js';
 import { memoPrompt, sampleErrorCopy, streamInto } from '../ai/claude.js';
+import { buyOf, buyChip, buyBlock, buyText } from '../ui/brokers.js';
 
 const SECTIONS = ['congress', 'insider', 'contracts', 'lobbying', 'darkpool', 'news', 'ownership'];
 const TABS = [['overview', 'Overview'], ['insiders', 'Insider ledger'], ['congress', 'Congress ledger'], ['government', 'Government'], ['market', 'Market structure'], ['news', 'News']];
@@ -110,7 +111,7 @@ export function createDossierView(ctx) {
     mount(el, html`
       <div class="panel">
         <div class="dz-head">
-          <div class="dz-id">${brandHead(e.ticker, { name: nameOf(e.ticker, x.company) })}${s ? tierChip(s.tier, true) : ''}</div>
+          <div class="dz-id">${brandHead(e.ticker, { name: nameOf(e.ticker, x.company) })}${s ? tierChip(s.tier, true) : ''}${buyChip(buyOf(st)(e.ticker, x.company))}</div>
           <div class="dz-metrics">
             ${quoteMetric(e, st)}
             <div class="dz-metric"><span class="label">Score</span><b>${s ? s.score : '—'}</b><span class="xs muted">${x.screened ? `rank ${x.screened.rank} of ${fmtInt(st.signals.length)}` : 'not in current screen'}</span></div>
@@ -126,6 +127,7 @@ export function createDossierView(ctx) {
           </div>
         </div>
         ${s && s.flags.length ? html`<div style="padding:0 16px 12px">${flagsList(s.flags)}</div>` : ''}
+        <details class="dz-buy"><summary><span class="label">Where you can buy it</span> ${buyText(buyOf(st)(e.ticker, x.company))}</summary>${buyBlock(buyOf(st)(e.ticker, x.company), { name: nameOf(e.ticker, x.company) })}</details>
         <div class="subtabs" role="tablist">${TABS.map(([k, label]) => html`<button type="button" role="tab" data-tab="${k}" aria-selected="${tab === k}">${label}${counts[k] != null ? html`<span class="n">${fmtInt(counts[k])}</span>` : ''}</button>`)}</div>
       </div>
       <div class="dz-grid" id="dz-body">${body(e, x, s)}</div>`);
@@ -266,6 +268,7 @@ export function createDossierView(ctx) {
       insider_trades_recent: x.ins.filter(r => r.transaction_type === 'P' || r.transaction_type === 'S').slice(0, 25).map(r => ({ name: r.owner, role: ROLE_LABEL[r.role], title: r.officer_title || undefined, code: r.transaction_type, shares: r.shares, price: r.price, usd: Math.round(r.value), date: r.date, filed_days_later: r.lateDays, owned_after: r.shares_owned_after })),
       insider_90d: { buy_usd: Math.round(x.p90.reduce((a, r) => a + r.value, 0)), sell_usd: Math.round(x.s90.reduce((a, r) => a + r.value, 0)) },
       congress_trades_recent: x.cg.slice(0, 20).map(r => { const o = oversight(cur.ticker, r.bioguide_id); return { member: r.representative, party: r.party, chamber: r.chamber, type: r.transaction, amount: r.amount, traded: r.traded, filed: r.filed, same_day_offset: r.wash || undefined, committee_oversight: o ? `${o.committee}${o.role ? ` (${o.role})` : ''} oversees ${o.themeLabel}` : undefined }; }),
+      buyable_for_investor: buyText(buyOf(store.get())(cur.ticker, x.company)),
       federal_awards_12mo: cur.err.contracts ? 'unavailable' : { total_usd: Math.round(x.contracts.reduce((a, c) => a + +c.total_dollars_obligated, 0)), count: x.contracts.length, largest: [...x.contracts].sort((a, b) => b.total_dollars_obligated - a.total_dollars_obligated).slice(0, 4).map(c => ({ usd: Math.round(c.total_dollars_obligated), agency: c.funding_agency_name, what: c.award_description, date: String(c.action_date).slice(0, 10) })) },
       lobbying_by_quarter: x.quarters.map(q => ({ quarter: q.key, usd: q.value })),
       dark_pool_dpi: x.dp.length ? { latest: +(+x.dp.at(-1).dpi).toFixed(3), avg_20d: avg(x.dp.slice(-20)), avg_60d: avg(x.dp) } : 'unavailable',

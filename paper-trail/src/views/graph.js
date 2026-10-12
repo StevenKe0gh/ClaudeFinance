@@ -3,6 +3,7 @@ import { ICON } from '../ui/icons.js';
 import { tierChip, roleChip, partyChip } from '../ui/parts.js';
 import { buildGraph } from '../model/graph.js';
 import { applyFilters } from './signals.js';
+import { buyOf } from '../ui/brokers.js';
 import { fmtUSD, fmtInt, dayRange, cleanCompany } from '../core/util.js';
 import { brandHead, nameOf, logo } from '../ui/brand.js';
 
@@ -82,7 +83,7 @@ export function createGraphView(ctx) {
     if (!force && key === builtFor) return;
     builtFor = key;
     const days = st.data ? dayRange(st.data.from, st.data.asOf) : null;
-    const sigs = applyFilters(st.signals, st.filters, days);
+    const sigs = applyFilters(st.signals, st.filters, days, buyOf(st));
     graph = buildGraph(sigs, { maxTickers: opt.top, includeMembers: opt.members, includeInsiders: opt.insiders, includeFunds: opt.funds });
     $('#g-count', el).textContent = `${fmtInt(graph.nodes.length)} nodes · ${fmtInt(graph.links.length)} links`;
     draw();

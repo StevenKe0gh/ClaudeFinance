@@ -26,6 +26,8 @@ import { createCloud } from './app/cloud.js';
 import { createPortfolio } from './app/portfolio.js';
 import { setLogos, nameOf } from './ui/brand.js';
 import { deskBriefPrompt, sampleErrorCopy, streamInto } from './ai/claude.js';
+import { brokerSettings, brokerForm, buyOf } from './ui/brokers.js';
+import { BROKERS } from './model/brokers.js';
 
 const NAV = [
   { key: 'radar', label: 'Radar', icon: ICON.radar, go: 'r' },
@@ -128,6 +130,16 @@ const ctx = {
     saveModel(model);
   },
   openBrief,
+  openBrokers,
+  /** Confirm (yes/no) or clear what the investor found in a broker's app. */
+  markBuy(ticker, broker, value) {
+    const cur = brokerSettings(store.get());
+    const marks = { ...cur.marks, [ticker]: { ...(cur.marks[ticker] || {}) } };
+    if (value === 'clear') delete marks[ticker][broker]; else marks[ticker][broker] = value === 'yes';
+    if (!Object.keys(marks[ticker]).length) delete marks[ticker];
+    workspace.update({ brokers: { use: cur.use, marks } });
+    toast(value === 'clear' ? 'Back to the estimate' : value === 'yes' ? `Noted: ${nameOf(ticker)} is buyable at ${BROKERS[broker].label}` : `Noted: ${nameOf(ticker)} is not offered at ${BROKERS[broker].label}`, value === 'yes' ? 'ok' : 'info');
+  },
   openImport() { nav('holdings'); views.holdings.openImport(); },
   canFireJob: () => !!mcp,
   async fireJob() {
@@ -262,6 +274,8 @@ on(document, 'click', '[data-open]', (ev, b) => { ev.preventDefault(); closeTop(
 on(document, 'click', '[data-member]', (ev, b) => { ev.preventDefault(); ctx.openMember(b.dataset.member); });
 on(document, 'click', '[data-watch]', (ev, b) => { ev.stopPropagation(); ctx.toggleWatch(b.dataset.watch); });
 on(document, 'click', '[data-graph]', (_, b) => ctx.showGraph(b.dataset.graph));
+on(document, 'click', '[data-buy-mark]', (ev, b) => { ev.stopPropagation(); const [t, br, v] = b.dataset.buyMark.split('|'); ctx.markBuy(t, br, v); });
+on(document, 'click', '[data-brokers]', ev => { ev.preventDefault(); openBrokers(); });
 $('#omni').addEventListener('click', () => openPalette(paletteItems));
 $('#sb-keys').addEventListener('click', showShortcuts);
 
@@ -314,6 +328,7 @@ function paletteItems() {
   const d = portfolio.derived();
   if (d) for (const p of d.positions) items.push({ kind: 'Holding', label: p.short, hint: [p.inst.ticker, `${p.alloc.toFixed(1)}%`].filter(Boolean).join(' · '), rank: 1.5, run: () => (p.inst.us && p.inst.ticker ? ctx.openDossier(p.inst.ticker) : nav('holdings')) });
   items.push({ kind: 'Action', label: 'Import from Finanzfluss', hint: '', rank: 1.2, run: () => ctx.openImport() });
+  items.push({ kind: 'Action', label: 'Choose your brokers', hint: brokerSettings(st).use.map(k => BROKERS[k].short).join(', '), rank: 1.2, run: openBrokers });
   items.push({ kind: 'Action', label: 'Run the daily job now', hint: '', rank: 1.2, run: () => ctx.fireJob() });
   const members = new Map();
   for (const r of st.data?.congressRows || []) if (!members.has(r.representative)) members.set(r.representative, r);
@@ -322,6 +337,19 @@ function paletteItems() {
   for (const s of st.signals.slice(0, 300)) for (const b of s.insider.buyers) if (!insiders.has(b.name)) insiders.set(b.name, s.ticker);
   for (const [name, t] of insiders) items.push({ kind: 'Insider', label: name, hint: t, rank: 0.4, run: () => ctx.openDossier(t) });
   return items;
+}
+
+/* ---------- Brokers ---------- */
+function openBrokers() {
+  openModal({ title: 'Your brokers', content: brokerForm(store.get()) });
+  const box = document.querySelector('.buy-form');
+  if (!box) return;
+  box.addEventListener('change', () => {
+    const use = Array.from(box.querySelectorAll('[data-broker]')).filter(i => i.checked).map(i => i.dataset.broker);
+    if (!use.length) { toast('Keep at least one broker.', 'error'); return; }
+    workspace.update({ brokers: { ...brokerSettings(store.get()), use } });
+    toast(`Showing what you can buy at ${use.map(k => BROKERS[k].short).join(', ')}`, 'ok');
+  });
 }
 
 /* ---------- Desk brief (Claude) ---------- */
@@ -339,7 +367,7 @@ function openBrief() {
         const s = store.get();
         mount(body, html`<div class="ins-actions" style="margin-bottom:12px"><button class="btn sm" type="button" id="br-stop">Stop</button><span class="xs muted" id="br-note">Claude is weighing the signals. Usually 30–90 seconds.</span></div><div class="md" id="br-out"><p class="thinking">Thinking…</p></div>`);
         const out = $('#br-out', body), note = $('#br-note', body);
-        ctl = streamInto(ctx.caps.sample, deskBriefPrompt({ signals: s.signals, asOf: s.data.asOf, windowDays: s.windowDays, capital: s.workspace.portfolio.capital, quotes: s.cloud?.quotes?.q }), {
+        ctl = streamInto(ctx.caps.sample, deskBriefPrompt({ signals: s.signals, asOf: s.data.asOf, windowDays: s.windowDays, capital: s.workspace.portfolio.capital, quotes: s.cloud?.quotes?.q, buy: buyOf(s), brokers: brokerSettings(s).use.map(k => BROKERS[k].label) }), {
           cache: refresh ? { gcTime: 3600000, refresh: true } : { gcTime: 3600000 },
           render: text => mount(out, markdown(text)),
           onDone: r => { note.textContent = r.truncated ? 'Cut short by the length limit.' : `Written ${fmtClock(Date.now())} from the ${s.windowDays}-day screen, ${s.model.preset} weights.`; done(); },

@@ -129,7 +129,16 @@ All commands run from `paper-trail/`. Use a scratch directory such as
      omit when empty), `### Discount these`. Name companies,
      people, dates and dollar amounts from the data. Describe patterns; never
      accuse anyone. Not investment advice.
-   - `picks`: up to 6 `{ ticker, name, why }`, strongest first.
+   - `picks`: up to 6 `{ ticker, name, why }`, strongest first, and only
+     companies the investor can buy. They trade from Germany through Scalable
+     Capital and Trade Republic (and maybe Revolut): read `brokers.use` and
+     `brokers.marks` from `data/users/me/workspace` (defaults: `scalable`,
+     `traderepublic`), save the marks to a file, then run
+     `node jobs/buyable.mjs --tickers <candidates> --quotes /tmp/pt/quotes.json
+     --brokers <use> --marks <file>`. Never pick status `no` (US funds and
+     ETFs are blocked for EU retail clients by PRIIPs); write "check your
+     broker" in `why` for `maybe` or `unlikely`. A strong signal you had to
+     drop belongs under `### Discount these` with the reason.
    - `alerts`: the holdings alerts from step 4.
    - `sources`: `"Quiver Quant · Yahoo Finance · nvstly/icons"` (drop sources
      whose step did not run).

@@ -19,6 +19,17 @@ It runs as a claude.ai artifact on the viewer's own Quiver Quant connector, so t
 | **Plan** | Size a budget across your picks with a cash reserve and a per-position cap; keep notes; export CSV |
 | **Lineage** | Pipeline stages, data-quality drops, runtime capabilities and every request made to Quiver |
 
+### Buying from Germany
+
+Paper Trail only suggests what you can buy. Pick your brokers (Scalable Capital, Trade Republic, Revolut) from the command palette or any **Change brokers** link. None of them publishes an instrument list the page can read, so each company gets an estimate per broker:
+
+- **Not buyable:** US-listed ETFs and closed-end funds. EU rules (PRIIPs) block them for retail clients because they have no key information document. These drop out of the radar, the default Signals view, the desk brief and the daily picks.
+- **Unlikely:** SPACs, stocks not listed on NYSE or Nasdaq, and micro caps under $50M.
+- **Uncertain:** small caps ($50–300M), business development companies and US pipeline partnerships.
+- **Likely:** other US-listed companies worth $300M or more at Scalable and Trade Republic. At Revolut, only those worth $10B or more, since its US list is curated.
+
+When you look a stock up in your broker's app, mark it **✓ Can buy** or **✕ Not there** on its Radar card or dossier. Your answer replaces the estimate and syncs across devices.
+
 Keyboard: <kbd>⌘K</kbd> command palette, <kbd>G</kbd> then a letter to switch views, <kbd>J</kbd>/<kbd>K</kbd>/<kbd>Enter</kbd> in the screen, <kbd>B</kbd> desk brief, <kbd>?</kbd> for the full list.
 
 ## Development

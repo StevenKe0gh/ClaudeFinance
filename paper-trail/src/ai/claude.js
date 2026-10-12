@@ -34,11 +34,15 @@ function priceFields(s, quotes) {
   return { last_close_usd: q[0], day_change_pct: q[1], insider_avg_buy_usd: avg ? +avg.toFixed(2) : undefined, vs_insider_avg_pct: avg ? +((q[0] / avg - 1) * 100).toFixed(1) : undefined };
 }
 
-export function deskBriefPrompt({ signals, asOf, windowDays, capital, quotes = null }) {
-  const top = signals.slice(0, 14).map(s => compactSignal(s, quotes));
-  return `You are the lead analyst on a small research desk. A retail investor plans to put about ${fmtUSD(capital)} into US stocks showing unusual insider and congressional buying. Below are the top ${top.length} signals from our conviction model for the ${windowDays} days to ${asOf}, ranked by score. Weigh them against each other.
+const BUYABLE = { yes: 'yes (investor confirmed)', likely: 'likely', maybe: 'uncertain', unlikely: 'unlikely' };
 
-${RULES}
+export function deskBriefPrompt({ signals, asOf, windowDays, capital, quotes = null, buy = null, brokers = [] }) {
+  // Names the investor's brokers cannot sell never reach the desk.
+  const usable = buy ? signals.filter(s => buy(s.ticker, s.company).status !== 'no') : signals;
+  const top = usable.slice(0, 14).map(s => ({ ...compactSignal(s, quotes), ...(buy ? { buyable: BUYABLE[buy(s.ticker, s.company).status] } : {}) }));
+  return `You are the lead analyst on a small research desk. A retail investor in Germany plans to put about ${fmtUSD(capital)} into US stocks showing unusual insider and congressional buying${brokers.length ? `, buying through ${brokers.join(' or ')}` : ''}. Below are the top ${top.length} signals from our conviction model for the ${windowDays} days to ${asOf}, ranked by score. Weigh them against each other.
+
+${RULES}${buy ? ' Each signal says whether the investor can likely buy it at their brokers ("buyable", an estimate unless confirmed). Allocate money only to names that are likely or confirmed buyable; mention uncertain ones as "check availability first".' : ''}
 
 Reply in Markdown, under 550 words, with exactly these sections:
 ## Read of the tape

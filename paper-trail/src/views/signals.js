@@ -5,6 +5,8 @@ import { sparkline, stackbar, waterfall, activityChart } from '../ui/charts.js';
 import { fmtUSD, fmtInt, fmtAge, fmtDate, fmtPct, dayRange } from '../core/util.js';
 import { brand, brandHead, nameOf } from '../ui/brand.js';
 import { trackChip } from '../ui/track.js';
+import { buyOf, buyChip, brokerSettings } from '../ui/brokers.js';
+import { BROKERS } from '../model/brokers.js';
 import { WINDOWS } from '../core/config.js';
 import { PRESETS } from '../model/score.js';
 
@@ -17,12 +19,14 @@ export const DEFAULT_FILTERS = Object.freeze({
   newOnly: false,
   party: 'any',
   q: '',
-  range: null
+  range: null,
+  buyable: 'hide'
 });
 
 const MECHANICAL = new Set(['placement', 'fixedPrice', 'programmatic', 'stakeJump']);
 
-export function applyFilters(signals, f, days) {
+/** `buy` (ticker, name) → availability; omit it to skip the broker filter. */
+export function applyFilters(signals, f, days, buy = null) {
   const rangeIdx = f.range && days ? [days.indexOf(f.range[0]), days.indexOf(f.range[1])] : null;
   const q = f.q.trim().toLowerCase();
   return signals.filter(s => {
@@ -37,6 +41,10 @@ export function applyFilters(signals, f, days) {
     if (f.hideMechanical && s.notes.some(n => MECHANICAL.has(n.key))) return false;
     if (f.hideEntity && s.flags.some(x => x.id === 'entity')) return false;
     if (f.newOnly && !s.isNew) return false;
+    if (buy && f.buyable && f.buyable !== 'all') {
+      const st = buy(s.ticker, s.company).status;
+      if (st === 'no' || (f.buyable === 'likely' && st !== 'likely' && st !== 'yes')) return false;
+    }
     if (f.party !== 'any') {
       const ps = new Set(s.congress.members.filter(m => !m.washOnly).map(m => m.party));
       if (f.party === 'bi' ? !(ps.has('D') && ps.has('R')) : !ps.has(f.party)) return false;
@@ -138,6 +146,7 @@ export function createSignalsView(ctx) {
         <label class="check"><input type="checkbox" data-f="hideMechanical" ${f.hideMechanical ? 'checked' : ''}> Hide offerings and programs</label>
         <label class="check"><input type="checkbox" data-f="hideEntity" ${f.hideEntity ? 'checked' : ''}> Hide fund-only buying</label>
         <label class="check"><input type="checkbox" data-f="newOnly" ${f.newOnly ? 'checked' : ''}> New since last visit</label></div>
+      <div class="facet"><span class="label">Your brokers</span>${opt('buyable', 'hide', 'Hide what they cannot sell')}${opt('buyable', 'likely', 'Likely buyable only')}${opt('buyable', 'all', 'Show everything')}<span class="xs muted">${brokerSettings(st).use.map(k => BROKERS[k].short).join(' · ')} · <button class="linkish xs" type="button" data-brokers>change</button></span></div>
       <div class="facet"><span class="label">Congress party</span>${opt('party', 'any', 'Any')}${opt('party', 'D', 'Democrat')}${opt('party', 'R', 'Republican')}${opt('party', 'bi', 'Bipartisan')}</div>`);
   }
   const setFilters = patch => { store.set({ filters: { ...store.get().filters, ...patch } }); limit = 150; };
@@ -162,7 +171,7 @@ export function createSignalsView(ctx) {
       ${th('ticker', 'Company', st)}${th('score', 'Score · mix', st)}${th('move', 'Price · vs insiders', st, 'num')}${th('insiders', 'Insiders · stake', st)}${th('members', 'Congress', st)}${th('last', 'Activity', st, 'col-act')}<th>Flags</th><th><span class="sr-only">Watch</span></th></tr></thead>`;
     if (loading) { mount(wrap, html`<table class="grid">${head}<tbody>${skeletonRows(8, 12)}</tbody></table>`); $('#sig-foot', el).textContent = ''; return; }
     const days = st.data ? dayRange(st.data.from, st.data.asOf) : null;
-    const filtered = applyFilters(st.signals, st.filters, days);
+    const filtered = applyFilters(st.signals, st.filters, days, buyOf(st));
     for (const s of filtered) s._move = quoteFor(st, s)?.sinceInsider ?? null;
     const key = SORTS[st.sort.key] || SORTS.score;
     const dir = st.sort.dir === 'asc' ? 1 : -1;
@@ -206,7 +215,7 @@ export function createSignalsView(ctx) {
     const parties = [...new Set(realMembers.map(m => m.party))].join('·');
     const watched = watch.has(s.ticker);
     return html`<tr data-t="${s.ticker}" aria-selected="${st.selected === s.ticker}">
-      <td><span class="cell-row">${tierChip(s.tier)}${brand(s.ticker, { name: nameOf(s.ticker, s.company), size: 26 })}${s.isNew ? html`<span class="new-badge" data-tip="New activity since your last visit">NEW</span>` : ''}</span></td>
+      <td><span class="cell-row">${tierChip(s.tier)}${brand(s.ticker, { name: nameOf(s.ticker, s.company), size: 26 })}${(() => { const av = buyOf(st)(s.ticker, s.company); return av.status === 'likely' || av.status === 'yes' ? '' : buyChip(av, { label: false }); })()}${s.isNew ? html`<span class="new-badge" data-tip="New activity since your last visit">NEW</span>` : ''}</span></td>
       <td><div class="score-mix"><span class="cell-row">${scoreCell(s)}${deltaChip(s, prev)}</span>${stackbar(s.factors, 88)}</div></td>
       <td class="num">${quoteCell(st, s)}</td>
       <td>${s.insider.buyers.length ? html`<div class="two"><span class="mono">${s.insider.buyers.length} · ${fmtUSD(s.insider.usd)}</span><span class="sub" data-tip="${top ? `${top.name} · ${top.title || ''}${s.insider.stakeMedian != null ? ` · median stake increase ${fmtPct(Math.min(s.insider.stakeMedian, 999))}` : ''}` : ''}">${top ? (top.role === 'csuite' ? (top.title || 'C-suite') : { officer: 'Officer', director: 'Director', fund: 'Fund', holder: '10% owner' }[top.role]) : ''}${s.insider.stakeMedian != null ? ` · +${fmtPct(Math.min(s.insider.stakeMedian, 999))}` : ''}</span></div>` : html`<span class="dim">—</span>`}</td>
@@ -242,6 +251,7 @@ export function createSignalsView(ctx) {
       <div class="panel-h"><h2>Inspector</h2><span class="src">rank ${s.rank} of ${fmtInt(st.signals.length)}</span></div>
       <div class="panel-b">
         <div class="ins-h">${brandHead(s.ticker, { name: nameOf(s.ticker, s.company), size: 40 })}${tierChip(s.tier, true)}</div>
+        <div class="ins-buy">${buyChip(buyOf(st)(s.ticker, s.company))}</div>
         ${(() => { const q = quoteFor(st, s); return q ? html`<div class="small mono">Last $${q.last.toFixed(2)} <span class="${q.pct >= 0 ? 'chg-up' : 'chg-down'}">${q.pct >= 0 ? '+' : ''}${q.pct.toFixed(2)}% today</span>${q.sinceInsider != null ? html` · <span class="${q.sinceInsider >= 0 ? 'chg-up' : 'chg-down'}">${q.sinceInsider >= 0 ? '+' : ''}${q.sinceInsider.toFixed(1)}%</span> vs insiders' $${s.insider.avgPrice.toFixed(2)}` : ''}</div>` : ''; })()}
         <div class="ins-score"><b>${s.score}</b><span class="muted small">conviction score · tier ${s.tier}</span></div>
         <div class="ins-actions">
@@ -331,7 +341,7 @@ export function createSignalsView(ctx) {
     if (all || has('windowDays') || has('model') || has('signals') || has('pipeline')) renderToolbar(st);
     if (all || has('data') || has('signals') || has('model') || has('session')) renderKpis(st);
     if (all || has('pipeline') || has('data') || has('caps')) renderAlert(st);
-    if (all || has('signals') || has('filters')) renderFacets(st);
+    if (all || has('signals') || has('filters') || has('workspace')) renderFacets(st);
     if (all || has('signals') || has('filters') || has('sort') || has('selected') || has('workspace') || has('pipeline') || has('cloud')) renderTable(st);
     if (all || has('signals') || has('selected') || has('workspace') || has('enrichment') || has('cloud')) renderInspector(st);
     if (all || has('data') || has('filters')) renderActivity(st);

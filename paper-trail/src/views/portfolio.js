@@ -5,6 +5,7 @@ import { toast } from '../ui/overlay.js';
 import { allocate, METHODS } from '../model/allocate.js';
 import { fmtMoney, fmtPct, fmtDate, isoDate, cleanCompany } from '../core/util.js';
 import { brand, nameOf } from '../ui/brand.js';
+import { buyOf, buyChip } from '../ui/brokers.js';
 
 /** Position planner: constraints, conviction-weighted sizing, notes, CSV export. */
 export function createPortfolioView(ctx) {
@@ -66,9 +67,10 @@ export function createPortfolioView(ctx) {
     }
     const a = allocate(list, { capital: p.capital, reserve: p.reserve, cap: p.cap, method: p.method });
     const maxAmt = Math.max(1, ...a.amounts);
-    mount($('#p-table', el), html`<div class="table-wrap"><table class="grid"><thead><tr><th>Ticker</th><th>Tier</th><th class="num">Score</th><th class="num">Weight</th><th class="num">Amount</th><th style="min-width:90px"><span class="sr-only">Bar</span></th><th>Thesis / exit note</th><th><span class="sr-only">Remove</span></th></tr></thead><tbody>
+    mount($('#p-table', el), html`<div class="table-wrap"><table class="grid"><thead><tr><th>Ticker</th><th>Buy at</th><th>Tier</th><th class="num">Score</th><th class="num">Weight</th><th class="num">Amount</th><th style="min-width:90px"><span class="sr-only">Bar</span></th><th>Thesis / exit note</th><th><span class="sr-only">Remove</span></th></tr></thead><tbody>
       ${list.map((it, i) => html`<tr>
         <td>${brand(it.ticker, { name: nameOf(it.ticker, it.company) })}</td>
+        <td>${buyChip(buyOf(st)(it.ticker, it.company))}</td>
         <td>${it.tier ? tierChip(it.tier) : ''}</td>
         <td class="num" data-tip="${it.live ? 'Live score' : `Score when added on ${fmtDate(it.addedAt)}; not in the current screen`}">${it.score ?? '—'}${it.live ? '' : '*'}</td>
         <td class="num">${fmtPct(a.shares[i] * 100, 1)}</td>
