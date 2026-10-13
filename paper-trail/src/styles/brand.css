@@ -155,3 +155,22 @@
 .dz-id .buy { margin-left: 8px; }
 .ins-buy { margin-top: -4px; }
 @media (max-width: 520px) { .buy-rows li { grid-template-columns: 1fr auto; } .buy-acts { grid-column: 1 / -1; } }
+
+/* Whales: top funds and Berkshire */
+.wh-rows, .wh-feed { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.wh-rows li { display: grid; grid-template-columns: minmax(0, 1fr) auto auto auto; align-items: baseline; gap: 4px 10px; padding: 5px 0; border-bottom: 1px solid var(--line-2); font-size: var(--t-sm); }
+.wh-rows li:last-child { border-bottom: 0; }
+.wh-n { color: var(--fg-0); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.wh-ret { margin-left: 6px; font: 500 10px var(--f-mono); color: var(--fg-3); }
+.wh-a { font: 600 10px var(--f-cond); letter-spacing: .06em; text-transform: uppercase; padding: 2px 6px; border-radius: 3px; background: var(--bg-4); color: var(--fg-1); white-space: nowrap; }
+.wh-a[data-a="new"], .wh-a[data-a="buy"] { background: var(--buy-bg); color: #8FE3C0; }
+.wh-a[data-a="sell"], .wh-a[data-a="exit"] { background: var(--sell-bg); color: #FFB4A6; }
+.wh-v { font-size: var(--t-xs); color: var(--fg-1); text-align: right; white-space: nowrap; }
+.wh-v em { font-style: normal; color: var(--fg-3); }
+.wh-q { white-space: nowrap; }
+.wh-feed li { display: grid; grid-template-columns: minmax(120px, 200px) minmax(0, 1fr) auto; align-items: center; gap: 10px; padding: 7px 0; border-bottom: 1px solid var(--line-2); }
+.wh-feed li:last-child { border-bottom: 0; }
+.wh-who { display: flex; flex-direction: column; min-width: 0; font-size: var(--t-sm); }
+.wh-side { display: inline-flex; align-items: center; gap: 6px; }
+.rd-tag.whale { background: color-mix(in srgb, var(--ent-fund) 24%, var(--bg-2)); color: #CDBBFF !important; }
+@media (max-width: 520px) { .wh-rows li { grid-template-columns: minmax(0, 1fr) auto; } .wh-feed li { grid-template-columns: minmax(0, 1fr) auto; } .wh-feed .wh-who { grid-column: 1 / -1; grid-row: 2; } }

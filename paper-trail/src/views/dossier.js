@@ -10,6 +10,7 @@ import { oversight, seatsOf } from '../core/committees.js';
 import { trackLookup } from '../app/pipeline.js';
 import { memoPrompt, sampleErrorCopy, streamInto } from '../ai/claude.js';
 import { buyOf, buyChip, buyBlock, buyText } from '../ui/brokers.js';
+import { whaleBlock } from '../ui/whales.js';
 
 const SECTIONS = ['congress', 'insider', 'contracts', 'lobbying', 'news', 'ownership'];
 const TABS = [['overview', 'Overview'], ['insiders', 'Insider ledger'], ['congress', 'Congress ledger'], ['government', 'Government and owners'], ['news', 'News']];
@@ -50,6 +51,7 @@ export function createDossierView(ctx) {
     cur = entry;
     memo = null;
     render();
+    ctx.whales.load(ticker, { refresh });
     const y = new Date().getFullYear();
     const jobs = {
       congress: () => quiver.tickerCongress(ticker, { from: addDays(asOf, -730), refresh }).then(r => cleanCongress(r.rows).rows),
@@ -146,7 +148,8 @@ export function createDossierView(ctx) {
         ${section(5, 'Score breakdown', `model ${store.get().model.preset}`, s ? html`${waterfall(s)}<p class="xs muted">${x.screened ? 'From the Signals screen' : `Computed from this dossier for the last ${store.get().windowDays} days`}.</p>` : (pending('insider') ? sk(6) : html`<p class="small muted">No insider or congressional buying in the window, so there is nothing to score.</p>`))}
         ${section(7, 'Analyst memo', 'Claude · from this dossier', memoBlock(), 'dz-memo')}
         ${section(6, 'Insider flow, 12 months', 'Form 4 P and S, net by month', guard('insider', () => x.ins.length ? html`<div class="chart" id="dz-flow"></div>` : html`<p class="small muted">No Form 4 filings in two years.</p>`))}
-        ${section(6, 'Who is buying', `last ${store.get().windowDays} days`, guard('insider', () => whoBlock(s)))}`;
+        ${section(6, 'Who is buying', `last ${store.get().windowDays} days`, guard('insider', () => whoBlock(s)))}
+        ${section(12, 'Whales: top funds and Berkshire', '13F via Quiver', whaleBlock(ctx.whales.get(e.ticker)))}`;
     }
     if (tab === 'insiders') return section(12, 'Insider ledger', 'SEC Form 4, last 2 years', guard('insider', () => insiderLedger(x)));
     if (tab === 'congress') return section(12, 'Congress ledger', 'House and Senate PTRs, last 2 years', guard('congress', () => congressLedger(x)));
@@ -258,6 +261,7 @@ export function createDossierView(ctx) {
       insider_90d: { buy_usd: Math.round(x.p90.reduce((a, r) => a + r.value, 0)), sell_usd: Math.round(x.s90.reduce((a, r) => a + r.value, 0)) },
       congress_trades_recent: x.cg.slice(0, 20).map(r => { const o = oversight(cur.ticker, r.bioguide_id); return { member: r.representative, party: r.party, chamber: r.chamber, type: r.transaction, amount: r.amount, traded: r.traded, filed: r.filed, same_day_offset: r.wash || undefined, committee_oversight: o ? `${o.committee}${o.role ? ` (${o.role})` : ''} oversees ${o.themeLabel}` : undefined }; }),
       buyable_for_investor: buyText(buyOf(store.get())(cur.ticker, x.company)),
+      top_fund_13f: (() => { const w = ctx.whales.get(cur.ticker); if (!w || w.status !== 'done') return 'not loaded'; const d = w.data; return { moves: d.moves.slice(0, 6).map(m => `${m.whale.name} ${m.action} ${m.quarter}${m.usd ? ` ~$${Math.round(m.usd / 1e6)}M` : ''}`), holders: d.holders.map(h => `${h.whale.name} holds ${Math.round(h.shares).toLocaleString('en-US')} shares as of ${h.date}`) }; })(),
       federal_awards_12mo: cur.err.contracts ? 'unavailable' : { total_usd: Math.round(x.contracts.reduce((a, c) => a + +c.total_dollars_obligated, 0)), count: x.contracts.length, largest: [...x.contracts].sort((a, b) => b.total_dollars_obligated - a.total_dollars_obligated).slice(0, 4).map(c => ({ usd: Math.round(c.total_dollars_obligated), agency: c.funding_agency_name, what: c.award_description, date: String(c.action_date).slice(0, 10) })) },
       lobbying_by_quarter: x.quarters.map(q => ({ quarter: q.key, usd: q.value })),
       insider_sentiment_by_quarter: (o.insider_sentiment_by_quarter || []).map(q => ({ quarter: q.quarter, value: q.sentiment })),
@@ -353,7 +357,7 @@ export function createDossierView(ctx) {
     current: () => cur && cur.ticker,
     render(st, changed) {
       if (!cur || el.hidden) { if (!cur && !el.hidden && changed && changed.includes('signals')) emptyState(); return; }
-      if (changed && changed.some(k => ['signals', 'workspace', 'model', 'windowDays'].includes(k)) && !(memo && memo.busy)) render();
+      if (changed && changed.some(k => ['signals', 'workspace', 'model', 'windowDays', 'whales'].includes(k)) && !(memo && memo.busy)) render();
       else if (changed && changed.includes('cloud') && !(memo && memo.busy)) {
         const c = st.cloud || {};
         if (c.logoCount !== lastCloud.logos || c.quotes !== lastCloud.quotes) { lastCloud = { logos: c.logoCount, quotes: c.quotes }; render(); }

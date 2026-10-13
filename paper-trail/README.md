@@ -10,11 +10,19 @@ It runs as a claude.ai artifact on the viewer's own Quiver Quant connector, so t
 | **Briefing** | The morning page: the daily brief, today's strongest signals with price moves, changes since yesterday, alerts on your holdings, and the daily job's status with a **Run now** button |
 | **Signals** | A ranked screen with filters, a score breakdown for any row, and daily activity you can drag to filter by date |
 | **Policy** | Bills and federal money that move stocks. **Who profits?** traces an event or policy (say, a US–Russia diesel deal) to the US-listed companies likely to gain or lose: Claude searches bills, checks each candidate's federal awards, lobbying and buying in your screen, and draws the money flow with confidence and evidence per company. Below it: companies where new bills or large awards meet congressional or insider buying, your depot or your plan (a bill's own sponsor trading the company comes first); the largest federal awards of the last 60 days; the newest bills that name companies; and topic watches that follow bills through five stages from introduction to law |
-| **Dossier** | Opens when you click a company. One ticker in depth: timeline, insider and Congress ledgers, federal awards, lobbying, ownership, news, and a memo from Claude |
+| **Dossier** | Opens when you click a company. One ticker in depth: timeline, insider and Congress ledgers, whale moves, federal awards, lobbying, ownership, news, and a memo from Claude |
 | **Member** | Opens when you click a member of Congress: net worth, a year of trades, late filings, overlap with current signals |
 | **Holdings** | Your Finanzfluss depot with logos, weights and gains; every US-listed holding checked against 90 days of insider filings and a year of congressional trades |
 | **Trade review** | What your own transactions show: what you did well, what cost you money and what to watch, each with the trades behind it and a euro impact; plus a coaching note from Claude |
 | **Plan** | Size a budget across your picks with a cash reserve and a per-position cap; keep notes; export CSV |
+
+### Whales
+
+Every company's Radar card and dossier show what **Berkshire Hathaway** and ten top hedge funds did with it in their latest 13F filings: new positions, adds, trims and exits, plus stakes they hold. **Briefing → Whale moves** lists their newest buys across all stocks, and the Radar tags a company **Whale buying** when one of them added it in the last two reported quarters.
+
+The ten are the best-performing concentrated stock pickers of 2025 by reported return: Perceptive Advisors (+82%), D1 Capital (+33.7%), TCI (+27%), Whale Rock (+27%), Appaloosa (+23.3%), Pershing Square (+20.9%), Viking Global (+18%), and Situational Awareness, Lone Pine and Coatue (first-half 2025 figures only). Multi-strategy, quant and macro funds such as Bridgewater, D.E. Shaw, Citadel and Millennium are left out on purpose: they hold thousands of hedged positions, so their 13F lines say little about conviction. The list lives in `src/model/whales.js`.
+
+Limits: 13F filings arrive 45 days after a quarter ends. Paper Trail reads them from Quiver's fund-update posts and each stock's top 100 owners, because Quiver's full 13F dataset needs a higher subscription tier. Quiver posts its own headlines for Berkshire, Pershing Square, Appaloosa and Situational Awareness, though not for every quarter (its newest Berkshire posts cover Q4 2025). Moves by the other funds show only when they rank among a stock's largest that quarter, and stakes only when the fund is among the top 100 holders.
 
 ### Buying from Germany
 

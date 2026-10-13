@@ -48,8 +48,17 @@ export function createQuiver(conn) {
     news: (ticker, { refresh }) =>
       conn.call(TOOLS.news, { ticker, limit: 10 }, { refresh, stage: 'dossier' }),
 
-    ownership: (ticker, { refresh }) =>
-      conn.call(TOOLS.ownership, { ticker, limit: 8 }, { refresh, stage: 'dossier' }),
+    /** Top 100 owners by shares: deep enough to find a hedge fund's stake below the index funds. */
+    ownership: (ticker, { refresh } = {}) =>
+      conn.call(TOOLS.ownership, { ticker, limit: 100 }, { refresh, stage: 'dossier' }),
+
+    /** Quiver's fund-update posts for one ticker; each lists the quarter's largest 13F moves. */
+    fundNews: (ticker, { refresh } = {}) =>
+      conn.call(TOOLS.news, { ticker, category: 'funds_automated', sort_by: 'datetime', sort_order: 'desc', limit: 12 }, { refresh, stage: 'whales' }),
+
+    /** Fund-update posts naming one fund (Quiver writes these for a few well-known filers). */
+    whaleNews: (query, { refresh } = {}) =>
+      conn.call(TOOLS.news, { query, category: 'funds_automated', sort_by: 'datetime', sort_order: 'desc', limit: 15 }, { refresh, stage: 'whales' }),
 
     politician: ({ bioguideId, name, refresh }) =>
       conn.call(TOOLS.politician, bioguideId ? { bioguide_id: bioguideId } : { politician: name }, { refresh, stage: 'member' }),

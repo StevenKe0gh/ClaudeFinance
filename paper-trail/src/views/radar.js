@@ -10,6 +10,7 @@ import { PRESETS } from '../model/score.js';
 import { trackChip, trackLine } from '../ui/track.js';
 import { policyLines } from '../ui/policy.js';
 import { buyOf, buyBlock, buyText } from '../ui/brokers.js';
+import { whaleBlock } from '../ui/whales.js';
 import { notBuyable, doubtful } from '../model/brokers.js';
 import { quoteFor } from './signals.js';
 
@@ -328,6 +329,8 @@ export function createRadarView(ctx) {
     const whoMax = Math.max(1, ...s.insider.buyers.map(b => b.usd), ...members.map(m => m.usd));
     const suggestion = suggest(st, s);
     const av = buyOf(st)(s.ticker, s.company);
+    if (st.caps.mcp === 'on') queueMicrotask(() => ctx.whales.load(s.ticker));
+    const whaleBuys = ctx.whales.buysOf(s.ticker);
 
     mount(host, html`
       <div class="panel-h"><h2><span class="step">2</span> Understand</h2><span class="grow"></span>
@@ -337,7 +340,7 @@ export function createRadarView(ctx) {
         <div class="rd-verdict" data-tier="${s.tier}">
           ${tierChip(s.tier, true)}
           <div><b>${VERDICT[s.tier]}</b><span>score ${s.score} · rank ${s.rank} of ${fmtInt(st.signals.length)} · ${PRESETS[st.model.preset] ? `${PRESETS[st.model.preset].label} model` : 'custom weights'}</span></div>
-          <div class="rd-tags">${s.congress.overseers ? html`<span class="rd-tag ovs" data-tip="${overseerLine(s)}">◆ Oversight</span>` : ''}${owned ? html`<span class="rd-tag own">In your depot</span>` : ''}${planned ? html`<span class="rd-tag plan">In your plan</span>` : ''}${skipped ? html`<span class="rd-tag">Skipped</span>` : ''}</div>
+          <div class="rd-tags">${s.congress.overseers ? html`<span class="rd-tag ovs" data-tip="${overseerLine(s)}">◆ Oversight</span>` : ''}${whaleBuys.length ? html`<span class="rd-tag whale" data-tip="${whaleBuys.map(b => `${b.whale.name}: ${b.action === 'new' ? 'new position' : 'added'}`).join('\n')}">Whale buying</span>` : ''}${owned ? html`<span class="rd-tag own">In your depot</span>` : ''}${planned ? html`<span class="rd-tag plan">In your plan</span>` : ''}${skipped ? html`<span class="rd-tag">Skipped</span>` : ''}</div>
         </div>
         <p class="rd-story">${storyText(st, s, q)}</p>
         ${q && q.sinceInsider != null ? html`<div class="rd-block"><span class="label">What insiders paid vs. today</span>${paidGauge(s, q)}</div>` : ''}
@@ -346,6 +349,7 @@ export function createRadarView(ctx) {
           ${members.slice(0, 4).map(m => html`<li${m.oversees ? html` class="ovs"` : ''}><span class="who-k">${partyChip(m.party)}</span><span class="nm">${m.name}<em>${m.oversees ? html`<b class="ovs-t" data-tip="${m.oversees.seats.map(x => x.committee + (x.role ? ` (${ROLE_WORD[x.role] || x.role})` : '')).join('\n')}">◆ ${m.oversees.committee}${m.oversees.role ? ` · ${ROLE_WORD[m.oversees.role] || m.oversees.role}` : ''}</b>` : `${m.chamber} · ${m.ranges.join(', ')}`}</em><span class="bar"><i data-k="congress" style="width:${Math.max(3, (100 * m.usd) / whoMax)}%"></i></span></span><span class="mono xs" data-tip="${m.ranges.join(', ')}">${m.ranges.length === 1 ? shortRange(m.ranges[0]) : `≈${fmtUSD(m.usd)}`}${m.track ? html`<br>${trackChip(m.track)}` : ''}</span></li>`)}
           ${s.insider.buyers.slice(0, 4).map(b => html`<li><span class="who-k">${roleChip(b.role)}</span><span class="nm" title="${b.name}">${titleCase(b.name)}<em>${b.title || ROLE_LABEL[b.role]}${b.stakePct != null ? ` · stake +${Math.round(Math.min(b.stakePct, 999))}%` : b.newPosition ? ' · new position' : ''}</em><span class="bar"><i data-k="insider" style="width:${Math.max(3, (100 * b.usd) / whoMax)}%"></i></span></span><span class="mono xs">${fmtUSD(b.usd)}</span></li>`)}
         </ul>${s.insider.buyers.length > 4 ? html`<span class="xs muted">+${s.insider.buyers.length - 4} more insiders</span>` : ''}</div>` : ''}
+        <div class="rd-block"><span class="label">Whales: top funds and Berkshire</span>${whaleBlock(ctx.whales.get(s.ticker))}</div>
         ${ctx.policy && ctx.policy.for(s.ticker) ? html`<div class="rd-block"><span class="label">Washington</span>${policyLines(ctx.policy.for(s.ticker))}</div>` : ''}
         <div class="rd-block"><span class="label">Where you can buy it</span>${buyBlock(av, { name: nameOf(s.ticker, s.company) })}</div>
         ${pros.length || cons.length ? html`<div class="rd-block"><span class="label">Checks</span><ul class="rd-checks">
@@ -561,7 +565,7 @@ ${buyText(x.av)}`}">${pct >= 7 ? html`${logo(x.it.ticker, nameOf(x.it.ticker, x.
       if (el.hidden) return;
       if (!changed) { render(st); return; }
       if (changed.some(k => ['signals', 'model', 'windowDays', 'caps'].includes(k)) && st.signals !== lastSig) { lastSig = st.signals; layout.key = null; render(st); return; }
-      if (changed.some(k => ['workspace', 'cloud', 'portfolioLocalAt', 'enrichment', 'policy'].includes(k))) render(st);
+      if (changed.some(k => ['workspace', 'cloud', 'portfolioLocalAt', 'enrichment', 'policy', 'whales'].includes(k))) render(st);
     },
     key(ev) {
       if (ev.key === 'ArrowRight' || ev.key === 'j') { step(1); return true; }

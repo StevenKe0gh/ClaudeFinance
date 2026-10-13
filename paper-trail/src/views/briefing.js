@@ -5,6 +5,9 @@ import { brand, nameOf } from '../ui/brand.js';
 import { fmtDate, fmtInt, fmtUSD, fmtClock, fmtSignedPct, isoDate } from '../core/util.js';
 import { holdingAlerts } from '../app/portfolio.js';
 import { previousSnapshot, quoteFor } from './signals.js';
+import { ACTION_LABEL, quarterLabel, WHALES, FEED_QUERIES } from '../model/whales.js';
+import { notBuyable } from '../model/brokers.js';
+import { buyOf, buyChip } from '../ui/brokers.js';
 
 /** The job writes epoch milliseconds; older documents may carry ISO strings. */
 const toMs = v => (typeof v === 'number' ? v : v ? Date.parse(v) || 0 : 0);
@@ -35,6 +38,7 @@ export function createBriefingView(ctx) {
       <div style="display:flex;flex-direction:column;gap:var(--gap);min-width:0">
         <section class="panel" id="b-hero"></section>
         <section class="panel"><div class="panel-h"><h2>Strongest signals today</h2><span class="src" id="b-sig-src"></span><span class="grow"></span><button class="btn ghost sm" type="button" data-nav="signals">All signals ${ICON.open}</button></div><div class="panel-b" id="b-picks"></div></section>
+        <section class="panel"><div class="panel-h"><h2>Whale moves</h2><span class="src" id="b-wh-src">latest 13F filings · top funds and Berkshire</span></div><div class="panel-b" id="b-wh"></div></section>
       </div>
       <div style="display:flex;flex-direction:column;gap:var(--gap);min-width:0">
         <section class="panel"><div class="panel-h"><h2>Daily job</h2><span class="src" id="b-job-src"></span></div><div class="panel-b" id="b-job"></div></section>
@@ -63,7 +67,8 @@ export function createBriefingView(ctx) {
   }
 
   function picks(st) {
-    const live = st.signals.filter(s => s.tier === 'A' || s.tier === 'B').slice(0, 6);
+    const buy = buyOf(st);
+    const live = st.signals.filter(s => (s.tier === 'A' || s.tier === 'B') && !notBuyable(buy(s.ticker, s.company))).slice(0, 6);
     const brief = st.cloud?.briefs?.[0];
     const prev = previousSnapshot(st);
     $('#b-sig-src', el).textContent = live.length ? `live · ${st.windowDays}d · ${st.model.preset}` : brief?.picks?.length ? `from the ${fmtDate(brief.date, { year: false })} brief` : '';
@@ -140,11 +145,28 @@ export function createBriefingView(ctx) {
       : html`<p class="small muted">Briefs collect here day by day.</p>`);
   }
 
+  function whales(st) {
+    const f = ctx.whales.feed();
+    const host = $('#b-wh', el);
+    if (st.caps.mcp !== 'on') { mount(host, html`<p class="small muted">Needs the Quiver Quant connector.</p>`); return; }
+    if (f.status === 'idle' || (f.status === 'loading' && !f.items.length)) { mount(host, html`<div class="skel"></div><div class="skel"></div>`); return; }
+    if (f.status === 'error' && !f.items.length) { mount(host, html`<p class="small muted">Fund filings could not be loaded.</p>`); return; }
+    const buy = buyOf(st);
+    const sig = new Map(st.signals.map(s => [s.ticker, s]));
+    const latest = f.items.slice(0, 12);
+    mount(host, html`${latest.length ? html`<ul class="wh-feed">${latest.map(i => { const s = sig.get(i.ticker); return html`<li>
+        ${brand(i.ticker, { size: 24 })}
+        <span class="wh-who"><b>${i.whale.name}</b><span class="xs muted">${ACTION_LABEL[i.action]}${i.usd ? ` · ${fmtUSD(i.usd)}` : ''}${i.pct != null && Number.isFinite(i.pct) ? ` · ${i.pct > 0 ? '+' : ''}${Math.round(i.pct)}%` : ''} · ${quarterLabel(i.quarter)}</span></span>
+        <span class="wh-side">${s ? tierChip(s.tier) : ''}${buyChip(buy(i.ticker), { label: false })}</span>
+      </li>`; })}</ul>` : html`<p class="small muted">No fund updates posted yet.</p>`}
+      <p class="xs dim" style="margin-top:8px">Quiver posts fund-update headlines for Berkshire, Pershing Square, Appaloosa and Situational Awareness. Moves by the other ${WHALES.length - Object.keys(FEED_QUERIES).length} tracked funds show on each company's card when they rank among its largest. 13F filings arrive 45 days after a quarter ends.</p>`);
+  }
+
   function render(st) {
     const cfg = st.cloud?.config;
     $('#b-sub', el).textContent = `${fmtDate(isoDate())} · ${cfg?.schedule ? `runs ${cfg.schedule}` : 'runs once a day'} · combines Quiver filings, your holdings and Yahoo Finance prices.`;
     $('#b-desk', el).disabled = !ctx.caps.sample || !st.signals.length;
-    hero(st); picks(st); job(st); holdings(st); changes(st); archive(st);
+    hero(st); picks(st); whales(st); job(st); holdings(st); changes(st); archive(st);
   }
 
   on(el, 'click', '#b-run', async () => {
@@ -161,9 +183,9 @@ export function createBriefingView(ctx) {
     el,
     render(st, changed) {
       if (el.hidden) return;
-      if (!changed || changed.some(k => ['cloud', 'signals', 'holdingChecks', 'pipeline', 'caps', 'portfolioLocalAt', 'model', 'windowDays'].includes(k))) render(st);
+      if (!changed || changed.some(k => ['cloud', 'signals', 'holdingChecks', 'pipeline', 'caps', 'portfolioLocalAt', 'model', 'windowDays', 'whales', 'workspace'].includes(k))) render(st);
     },
-    show() { const st = store.get(); if (st.caps.mcp === 'on' && portfolio.derived() && !st.holdingChecks) portfolio.check(); }
+    show() { const st = store.get(); if (st.caps.mcp === 'on') { ctx.whales.loadFeed(); if (portfolio.derived() && !st.holdingChecks) portfolio.check(); } }
   };
 }
 

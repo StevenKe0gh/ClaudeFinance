@@ -19,6 +19,7 @@ import { createHoldingsView } from './views/holdings.js';
 import { createTradesView } from './views/trades.js';
 import { createPolicyView } from './views/policy.js';
 import { createPolicy, EMPTY_POLICY } from './app/policy.js';
+import { createWhales } from './app/whales.js';
 import { createCloud } from './app/cloud.js';
 import { createPortfolio } from './app/portfolio.js';
 import { setLogos, nameOf } from './ui/brand.js';
@@ -63,6 +64,7 @@ const store = createStore({
   sort: { key: 'score', dir: 'desc' },
   workspace: null,
   policy: { ...EMPTY_POLICY, topics: {} },
+  whales: { v: 0 },
   session: { lastSeenPrev: null }
 });
 
@@ -73,6 +75,7 @@ const pipeline = createPipeline({ store, quiver });
 const cloud = createCloud({ store });
 const portfolio = createPortfolio({ store, quiver, cloud });
 const policy = createPolicy({ store, quiver });
+const whales = createWhales({ store, quiver });
 const workspace = createWorkspace({
   store,
   onRemote: ws => { if (validModel(ws.model)) { store.set({ model: ws.model }); pipeline.recompute(); } }
@@ -86,7 +89,7 @@ const workspace = createWorkspace({
 /* ---------- Context shared with views ---------- */
 let firstRunDone = false;
 const ctx = {
-  store, conn, quiver, pipeline, workspace, cloud, portfolio, policy,
+  store, conn, quiver, pipeline, workspace, cloud, portfolio, policy, whales,
   caps: { sample: null, downloads: null },
   async runPipeline(opts = {}) {
     if (!mcp) { toast('Live data needs the claude.ai viewer with the Quiver Quant connector.', 'error'); return; }
@@ -96,6 +99,7 @@ const ctx = {
       if (!firstRunDone) { firstRunDone = true; workspace.update({ lastSeen: new Date().toISOString() }); }
       snapshot();
       if (store.get().policy.status === 'idle' || opts.refresh) policy.load({ refresh: !!opts.refresh });
+      whales.loadFeed({ refresh: !!opts.refresh });
       if (opts.refresh) toast(`Refreshed · ${fmtInt(store.get().signals.length)} tickers scored`, 'ok');
     }
   },
