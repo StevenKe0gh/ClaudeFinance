@@ -23,7 +23,7 @@ flowchart LR
     PIPE["app/pipeline.js<br/>ingest → clean → score → enrich"]
     MODEL["model/*<br/>clean · patterns · score · allocate · graph"]
     STORE["core/store.js<br/>observable state"]
-    VIEWS["views/*<br/>Radar · Briefing · Signals · Graph · Dossier · Member · Holdings · Trades · Plan · Model · Lineage"]
+    VIEWS["views/*<br/>Radar · Briefing · Signals · Policy · Dossier · Member · Holdings · Trades · Plan"]
     PERSIST["app/persist.js"]
     CLOUD["app/cloud.js<br/>live db documents"]
     PF["app/portfolio.js<br/>depot · trade review · holdings check"]
@@ -77,7 +77,7 @@ Page sizes (150 rows for trades, 200 for aggregates) keep most responses under t
 3. **Score** with `model/score.js` (see [SIGNAL_MODEL.md](SIGNAL_MODEL.md)).
 4. **Enrich**. For the top 15, pull 90 days of all Form 4 activity per ticker and apply an insider-selling adjustment. The table re-ranks live as these land.
 
-Each stage reports status, rows, pages and timing into the store. The status bar and the Lineage view read them from there. A generation counter discards results from a run that a newer run has replaced.
+Each stage reports status, rows, pages and timing into the store. The status bar reads them from there. A generation counter discards results from a run that a newer run has replaced.
 
 ## State and rendering
 
@@ -94,7 +94,7 @@ All markup goes through the `html` tagged template in `ui/html.js`, which escape
 | Path | Written by | Read by |
 |---|---|---|
 | `briefs/<date>` | daily job | Briefing |
-| `jobs/status`, `config/app` | daily job, setup | Briefing, Lineage |
+| `jobs/status`, `config/app` | daily job, setup | Briefing |
 | `quotes/latest` | daily job (NASDAQ screener snapshot via GitHub) | Signals, Dossier, Holdings, desk brief |
 | `prices/<TICKER>` | daily job (Yahoo Finance chart API) | Dossier price chart |
 | `logos/p<N>`, `logos/index` | daily job (nvstly/icons, resized to 48 px data URIs) | every company name |
@@ -114,7 +114,7 @@ Logos cannot be hot-linked (the page may only load scripts from approved CDNs, a
 ```json
 {
   "mcp": { "servers": [
-    { "server": "Quiver Quant", "tools": ["get_congress_trades", "get_insider_trading", "get_gov_contracts", "get_lobbying", "get_dark_pool", "get_quiver_newsfeed", "get_ticker_ownership", "get_congress_politician", "get_congress_legislation"] },
+    { "server": "Quiver Quant", "tools": ["get_congress_trades", "get_insider_trading", "get_gov_contracts", "get_lobbying", "get_quiver_newsfeed", "get_ticker_ownership", "get_congress_politician", "get_congress_legislation"] },
     { "server": "Claude Code Remote", "tools": ["fire_trigger"] }
   ] },
   "sample": {},

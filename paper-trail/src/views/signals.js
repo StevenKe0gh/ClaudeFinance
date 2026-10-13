@@ -257,7 +257,6 @@ export function createSignalsView(ctx) {
         <div class="ins-actions">
           <button class="btn primary sm" type="button" data-open="${s.ticker}">${ICON.open} Open dossier</button>
           <button class="btn sm ${watched ? 'on' : ''}" type="button" data-watch="${s.ticker}">${watched ? html`${ICON.check} In plan` : html`${ICON.plus} Add to plan`}</button>
-          <button class="btn sm ghost" type="button" data-graph="${s.ticker}">${ICON.focus} Show in graph</button>
         </div>
         <div><div class="label" style="margin-bottom:6px">Score breakdown</div>${waterfall(s)}</div>
         ${s.flags.length ? html`<div><div class="label" style="margin-bottom:6px">Flags</div><ul class="rows">${s.flags.map(f => html`<li><span class="flag" data-tone="${f.tone}">${f.label}</span><span class="grow small muted">${f.detail}</span></li>`)}</ul></div>` : ''}

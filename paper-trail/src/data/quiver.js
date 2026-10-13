@@ -44,8 +44,6 @@ export function createQuiver(conn) {
     lobbying: (ticker, { yearFrom, refresh }) =>
       conn.call(TOOLS.lobbying, { ticker, year_from: yearFrom, sort_by: 'date', sort_order: 'desc', limit: 60 }, { refresh, stage: 'dossier' }),
 
-    darkPool: (ticker, { from, refresh }) =>
-      conn.call(TOOLS.darkpool, { ticker, date_from: from, sort_by: 'date', sort_order: 'desc', limit: 120 }, { refresh, stage: 'dossier' }),
 
     news: (ticker, { refresh }) =>
       conn.call(TOOLS.news, { ticker, limit: 10 }, { refresh, stage: 'dossier' }),

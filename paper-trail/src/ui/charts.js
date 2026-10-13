@@ -174,44 +174,6 @@ export function columns(el, data, { format = fmtUSD, height = 160, label = 'Valu
 }
 
 /* ---------- Line with crosshair ---------- */
-export function lineChart(el, rows, { value, tip, format = v => (v * 100).toFixed(0) + '%', label = 'Series' }) {
-  const W = widthOf(el), H = 170, L = 40, R = 46, T = 12, B = 22;
-  const vals = rows.map(value);
-  let lo = Math.min(...vals), hi = Math.max(...vals);
-  const pad = (hi - lo) * 0.15 || 0.05;
-  lo -= pad; hi += pad;
-  const step = niceStep(hi - lo, 4);
-  lo = Math.floor(lo / step) * step;
-  hi = Math.ceil(hi / step) * step;
-  const X = i => L + (W - L - R) * (rows.length === 1 ? 0.5 : i / (rows.length - 1));
-  const Y = v => T + (H - T - B) * (1 - (v - lo) / (hi - lo));
-  let s = '';
-  for (let v = lo; v <= hi + 1e-9; v += step) s += `<line class="gl" x1="${L}" x2="${W - R}" y1="${Y(v)}" y2="${Y(v)}"/><text class="ax" x="${L - 6}" y="${Y(v) + 3.5}" text-anchor="end">${esc(format(v))}</text>`;
-  const pts = rows.map((r, i) => `${X(i).toFixed(1)},${Y(value(r)).toFixed(1)}`);
-  s += `<path d="M${pts[0]}L${pts.join('L')}L${X(rows.length - 1)},${Y(lo)}L${X(0)},${Y(lo)}Z" fill="var(--accent)" fill-opacity=".10"/>`;
-  s += `<path d="M${pts.join('L')}" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`;
-  const li = rows.length - 1;
-  s += `<circle cx="${X(li)}" cy="${Y(value(rows[li]))}" r="4" class="m-acc ring"/><text class="vl" x="${X(li) + 8}" y="${Y(value(rows[li])) + 4}">${esc(format(value(rows[li])))}</text>`;
-  s += `<text class="ax" x="${L}" y="${H - 5}">${esc(fmtDate(rows[0].date, { year: false }))}</text><text class="ax" x="${W - R}" y="${H - 5}" text-anchor="end">${esc(fmtDate(rows[li].date, { year: false }))}</text>`;
-  s += `<g class="xh" visibility="hidden"><line class="bl" y1="${T}" y2="${H - B}"/><circle r="4" class="m-acc ring"/></g><rect class="hit" x="${L}" y="${T}" width="${W - L - R}" height="${H - T - B}"/>`;
-  el.innerHTML = `<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img" aria-label="${esc(label)}">${s}</svg>`;
-  const svg = el.firstChild, xh = svg.querySelector('.xh'), hit = svg.querySelector('rect.hit');
-  const tipEl = document.getElementById('tip');
-  const move = ev => {
-    const box = svg.getBoundingClientRect();
-    const px = (ev.clientX - box.left) * (W / box.width);
-    const i = clamp(Math.round(((px - L) / (W - L - R)) * (rows.length - 1)), 0, rows.length - 1);
-    const [ln, c] = xh.children;
-    ln.setAttribute('x1', X(i)); ln.setAttribute('x2', X(i));
-    c.setAttribute('cx', X(i)); c.setAttribute('cy', Y(value(rows[i])));
-    xh.setAttribute('visibility', 'visible');
-    hit.setAttribute('data-tip', tip(rows[i]));
-  };
-  hit.addEventListener('pointermove', move);
-  hit.addEventListener('pointerleave', () => { xh.setAttribute('visibility', 'hidden'); tipEl.hidden = true; });
-}
-
-/* ---------- Diverging bars around zero ---------- */
 export function diverging(el, data, { format = v => fmtInt(v), label = 'Net' } = {}) {
   const W = widthOf(el), H = 130, L = 8, R = 8, T = 10, B = 22;
   const max = Math.max(1, ...data.map(d => Math.abs(d.value)));

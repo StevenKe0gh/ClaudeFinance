@@ -14,7 +14,7 @@ const root = path.dirname(fileURLToPath(import.meta.url));
 const at = p => path.join(root, p);
 
 // Cascade order matters: tokens first, views last.
-const CSS = ['tokens', 'base', 'shell', 'components', 'charts', 'brand', 'radar', 'signals', 'graph', 'dossier', 'workbench', 'policy'];
+const CSS = ['tokens', 'base', 'shell', 'components', 'charts', 'brand', 'radar', 'signals', 'dossier', 'workbench', 'policy'];
 
 async function render() {
   const pkg = JSON.parse(await readFile(at('package.json'), 'utf8'));

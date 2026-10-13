@@ -1,7 +1,7 @@
 import { html, mount, on, $, markdown } from '../ui/html.js';
 import { ICON } from '../ui/icons.js';
 import { tierChip, flagsList, roleChip, partyChip, errorAlert } from '../ui/parts.js';
-import { waterfall, timeline, columns, lineChart, diverging, tri, priceChart } from '../ui/charts.js';
+import { waterfall, timeline, columns, diverging, tri, priceChart } from '../ui/charts.js';
 import { brandHead, nameOf } from '../ui/brand.js';
 import { fmtUSD, fmtInt, fmtDate, fmtPct, isoDate, addDays, ts, groupBy, cleanCompany } from '../core/util.js';
 import { cleanInsider, cleanCongress, ROLE_LABEL } from '../model/clean.js';
@@ -11,8 +11,8 @@ import { trackLookup } from '../app/pipeline.js';
 import { memoPrompt, sampleErrorCopy, streamInto } from '../ai/claude.js';
 import { buyOf, buyChip, buyBlock, buyText } from '../ui/brokers.js';
 
-const SECTIONS = ['congress', 'insider', 'contracts', 'lobbying', 'darkpool', 'news', 'ownership'];
-const TABS = [['overview', 'Overview'], ['insiders', 'Insider ledger'], ['congress', 'Congress ledger'], ['government', 'Government'], ['market', 'Market structure'], ['news', 'News']];
+const SECTIONS = ['congress', 'insider', 'contracts', 'lobbying', 'news', 'ownership'];
+const TABS = [['overview', 'Overview'], ['insiders', 'Insider ledger'], ['congress', 'Congress ledger'], ['government', 'Government and owners'], ['news', 'News']];
 const CODE_LABEL = { P: 'Open-market buy', S: 'Open-market sale', A: 'Award / grant', M: 'Option exercise', F: 'Tax withholding', D: 'Disposition to issuer', G: 'Gift', C: 'Conversion', X: 'Option exercise' };
 const NEWS_CAT = { summary: 'Summary', press_release_summary: 'Press release', insiders_automated: 'Insider', lobbying_automated: 'Lobbying', congress_trades_automated: 'Congress trade', legislation_automated: 'Legislation', funds_automated: 'Funds', contracts_automated: 'Contract', earnings_automated: 'Earnings', prices_automated: 'Price move', strategies_update_automated: 'Strategy', forecasts_automated: 'Forecast', fundraising_automated: 'Fundraising', discussion_automated: 'Discussion' };
 
@@ -56,7 +56,6 @@ export function createDossierView(ctx) {
       insider: () => quiver.tickerInsider(ticker, { from: addDays(asOf, -730), to: asOf, refresh, maxPages: 4 }).then(r => ({ rows: cleanInsider(r.rows, { to: asOf }).rows, complete: r.complete })),
       contracts: () => quiver.contracts(ticker, { from: addDays(asOf, -365), to: asOf, refresh }).then(r => r.rows),
       lobbying: () => quiver.lobbying(ticker, { yearFrom: y - 2, refresh }).then(r => r.rows),
-      darkpool: () => quiver.darkPool(ticker, { from: addDays(asOf, -130), refresh }).then(r => r.rows),
       news: () => quiver.news(ticker, { refresh }).then(r => r.rows),
       ownership: () => quiver.ownership(ticker, { refresh }).then(r => r.object || r.rows[0] || null)
     };
@@ -88,11 +87,10 @@ export function createDossierView(ctx) {
     const quarters = [...groupBy((e.data.lobbying || []).filter(r => r.year && /Q[1-4]/i.test(r.type || '')), r => `${r.year}-${String(r.type).match(/Q[1-4]/i)[0].toUpperCase()}`)]
       .map(([k, rows]) => ({ key: k, label: `${k.slice(5)} ’${k.slice(2, 4)}`, value: rows.reduce((s, r) => s + (+r.amount || 0), 0) }))
       .sort((a, b) => (a.key < b.key ? -1 : 1)).slice(-8);
-    const dp = (e.data.darkpool || []).filter(r => r && r.date && Number.isFinite(+r.dpi)).sort((a, b) => (a.date < b.date ? -1 : 1)).slice(-60);
     const d90 = addDays(e.asOf, -89);
     const p90 = ins.filter(r => r.transaction_type === 'P' && r.date >= d90);
     const s90 = ins.filter(r => r.transaction_type === 'S' && r.date >= d90);
-    return { local, screened, company, contracts, quarters, dp, ins, cg, p90, s90, from };
+    return { local, screened, company, contracts, quarters, ins, cg, p90, s90, from };
   }
 
   /* ---------- Render ---------- */
@@ -122,7 +120,6 @@ export function createDossierView(ctx) {
           </div>
           <div class="dz-actions">
             <button class="btn ${watched ? 'on' : 'primary'}" type="button" data-watch="${e.ticker}">${watched ? html`${ICON.check} In plan` : html`${ICON.plus} Add to plan`}</button>
-            <button class="btn" type="button" data-graph="${e.ticker}">${ICON.focus} Graph</button>
             <button class="btn ghost" type="button" id="dz-refresh">${ICON.refresh} Refresh</button>
           </div>
         </div>
@@ -155,11 +152,8 @@ export function createDossierView(ctx) {
     if (tab === 'congress') return section(12, 'Congress ledger', 'House and Senate PTRs, last 2 years', guard('congress', () => congressLedger(x)));
     if (tab === 'government') {
       return html`${section(7, 'Federal contracts, 12 months', 'USAspending', guard('contracts', () => contractsBlock(x)))}
-        ${section(5, 'Lobbying by quarter', 'LDA filings', guard('lobbying', () => x.quarters.length ? html`<div class="chart" id="dz-lob"></div>${lobbyIssues()}` : html`<p class="small muted">No lobbying reported since ${new Date().getFullYear() - 2}.</p>`))}`;
-    }
-    if (tab === 'market') {
-      return html`${section(7, 'Off-exchange short volume (DPI)', 'FINRA via Quiver', guard('darkpool', () => dpBlock(x)))}
-        ${section(5, 'Ownership', 'Form 4 sentiment · 13F', guard('ownership', () => ownershipBlock()))}`;
+        ${section(5, 'Lobbying by quarter', 'LDA filings', guard('lobbying', () => x.quarters.length ? html`<div class="chart" id="dz-lob"></div>${lobbyIssues()}` : html`<p class="small muted">No lobbying reported since ${new Date().getFullYear() - 2}.</p>`))}
+        ${section(12, 'Ownership', 'Form 4 sentiment · 13F', guard('ownership', () => ownershipBlock()))}`;
     }
     return section(12, 'Quiver newsfeed', 'latest', guard('news', () => newsBlock()));
   }
@@ -225,11 +219,6 @@ export function createDossierView(ctx) {
     const issues = latest && latest.issue ? String(latest.issue).split(/\s*\n\s*/).filter(Boolean).slice(0, 8) : [];
     return issues.length ? html`<p class="small"><span class="muted">Latest filing covers:</span> ${issues.join(', ')}</p>` : '';
   }
-  function dpBlock(x) {
-    if (x.dp.length < 3) return html`<p class="small muted">Not enough off-exchange data.</p>`;
-    const avg = a => a.reduce((s, r) => s + +r.dpi, 0) / a.length;
-    return html`<div class="stats small muted" style="display:flex;gap:18px;flex-wrap:wrap"><span>Latest <b class="mono" style="color:var(--fg-0)">${fmtPct(x.dp.at(-1).dpi * 100)}</b></span><span>20-day <b class="mono" style="color:var(--fg-0)">${fmtPct(avg(x.dp.slice(-20)) * 100)}</b></span><span>${x.dp.length}-day <b class="mono" style="color:var(--fg-0)">${fmtPct(avg(x.dp) * 100)}</b></span></div><div class="chart" id="dz-dp"></div><p class="xs muted">Share of off-exchange volume reported as short sales. Market makers short to fill customer buy orders, so a rising line can mean buying pressure. A weak, supporting signal.</p>`;
-  }
   function ownershipBlock() {
     const o = cur.data.ownership || {};
     const sent = (o.insider_sentiment_by_quarter || []).filter(q => q && q.quarter).slice(-8);
@@ -271,7 +260,6 @@ export function createDossierView(ctx) {
       buyable_for_investor: buyText(buyOf(store.get())(cur.ticker, x.company)),
       federal_awards_12mo: cur.err.contracts ? 'unavailable' : { total_usd: Math.round(x.contracts.reduce((a, c) => a + +c.total_dollars_obligated, 0)), count: x.contracts.length, largest: [...x.contracts].sort((a, b) => b.total_dollars_obligated - a.total_dollars_obligated).slice(0, 4).map(c => ({ usd: Math.round(c.total_dollars_obligated), agency: c.funding_agency_name, what: c.award_description, date: String(c.action_date).slice(0, 10) })) },
       lobbying_by_quarter: x.quarters.map(q => ({ quarter: q.key, usd: q.value })),
-      dark_pool_dpi: x.dp.length ? { latest: +(+x.dp.at(-1).dpi).toFixed(3), avg_20d: avg(x.dp.slice(-20)), avg_60d: avg(x.dp) } : 'unavailable',
       insider_sentiment_by_quarter: (o.insider_sentiment_by_quarter || []).map(q => ({ quarter: q.quarter, value: q.sentiment })),
       institutional_13f: o.institutional_summary || 'unavailable',
       news: (cur.data.news || []).slice(0, 6).map(n => ({ date: String(n.datetime || '').slice(0, 10), type: NEWS_CAT[n.category] || n.category, headline: n.headline }))
@@ -341,8 +329,6 @@ export function createDossierView(ctx) {
     }
     const lob = $('#dz-lob', el);
     if (lob) columns(lob, x.quarters, { label: 'Lobbying spend by quarter' });
-    const dp = $('#dz-dp', el);
-    if (dp) lineChart(dp, x.dp, { value: r => +r.dpi, tip: r => `${fmtDate(r.date)}\nDPI ${(r.dpi * 100).toFixed(1)}%\nShort ${fmtInt(r.dp_short)} of ${fmtInt(r.dp_total)} shares`, label: 'Daily DPI' });
     const sent = $('#dz-sent', el);
     if (sent) diverging(sent, (cur.data.ownership.insider_sentiment_by_quarter || []).filter(q => q && q.quarter).slice(-8).map(q => ({ label: String(q.quarter).replace(/^(\d{2})(\d{2})/, '’$2 '), value: +q.sentiment || 0 })), { label: 'Insider sentiment' });
   }

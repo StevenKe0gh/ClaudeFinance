@@ -13,7 +13,6 @@ export const TOOLS = Object.freeze({
   insider: 'get_insider_trading',
   contracts: 'get_gov_contracts',
   lobbying: 'get_lobbying',
-  darkpool: 'get_dark_pool',
   news: 'get_quiver_newsfeed',
   ownership: 'get_ticker_ownership',
   politician: 'get_congress_politician',

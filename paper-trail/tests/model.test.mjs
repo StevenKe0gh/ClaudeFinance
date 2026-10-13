@@ -4,7 +4,6 @@ import { cleanInsider, cleanCongress, roleOf, amountRange } from '../src/model/c
 import { insiderPatterns } from '../src/model/patterns.js';
 import { buildSignals, DEFAULT_MODEL, tierOf, PRESETS, FACTORS } from '../src/model/score.js';
 import { allocate } from '../src/model/allocate.js';
-import { buildGraph } from '../src/model/graph.js';
 
 const AS_OF = '2026-10-09';
 const buy = (o) => ({ transaction_type: 'P', acquired_disposed: 'A', file_date: o.date, shares_owned_after: 10000 + o.shares, is_director: false, is_officer: true, officer_title: 'Chief Executive Officer', ...o });
@@ -142,14 +141,3 @@ test('allocate respects reserve and per-position cap and reports idle cash', () 
   assert.ok(Math.abs(eq.effectiveN - 5) < 1e-9);
 });
 
-test('buildGraph links buyers to tickers and computes degree', () => {
-  const { insider, congress } = fixture();
-  const sigs = buildSignals({ insiderBuys: insider, congressRows: congress, asOf: AS_OF, windowDays: 30, model: DEFAULT_MODEL });
-  const g = buildGraph(sigs);
-  const rwt = g.nodes.find(n => n.id === 't:RWT');
-  assert.equal(rwt.degree, 5);
-  assert.ok(g.nodes.some(n => n.type === 'member'));
-  assert.ok(g.links.every(l => g.nodes.some(n => n.id === l.source) && g.nodes.some(n => n.id === l.target)));
-  const noFunds = buildGraph(sigs, { includeFunds: false });
-  assert.ok(!noFunds.nodes.some(n => n.type === 'fund'));
-});

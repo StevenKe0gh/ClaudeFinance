@@ -20,7 +20,7 @@ const STAGES = [
 
 /**
  * Ingest → clean → score → enrich. Each stage reports status, row counts
- * and timing into the store for the status bar and the Lineage view.
+ * and timing into the store for the status bar.
  * A newer run supersedes an older one (generation counter).
  */
 export function createPipeline({ store, quiver }) {

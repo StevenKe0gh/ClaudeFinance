@@ -10,14 +10,11 @@ It runs as a claude.ai artifact on the viewer's own Quiver Quant connector, so t
 | **Briefing** | The morning page: the daily brief, today's strongest signals with price moves, changes since yesterday, alerts on your holdings, and the daily job's status with a **Run now** button |
 | **Signals** | A ranked screen with filters, a score breakdown for any row, and daily activity you can drag to filter by date |
 | **Policy** | Bills and federal money that move stocks. **Who profits?** traces an event or policy (say, a US–Russia diesel deal) to the US-listed companies likely to gain or lose: Claude searches bills, checks each candidate's federal awards, lobbying and buying in your screen, and draws the money flow with confidence and evidence per company. Below it: companies where new bills or large awards meet congressional or insider buying, your depot or your plan (a bill's own sponsor trading the company comes first); the largest federal awards of the last 60 days; the newest bills that name companies; and topic watches that follow bills through five stages from introduction to law |
-| **Link analysis** | A force-directed graph of tickers, insiders and members of Congress; people tied to several tickers stand out as bridges |
-| **Dossier** | One ticker in depth: timeline, insider and Congress ledgers, federal awards, lobbying, off-exchange volume, ownership, news, and a memo from Claude |
-| **Member** | A member of Congress: net worth, a year of trades, late filings, overlap with current signals |
-| **Model** | Tune factor weights, recency half-life and tier cut-offs, and see rank changes against the default |
+| **Dossier** | Opens when you click a company. One ticker in depth: timeline, insider and Congress ledgers, federal awards, lobbying, ownership, news, and a memo from Claude |
+| **Member** | Opens when you click a member of Congress: net worth, a year of trades, late filings, overlap with current signals |
 | **Holdings** | Your Finanzfluss depot with logos, weights and gains; every US-listed holding checked against 90 days of insider filings and a year of congressional trades |
 | **Trade review** | What your own transactions show: what you did well, what cost you money and what to watch, each with the trades behind it and a euro impact; plus a coaching note from Claude |
 | **Plan** | Size a budget across your picks with a cash reserve and a per-position cap; keep notes; export CSV |
-| **Lineage** | Pipeline stages, data-quality drops, runtime capabilities and every request made to Quiver |
 
 ### Buying from Germany
 

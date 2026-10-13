@@ -10,12 +10,9 @@ import { html, mount, on, $, markdown } from './ui/html.js';
 import { ICON } from './ui/icons.js';
 import { installTooltips, toast, openPalette, openDrawer, openModal, closeTop, overlayOpen } from './ui/overlay.js';
 import { createSignalsView, DEFAULT_FILTERS } from './views/signals.js';
-import { createGraphView } from './views/graph.js';
 import { createDossierView } from './views/dossier.js';
 import { createMemberView } from './views/member.js';
-import { createModelView } from './views/model.js';
 import { createPortfolioView } from './views/portfolio.js';
-import { createLineageView } from './views/lineage.js';
 import { createBriefingView } from './views/briefing.js';
 import { createRadarView } from './views/radar.js';
 import { createHoldingsView } from './views/holdings.js';
@@ -34,14 +31,12 @@ const NAV = [
   { key: 'briefing', label: 'Briefing', icon: ICON.briefing, go: 'o' },
   { key: 'signals', label: 'Signals', icon: ICON.signals, go: 's' },
   { key: 'policy', label: 'Policy', icon: ICON.policy, go: 'w' },
-  { key: 'graph', label: 'Link analysis', icon: ICON.graph, go: 'g' },
-  { key: 'dossier', label: 'Dossier', icon: ICON.dossier, go: 'd' },
-  { key: 'member', label: 'Member', icon: ICON.member, go: 'c' },
   { key: 'holdings', label: 'Holdings', icon: ICON.holdings, go: 'h', sep: true },
   { key: 'trades', label: 'Trade review', icon: ICON.trades, go: 't' },
   { key: 'portfolio', label: 'Plan', icon: ICON.portfolio, go: 'p' },
-  { key: 'model', label: 'Model', icon: ICON.model, go: 'm', bottom: true },
-  { key: 'lineage', label: 'Lineage', icon: ICON.lineage, go: 'l', bottom: true }
+  // Opened from a company or a member's name, so not on the rail.
+  { key: 'dossier', label: 'Dossier', icon: ICON.dossier, go: 'd', hidden: true },
+  { key: 'member', label: 'Member', icon: ICON.member, go: 'c', hidden: true }
 ];
 const JOB_SERVER = 'Claude Code Remote';
 const STALE_MS = 6 * 3600e3;
@@ -106,7 +101,6 @@ const ctx = {
   },
   openDossier(ticker) { nav('dossier', { ticker }); },
   openMember(name, bioguide) { nav('member', { name, bioguide }); },
-  showGraph(ticker) { nav('graph'); if (ticker) views.graph.focus(ticker); },
   toggleWatch(ticker) {
     const st = store.get();
     const has = st.workspace.watch.some(w => w.ticker === ticker);
@@ -186,18 +180,15 @@ const views = {
   briefing: createBriefingView(ctx),
   signals: createSignalsView(ctx),
   policy: createPolicyView(ctx),
-  graph: createGraphView(ctx),
   dossier: createDossierView(ctx),
   member: createMemberView(ctx),
-  model: createModelView(ctx),
   portfolio: createPortfolioView(ctx),
   holdings: createHoldingsView(ctx),
-  trades: createTradesView(ctx),
-  lineage: createLineageView(ctx)
+  trades: createTradesView(ctx)
 };
 for (const v of Object.values(views)) { v.el.hidden = true; main.appendChild(v.el); }
 
-mount($('#rail'), html`${NAV.filter(n => !n.bottom).map(railButton)}<span class="spacer"></span>${NAV.filter(n => n.bottom).map(railButton)}`);
+mount($('#rail'), html`${NAV.filter(n => !n.hidden).map(railButton)}`);
 function railButton(n) {
   return html`${n.sep ? html`<span class="rail-sep" aria-hidden="true"></span>` : ''}<button type="button" data-nav="${n.key}" data-tip="${`${n.label}  ·  G then ${n.go.toUpperCase()}`}" aria-label="${n.label}">${n.icon}<span class="rail-label">${n.label}</span></button>`;
 }
@@ -273,7 +264,6 @@ on(document, 'click', '[data-nav]', (_, b) => nav(b.dataset.nav));
 on(document, 'click', '[data-open]', (ev, b) => { ev.preventDefault(); closeTop(); ctx.openDossier(b.dataset.open); });
 on(document, 'click', '[data-member]', (ev, b) => { ev.preventDefault(); ctx.openMember(b.dataset.member); });
 on(document, 'click', '[data-watch]', (ev, b) => { ev.stopPropagation(); ctx.toggleWatch(b.dataset.watch); });
-on(document, 'click', '[data-graph]', (_, b) => ctx.showGraph(b.dataset.graph));
 on(document, 'click', '[data-buy-mark]', (ev, b) => { ev.stopPropagation(); const [t, br, v] = b.dataset.buyMark.split('|'); ctx.markBuy(t, br, v); });
 on(document, 'click', '[data-brokers]', ev => { ev.preventDefault(); openBrokers(); });
 $('#omni').addEventListener('click', () => openPalette(paletteItems));
@@ -309,7 +299,7 @@ function showShortcuts() {
     title: 'Keyboard shortcuts',
     content: html`<dl class="shortcuts">
       ${k('⌘', 'K')}<dd>Command palette (also <kbd>/</kbd>)</dd>
-      ${NAV.map(n => html`${k('G', n.go.toUpperCase())}<dd>${n.label}</dd>`)}
+      ${NAV.filter(n => !n.hidden).map(n => html`${k('G', n.go.toUpperCase())}<dd>${n.label}</dd>`)}
       ${k('←', '→')}<dd>Radar: previous or next company</dd>${k('A')}<dd>Radar: add the focused company to the plan</dd>${k('X')}<dd>Radar: skip it until it files something new</dd>${k('J')}<dd>Next signal</dd>${k('K')}<dd>Previous signal</dd>${k('Enter')}<dd>Open dossier for the selected signal</dd>${k('W')}<dd>Add or remove the selected signal from the plan</dd>
       ${k('B')}<dd>Desk brief from Claude</dd>${k('R')}<dd>Refresh from Quiver</dd>${k('Esc')}<dd>Close the top panel</dd></dl>`
   });
@@ -318,7 +308,7 @@ function showShortcuts() {
 function paletteItems() {
   const st = store.get();
   const items = [];
-  for (const n of NAV) items.push({ kind: 'Go to', label: n.label, hint: `G ${n.go.toUpperCase()}`, rank: 3, run: () => nav(n.key) });
+  for (const n of NAV.filter(x => !x.hidden)) items.push({ kind: 'Go to', label: n.label, hint: `G ${n.go.toUpperCase()}`, rank: 3, run: () => nav(n.key) });
   items.push({ kind: 'Action', label: 'Refresh from Quiver', hint: 'R', rank: 2, run: () => ctx.runPipeline({ refresh: true }) });
   items.push({ kind: 'Action', label: 'Desk brief from Claude', hint: 'B', rank: 2, run: openBrief });
   items.push({ kind: 'Action', label: 'Who profits? Trace an event with Claude', hint: 'Policy', rank: 2, run: () => { nav('policy'); views.policy.trace(''); } });

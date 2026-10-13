@@ -5,7 +5,7 @@ import { parseResult } from './normalize.js';
 /**
  * Connector client around claude.use("mcp"): bounded concurrency, one retry
  * for retryable failures, response caching through the runtime, truncation-
- * aware paging, date sharding, and a request log that powers the Lineage view.
+ * aware paging, date sharding, and a request log for the status bar.
  */
 export function createConnector({ getMcp, maxLog = 400 }) {
   const run = limiter(CONCURRENCY);
