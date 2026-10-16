@@ -17,7 +17,6 @@ It runs as a claude.ai artifact on the viewer's own Quiver Quant connector, so t
 | **Member** | Opens when you click a member of Congress: net worth, a year of trades, late filings, overlap with current signals |
 | **Holdings** | Your Finanzfluss depot with logos, weights and gains; every US-listed holding checked against 90 days of insider filings and a year of congressional trades |
 | **Trade review** | What your own transactions show: what you did well, what cost you money and what to watch, each with the trades behind it and a euro impact; plus a coaching note from Claude |
-| **Plan** | Size a budget across your picks with a cash reserve and a per-position cap; keep notes; export CSV |
 
 ### Congress holdings
 

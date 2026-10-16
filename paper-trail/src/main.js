@@ -12,7 +12,6 @@ import { installTooltips, toast, openPalette, openDrawer, openModal, closeTop, o
 import { createSignalsView, DEFAULT_FILTERS } from './views/signals.js';
 import { createDossierView } from './views/dossier.js';
 import { createMemberView } from './views/member.js';
-import { createPortfolioView } from './views/portfolio.js';
 import { createBriefingView } from './views/briefing.js';
 import { createRadarView } from './views/radar.js';
 import { createHoldingsView } from './views/holdings.js';
@@ -30,6 +29,7 @@ import { setLogos, nameOf } from './ui/brand.js';
 import { deskBriefPrompt, sampleErrorCopy, streamInto } from './ai/claude.js';
 import { brokerSettings, brokerForm, buyOf } from './ui/brokers.js';
 import { BROKERS } from './model/brokers.js';
+import { METHODS } from './model/allocate.js';
 
 const NAV = [
   { key: 'home', label: 'Home', icon: ICON.home, go: 'm' },
@@ -41,7 +41,6 @@ const NAV = [
   { key: 'families', label: 'Trump and Kushner', icon: ICON.family, go: 'f' },
   { key: 'holdings', label: 'Holdings', icon: ICON.holdings, go: 'h', sep: true },
   { key: 'trades', label: 'Trade review', icon: ICON.trades, go: 't' },
-  { key: 'portfolio', label: 'Plan', icon: ICON.portfolio, go: 'p' },
   // Opened from a company or a member's name, so not on the rail.
   { key: 'dossier', label: 'Dossier', icon: ICON.dossier, go: 'd', hidden: true },
   { key: 'member', label: 'Member', icon: ICON.member, go: 'c', hidden: true }
@@ -59,7 +58,7 @@ const store = createStore({
   cloud: { status: 'pending' },
   holdingChecks: null,
   portfolioLocalAt: 0,
-  caps: { mcp: 'pending', sample: 'pending', db: 'pending', downloads: 'pending' },
+  caps: { mcp: 'pending', sample: 'pending', db: 'pending' },
   windowDays: 30,
   model: { ...DEFAULT_MODEL, weights: { ...DEFAULT_MODEL.weights }, tiers: { ...DEFAULT_MODEL.tiers } },
   pipeline: { status: 'idle', stages: [], startedAt: null, finishedAt: null, error: null },
@@ -107,7 +106,7 @@ const workspace = createWorkspace({
 let firstRunDone = false;
 const ctx = {
   store, conn, quiver, pipeline, workspace, cloud, portfolio, policy, whales, congress,
-  caps: { sample: null, downloads: null },
+  caps: { sample: null },
   async runPipeline(opts = {}) {
     if (!mcp) { toast('Live data needs the claude.ai viewer with the Quiver Quant connector.', 'error'); return; }
     await pipeline.run(opts);
@@ -207,7 +206,6 @@ const views = {
   families: createFamiliesView(ctx),
   dossier: createDossierView(ctx),
   member: createMemberView(ctx),
-  portfolio: createPortfolioView(ctx),
   holdings: createHoldingsView(ctx),
   trades: createTradesView(ctx)
 };
@@ -289,6 +287,7 @@ function chrome(st) {
 installTooltips();
 on(document, 'click', '[data-nav]', (_, b) => nav(b.dataset.nav));
 on(document, 'click', '[data-open]', (ev, b) => { ev.preventDefault(); closeTop(); ctx.openDossier(b.dataset.open); });
+on(document, 'click', '[data-plan-settings]', ev => { ev.preventDefault(); openPlanSettings(); });
 on(document, 'click', '[data-member]', (ev, b) => { ev.preventDefault(); ctx.openMember(b.dataset.member, b.dataset.bioguide || null); });
 on(document, 'click', '[data-watch]', (ev, b) => { ev.stopPropagation(); ctx.toggleWatch(b.dataset.watch); });
 on(document, 'click', '[data-buy-mark]', (ev, b) => { ev.stopPropagation(); const [t, br, v] = b.dataset.buyMark.split('|'); ctx.markBuy(t, br, v); });
@@ -357,6 +356,24 @@ function paletteItems() {
 }
 
 /* ---------- Brokers ---------- */
+/** Budget, cash reserve, cap per stock and sizing for the plan strip on the radar. */
+function openPlanSettings() {
+  const p = store.get().workspace.portfolio;
+  openModal({ title: 'Plan settings', content: html`<div class="form-grid plan-form">
+    <div class="field full"><label class="label" for="pl-capital">Cash to invest ($)</label><input class="input" type="number" id="pl-capital" min="100" step="100" value="${p.capital}"></div>
+    <div class="field"><label class="label" for="pl-reserve">Cash reserve (%)</label><input class="input" type="number" id="pl-reserve" min="0" max="80" step="5" value="${p.reserve}"></div>
+    <div class="field"><label class="label" for="pl-cap">Max per stock (%)</label><input class="input" type="number" id="pl-cap" min="5" max="100" step="5" value="${p.cap}"></div>
+    <div class="field full"><label class="label" for="pl-method">Sizing</label><select class="input" id="pl-method">${Object.entries(METHODS).map(([k, m]) => html`<option value="${k}" ${p.method === k ? 'selected' : ''}>${m.label}</option>`)}</select><span class="hint">${METHODS[p.method]?.desc || ''}</span></div>
+  </div>` });
+  const box = document.querySelector('.plan-form');
+  if (!box) return;
+  const num = (v, d, lo, hi) => { const x = parseFloat(v); return Number.isFinite(x) ? Math.max(lo, Math.min(hi, x)) : d; };
+  box.addEventListener('change', () => {
+    const v = id => box.querySelector(id).value;
+    workspace.update({ portfolio: { ...store.get().workspace.portfolio, capital: num(v('#pl-capital'), 10000, 100, 1e9), reserve: num(v('#pl-reserve'), 10, 0, 80), cap: num(v('#pl-cap'), 20, 5, 100), method: v('#pl-method') } });
+  });
+}
+
 function openBrokers() {
   openModal({ title: 'Your brokers', content: brokerForm(store.get()) });
   const box = document.querySelector('.buy-form');
@@ -421,7 +438,7 @@ function boot() {
   const C = window.claude;
   const setCap = (k, v) => store.set({ caps: { ...store.get().caps, [k]: v } });
   if (!C || typeof C.use !== 'function') {
-    store.set({ caps: { mcp: 'off', sample: 'off', db: 'off', downloads: 'off' } });
+    store.set({ caps: { mcp: 'off', sample: 'off', db: 'off' } });
     cloud.attach(null);
     landOnHome();
     return;
@@ -433,7 +450,6 @@ function boot() {
     else landOnHome();
   }).catch(() => { setCap('mcp', 'off'); landOnHome(); });
   C.use('sample').then(s => { ctx.caps.sample = s; setCap('sample', s ? 'on' : 'off'); }).catch(() => setCap('sample', 'off'));
-  C.use('downloads').then(d => { ctx.caps.downloads = d; setCap('downloads', d ? 'on' : 'off'); }).catch(() => setCap('downloads', 'off'));
   Promise.all([C.use('db').catch(() => null), C.use('user').catch(() => null)]).then(([db, user]) => {
     setCap('db', db ? 'on' : 'off');
     workspace.attach(db, user);

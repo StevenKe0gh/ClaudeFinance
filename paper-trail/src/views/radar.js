@@ -50,7 +50,7 @@ export function createRadarView(ctx) {
     <section class="panel rd-plan"><div class="rd-plan-row">
       <div class="rd-plan-l"><span class="label">Your plan</span><b id="rd-plan-cap"></b><span class="xs muted" id="rd-plan-src"></span></div>
       <div class="rd-plan-main" id="rd-plan"></div>
-      <button class="btn ghost sm" type="button" data-nav="portfolio" data-tip="Change the amount, cash reserve, cap and sizing method">Adjust</button>
+      <button class="btn ghost sm" type="button" data-plan-settings data-tip="Change the amount, cash reserve, cap and sizing method">Adjust</button>
     </div></section>
     <div class="rd-grid">
       <section class="panel rd-stage-panel">

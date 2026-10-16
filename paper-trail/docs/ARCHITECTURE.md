@@ -8,7 +8,6 @@ flowchart LR
     MCP["mcp: Quiver Quant connector"]
     SAMPLE["sample: Claude"]
     DB["db + user: workspace, depot, daily data"]
-    DL["downloads: CSV export"]
     CCR["mcp: Claude Code Remote (fire_trigger)"]
   end
   subgraph Job["daily job (Claude Code routine, 07:47 Berlin)"]
@@ -33,7 +32,6 @@ flowchart LR
   STORE <--> PERSIST <--> DB
   DB --> CLOUD --> STORE
   CLOUD --> PF --> VIEWS
-  VIEWS --> DL
   VIEWS -->|Run now| CCR --> Job
   JQ --> JW
   JS --> JW --> DB
@@ -116,11 +114,10 @@ Logos cannot be hot-linked (the page may only load scripts from approved CDNs, a
 ```json
 {
   "mcp": { "servers": [
-    { "server": "Quiver Quant", "tools": ["get_congress_trades", "get_insider_trading", "get_gov_contracts", "get_lobbying", "get_quiver_newsfeed", "get_ticker_ownership", "get_congress_politician", "get_congress_legislation"] },
+    { "server": "Quiver Quant", "tools": ["get_congress_trades", "get_insider_trading", "get_gov_contracts", "get_lobbying", "get_quiver_newsfeed", "get_ticker_ownership", "get_congress_politician", "get_congress_legislation", "get_trump_trades"] },
     { "server": "Claude Code Remote", "tools": ["fire_trigger"] }
   ] },
   "sample": {},
-  "downloads": true,
   "db": { "rules": [
     { "path": "", "read": "view", "write": "admin" },
     { "path": "portfolio", "read": "owner", "write": "owner" },
