@@ -183,3 +183,18 @@ session's title bar, choose Edit, and under Network access add both hosts to
 Allowed domains (keep "Allow package managers" ticked). See
 https://code.claude.com/docs/en/cloud-environments#network-access. Quotes come
 from GitHub and need no change.
+
+## Insider filings without Quiver
+
+`jobs/edgar.mjs` reads one day of Form 4 filings straight from SEC EDGAR and
+writes the same rows `get_insider_trading` returns, so the page and the brief
+can run on public data alone:
+
+```
+SEC_USER_AGENT="<name> <contact email>" node jobs/edgar.mjs --date 2026-10-15 --codes P --out /tmp/pt/form4.json
+```
+
+The SEC requires a User-Agent with a contact address and at most 10 requests
+a second (the script stays under 8). A day has a few thousand filings, so a
+run takes several minutes. `sec.gov` must be on the environment's network
+allowlist; it is not yet, so the routine still uses Quiver.

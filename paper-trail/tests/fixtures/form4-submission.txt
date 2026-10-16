@@ -1,0 +1,104 @@
+<SEC-DOCUMENT>0000000000-26-000001.txt : 20261015
+<SEC-HEADER>0000000000-26-000001.hdr.sgml : 20261015
+ACCESSION NUMBER:		0000000000-26-000001
+CONFORMED SUBMISSION TYPE:	4
+</SEC-HEADER>
+<DOCUMENT>
+<TYPE>4
+<SEQUENCE>1
+<FILENAME>form4.xml
+<TEXT>
+<XML>
+<?xml version="1.0"?>
+<ownershipDocument>
+    <schemaVersion>X0508</schemaVersion>
+    <documentType>4</documentType>
+    <periodOfReport>2026-10-14</periodOfReport>
+    <notSubjectToSection16>0</notSubjectToSection16>
+    <issuer>
+        <issuerCik>0000000001</issuerCik>
+        <issuerName>Example Drilling Ltd</issuerName>
+        <issuerTradingSymbol>borr</issuerTradingSymbol>
+    </issuer>
+    <reportingOwner>
+        <reportingOwnerId>
+            <rptOwnerCik>0000000002</rptOwnerCik>
+            <rptOwnerName>Troim Tor Olav</rptOwnerName>
+        </reportingOwnerId>
+        <reportingOwnerRelationship>
+            <isDirector>true</isDirector>
+            <isOfficer>false</isOfficer>
+            <isTenPercentOwner>false</isTenPercentOwner>
+            <isOther>false</isOther>
+        </reportingOwnerRelationship>
+    </reportingOwner>
+    <reportingOwner>
+        <reportingOwnerId>
+            <rptOwnerCik>0000000003</rptOwnerCik>
+            <rptOwnerName>Magni Partners &amp; Co</rptOwnerName>
+        </reportingOwnerId>
+        <reportingOwnerRelationship>
+            <isDirector>0</isDirector>
+            <isOfficer>0</isOfficer>
+            <isTenPercentOwner>1</isTenPercentOwner>
+            <isOther>0</isOther>
+        </reportingOwnerRelationship>
+    </reportingOwner>
+    <nonDerivativeTable>
+        <nonDerivativeTransaction>
+            <securityTitle><value>Common Shares</value></securityTitle>
+            <transactionDate><value>2026-10-13</value></transactionDate>
+            <transactionCoding>
+                <transactionFormType>4</transactionFormType>
+                <transactionCode>P</transactionCode>
+                <equitySwapInvolved>0</equitySwapInvolved>
+            </transactionCoding>
+            <transactionAmounts>
+                <transactionShares><value>1500000</value></transactionShares>
+                <transactionPricePerShare><value>4.9344</value><footnoteId id="F1"/></transactionPricePerShare>
+                <transactionAcquiredDisposedCode><value>A</value></transactionAcquiredDisposedCode>
+            </transactionAmounts>
+            <postTransactionAmounts>
+                <sharesOwnedFollowingTransaction><value>38867808</value></sharesOwnedFollowingTransaction>
+            </postTransactionAmounts>
+            <ownershipNature>
+                <directOrIndirectOwnership><value>I</value></directOrIndirectOwnership>
+                <natureOfOwnership><value>By Magni Partners</value></natureOfOwnership>
+            </ownershipNature>
+        </nonDerivativeTransaction>
+        <nonDerivativeTransaction>
+            <securityTitle><value>Common Shares</value></securityTitle>
+            <transactionDate><value>2026-10-14</value></transactionDate>
+            <transactionCoding>
+                <transactionFormType>4</transactionFormType>
+                <transactionCode>P</transactionCode>
+                <equitySwapInvolved>0</equitySwapInvolved>
+            </transactionCoding>
+            <transactionAmounts>
+                <transactionShares><value>750,000</value></transactionShares>
+                <transactionPricePerShare><value>4.7234</value></transactionPricePerShare>
+                <transactionAcquiredDisposedCode><value>A</value></transactionAcquiredDisposedCode>
+            </transactionAmounts>
+            <postTransactionAmounts>
+                <sharesOwnedFollowingTransaction><value>39617808</value></sharesOwnedFollowingTransaction>
+            </postTransactionAmounts>
+            <ownershipNature>
+                <directOrIndirectOwnership><value>I</value></directOrIndirectOwnership>
+            </ownershipNature>
+        </nonDerivativeTransaction>
+    </nonDerivativeTable>
+    <derivativeTable>
+        <derivativeTransaction>
+            <securityTitle><value>Stock Option</value></securityTitle>
+            <transactionDate><value>2026-10-14</value></transactionDate>
+            <transactionCoding><transactionFormType>4</transactionFormType><transactionCode>A</transactionCode></transactionCoding>
+        </derivativeTransaction>
+    </derivativeTable>
+    <footnotes>
+        <footnote id="F1">Weighted average price; trades from $4.90 to $4.97.</footnote>
+    </footnotes>
+</ownershipDocument>
+</XML>
+</TEXT>
+</DOCUMENT>
+</SEC-DOCUMENT>
