@@ -16,7 +16,8 @@ export const TOOLS = Object.freeze({
   news: 'get_quiver_newsfeed',
   ownership: 'get_ticker_ownership',
   politician: 'get_congress_politician',
-  legislation: 'get_congress_legislation'
+  legislation: 'get_congress_legislation',
+  trump: 'get_trump_trades'
 });
 
 /**

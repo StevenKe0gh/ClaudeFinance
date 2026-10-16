@@ -18,6 +18,10 @@ import { createRadarView } from './views/radar.js';
 import { createHoldingsView } from './views/holdings.js';
 import { createTradesView } from './views/trades.js';
 import { createPolicyView } from './views/policy.js';
+import { createCongressView } from './views/congress.js';
+import { createHomeView } from './views/home.js';
+import { createFamiliesView } from './views/families.js';
+import { createCongress } from './app/congress.js';
 import { createPolicy, EMPTY_POLICY } from './app/policy.js';
 import { createWhales } from './app/whales.js';
 import { createCloud } from './app/cloud.js';
@@ -28,10 +32,13 @@ import { brokerSettings, brokerForm, buyOf } from './ui/brokers.js';
 import { BROKERS } from './model/brokers.js';
 
 const NAV = [
+  { key: 'home', label: 'Home', icon: ICON.home, go: 'm' },
   { key: 'radar', label: 'Radar', icon: ICON.radar, go: 'r' },
   { key: 'briefing', label: 'Briefing', icon: ICON.briefing, go: 'o' },
   { key: 'signals', label: 'Signals', icon: ICON.signals, go: 's' },
   { key: 'policy', label: 'Policy', icon: ICON.policy, go: 'w' },
+  { key: 'congress', label: 'Congress holdings', icon: ICON.senate, go: 'e' },
+  { key: 'families', label: 'Trump and Kushner', icon: ICON.family, go: 'f' },
   { key: 'holdings', label: 'Holdings', icon: ICON.holdings, go: 'h', sep: true },
   { key: 'trades', label: 'Trade review', icon: ICON.trades, go: 't' },
   { key: 'portfolio', label: 'Plan', icon: ICON.portfolio, go: 'p' },
@@ -65,6 +72,10 @@ const store = createStore({
   workspace: null,
   policy: { ...EMPTY_POLICY, topics: {} },
   whales: { v: 0 },
+  holdSenate: {},
+  holdHouse: {},
+  trump: {},
+  influence: {},
   session: { lastSeenPrev: null }
 });
 
@@ -76,6 +87,7 @@ const cloud = createCloud({ store });
 const portfolio = createPortfolio({ store, quiver, cloud });
 const policy = createPolicy({ store, quiver });
 const whales = createWhales({ store, quiver });
+const congress = createCongress({ store, quiver, cloud });
 const workspace = createWorkspace({
   store,
   onRemote: (ws, changed) => { if (changed.includes('model') && validModel(ws.model)) { store.set({ model: ws.model }); pipeline.recompute(); } },
@@ -94,7 +106,7 @@ const workspace = createWorkspace({
 /* ---------- Context shared with views ---------- */
 let firstRunDone = false;
 const ctx = {
-  store, conn, quiver, pipeline, workspace, cloud, portfolio, policy, whales,
+  store, conn, quiver, pipeline, workspace, cloud, portfolio, policy, whales, congress,
   caps: { sample: null, downloads: null },
   async runPipeline(opts = {}) {
     if (!mcp) { toast('Live data needs the claude.ai viewer with the Quiver Quant connector.', 'error'); return; }
@@ -186,10 +198,13 @@ const saveModel = debounce(model => workspace.update({ model }), 600);
 /* ---------- Views and navigation ---------- */
 const main = $('#main');
 const views = {
+  home: createHomeView(ctx),
   radar: createRadarView(ctx),
   briefing: createBriefingView(ctx),
   signals: createSignalsView(ctx),
   policy: createPolicyView(ctx),
+  congress: createCongressView(ctx),
+  families: createFamiliesView(ctx),
   dossier: createDossierView(ctx),
   member: createMemberView(ctx),
   portfolio: createPortfolioView(ctx),
@@ -258,12 +273,12 @@ function chrome(st) {
   const p = st.pipeline;
   const s = st.caps.mcp === 'off' ? 'error' : p.status === 'running' ? 'running' : p.status === 'error' ? 'error' : p.status === 'done' ? 'live' : 'wait';
   feed.dataset.s = s;
-  $('#feed-t').textContent = st.caps.mcp === 'off' ? 'Offline' : p.status === 'running' ? 'Syncing' : p.status === 'error' ? 'Sync failed' : p.status === 'done' ? `Live · ${fmtClock(p.finishedAt)}` : 'Connecting';
-  mount($('#sb-conn'), html`Quiver: <b>${st.caps.mcp === 'on' ? 'connected' : st.caps.mcp}</b>`);
-  mount($('#sb-model'), html`Model: <b>${APP.model}/${st.model.preset}</b> · window <b>${st.windowDays}d</b>`);
+  $('#feed-t').textContent = st.caps.mcp === 'off' ? 'Saved data' : p.status === 'running' ? 'Syncing' : p.status === 'error' ? 'Sync failed' : p.status === 'done' ? `Live · ${fmtClock(p.finishedAt)}` : 'Connecting';
+  mount($('#sb-conn'), html`Data: <b>${st.caps.mcp === 'on' ? 'live from Quiver Quant' : st.caps.mcp === 'off' ? 'latest saved run' : 'connecting'}</b>`);
+  mount($('#sb-model'), html`<span data-tip="${`Model ${APP.model} · preset ${st.model.preset}`}">Ranking: <b>${(PRESETS[st.model.preset] && PRESETS[st.model.preset].label) || st.model.preset}</b> · last <b>${st.windowDays} days</b></span>`);
   const q = st.cloud?.quotes;
-  mount($('#sb-cloud'), st.cloud?.status === 'on' ? html`Prices: <b>${q?.asOf ? fmtDate(q.asOf, { year: false }) : 'none yet'}</b> · logos <b>${fmtInt(st.cloud.logoCount || 0)}</b>${st.cloud.job ? html` · job <b>${st.cloud.job.state}</b>` : ''}` : '');
-  mount($('#sb-rows'), st.data ? html`Rows: <b>${fmtInt(st.data.insiderBuys.length + st.data.congressRows.length)}</b> · tickers <b>${fmtInt(st.signals.length)}</b> · requests <b>${fmtInt(conn.log.length)}</b>` : '');
+  mount($('#sb-cloud'), st.cloud?.status === 'on' ? html`<span data-tip="${`${fmtInt(st.cloud.logoCount || 0)} logos${st.cloud.job ? ` · daily job ${st.cloud.job.state}: ${st.cloud.job.message || ''}` : ''}`}">Quotes: <b>${q?.asOf ? fmtDate(q.asOf, { year: false }) : 'none yet'}</b>${st.cloud.job && st.cloud.job.state !== 'ok' && st.cloud.job.state !== 'running' ? html` · daily job <b class="sb-warn">${st.cloud.job.state}</b>` : ''}</span>` : '');
+  mount($('#sb-rows'), st.data ? html`<span data-tip="${`${fmtInt(st.data.insiderBuys.length + st.data.congressRows.length)} filings read · ${fmtInt(conn.log.length)} requests to Quiver`}"><b>${fmtInt(st.signals.length)}</b> companies scored</span>` : '');
   const enr = p.stages.find(x => x.key === 'enrich');
   const ws = st.wsSync || { mode: workspace.mode, pending: 0 };
   const wsText = { synced: html`settings <b>synced</b>`, saving: html`settings <b>saving…</b>`, retrying: html`<b class="sb-warn" data-tip="${ws.error || ''}">settings not synced · retrying (${ws.pending})</b>`, error: html`<b class="sb-warn" data-tip="${ws.error || ''}">settings on this device only</b>` }[ws.mode] || html`settings <b>on this device</b>`;
@@ -274,7 +289,7 @@ function chrome(st) {
 installTooltips();
 on(document, 'click', '[data-nav]', (_, b) => nav(b.dataset.nav));
 on(document, 'click', '[data-open]', (ev, b) => { ev.preventDefault(); closeTop(); ctx.openDossier(b.dataset.open); });
-on(document, 'click', '[data-member]', (ev, b) => { ev.preventDefault(); ctx.openMember(b.dataset.member); });
+on(document, 'click', '[data-member]', (ev, b) => { ev.preventDefault(); ctx.openMember(b.dataset.member, b.dataset.bioguide || null); });
 on(document, 'click', '[data-watch]', (ev, b) => { ev.stopPropagation(); ctx.toggleWatch(b.dataset.watch); });
 on(document, 'click', '[data-buy-mark]', (ev, b) => { ev.stopPropagation(); const [t, br, v] = b.dataset.buyMark.split('|'); ctx.markBuy(t, br, v); });
 on(document, 'click', '[data-brokers]', ev => { ev.preventDefault(); openBrokers(); });
@@ -387,11 +402,20 @@ function openBrief() {
 }
 
 /* ---------- Boot ---------- */
+/* A visitor without live data starts on the front page, not an empty radar, unless they asked for a view. */
+let landedOn = null;
+let askedFor = '';
+function landOnHome() {
+  if (!askedFor && store.get().view === landedOn) nav('home');
+}
+
 function boot() {
   const hash = (location.hash || '').slice(1);
+  askedFor = hash;
   const m = /^dossier-([A-Z0-9.\-]{1,8})$/.exec(hash);
   if (m) nav('dossier', { ticker: m[1] });
   else nav(NAV.some(n => n.key === hash) ? hash : 'radar');
+  landedOn = store.get().view;
   chrome(store.get());
 
   const C = window.claude;
@@ -399,13 +423,15 @@ function boot() {
   if (!C || typeof C.use !== 'function') {
     store.set({ caps: { mcp: 'off', sample: 'off', db: 'off', downloads: 'off' } });
     cloud.attach(null);
+    landOnHome();
     return;
   }
   C.use('mcp').then(m2 => {
     mcp = m2;
     setCap('mcp', m2 ? 'on' : 'off');
     if (m2) ctx.runPipeline();
-  }).catch(() => setCap('mcp', 'off'));
+    else landOnHome();
+  }).catch(() => { setCap('mcp', 'off'); landOnHome(); });
   C.use('sample').then(s => { ctx.caps.sample = s; setCap('sample', s ? 'on' : 'off'); }).catch(() => setCap('sample', 'off'));
   C.use('downloads').then(d => { ctx.caps.downloads = d; setCap('downloads', d ? 'on' : 'off'); }).catch(() => setCap('downloads', 'off'));
   Promise.all([C.use('db').catch(() => null), C.use('user').catch(() => null)]).then(([db, user]) => {

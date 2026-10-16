@@ -60,6 +60,18 @@ export function createQuiver(conn) {
     whaleNews: (query, { refresh } = {}) =>
       conn.call(TOOLS.news, { query, category: 'funds_automated', sort_by: 'datetime', sort_order: 'desc', limit: 15 }, { refresh, stage: 'whales' }),
 
+    /** Every trade one chamber disclosed, by trade date in [from, to], in shards fetched side by side. */
+    chamberTrades: ({ chamber, from, to, shardDays = 182, refresh }) =>
+      conn.sharded(TOOLS.congress,
+        { chamber, date_field: 'traded', sort_by: 'traded', sort_order: 'asc' },
+        { from, to, shardDays, pageSize: PAGE.congress, maxPages: 12, refresh, stage: 'congress-holdings' }),
+
+    /** President Trump's disclosed trades by trade date in [from, to], month by month. */
+    trumpTrades: ({ from, to, refresh }) =>
+      conn.sharded(TOOLS.trump,
+        { date_field: 'traded', sort_by: 'traded', sort_order: 'asc' },
+        { from, to, shardDays: 31, pageSize: PAGE.congress, maxPages: 12, refresh, stage: 'families' }),
+
     politician: ({ bioguideId, name, refresh }) =>
       conn.call(TOOLS.politician, bioguideId ? { bioguide_id: bioguideId } : { politician: name }, { refresh, stage: 'member' }),
 

@@ -140,7 +140,7 @@
   .rail .rail-sep, .rail .spacer { display: none; }
   .rail button[aria-current="page"]::before { left: 10px; right: 10px; top: 0; bottom: auto; width: auto; height: 2px; }
   .rail .spacer { display: none; }
-  .brand, .crumbs { display: none; }
+  .topbar .brand, .topbar .crumbs { display: none; }
   .topbar { gap: 8px; padding-right: 8px; overflow: hidden; }
   .omni { width: auto; flex: 1; margin-left: 4px; }
   .omni kbd { display: none; }

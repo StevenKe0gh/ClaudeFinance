@@ -46,7 +46,7 @@ flowchart LR
 | Core | `src/core/` | Config, date and number formatting, a tiny observable store, company names (`names.js`) and the bundled US company directory (`directory.js`, 6,600 listings built by `scripts/build-directory.mjs`). No DOM. |
 | Data | `src/data/` | Talking to the connector: response normalisation, paging, retries, request log. No DOM. |
 | Model | `src/model/` | Pure functions: cleaning, role classification, pattern detection, scoring, allocation, graph building, the Finanzfluss parser (`finanzfluss.js`), instrument mapping (`instruments.js`) and the trade review (`trades.js`). Fully unit-tested. |
-| App | `src/app/` | The pipeline that strings data and model together, workspace persistence, the database layer for the daily data (`cloud.js`) and the depot (`portfolio.js`). |
+| App | `src/app/` | The pipeline that strings data and model together, workspace persistence, the database layer for the daily data (`cloud.js`), the depot (`portfolio.js`), and `congress.js`, which loads Congress holdings per chamber, the President's trades and the influence map live and saves each under `public/` for visitors without the connector. |
 | UI | `src/ui/` | Escaping HTML templates, icons, charts (hand-written SVG), overlays (palette, drawer, modal, toasts, tooltips). |
 | Views | `src/views/` | One module per screen. Each exports `{ el, render(state, changedKeys), … }`. |
 | AI | `src/ai/` | Prompt builders and the streaming helper for Claude. |
