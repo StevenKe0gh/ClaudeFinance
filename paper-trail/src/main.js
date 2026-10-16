@@ -78,7 +78,12 @@ const policy = createPolicy({ store, quiver });
 const whales = createWhales({ store, quiver });
 const workspace = createWorkspace({
   store,
-  onRemote: ws => { if (validModel(ws.model)) { store.set({ model: ws.model }); pipeline.recompute(); } }
+  onRemote: (ws, changed) => { if (changed.includes('model') && validModel(ws.model)) { store.set({ model: ws.model }); pipeline.recompute(); } },
+  onStatus: (s, was) => {
+    if (s.mode === 'error') toast(`Your changes are saved on this device only: ${s.error}. Reload the page to try again.`, 'error');
+    else if (s.mode === 'retrying' && was !== 'retrying') toast('Could not sync your changes. Retrying; they are kept on this device meanwhile.', 'error');
+    else if (s.mode === 'synced' && (was === 'retrying' || was === 'error')) toast('Your changes are synced again', 'ok');
+  }
 });
 {
   const ws = store.get().workspace;
@@ -174,7 +179,8 @@ function maybeRefresh() {
   if (Date.now() - f > STALE_MS || isoDate(new Date(f)) !== isoDate()) ctx.runPipeline({ refresh: true });
 }
 setInterval(maybeRefresh, 10 * 60e3);
-document.addEventListener('visibilitychange', () => { if (!document.hidden) maybeRefresh(); });
+document.addEventListener('visibilitychange', () => { if (document.hidden) workspace.flush(); else maybeRefresh(); });
+window.addEventListener('pagehide', () => workspace.flush());
 const saveModel = debounce(model => workspace.update({ model }), 600);
 
 /* ---------- Views and navigation ---------- */
@@ -244,7 +250,7 @@ store.subscribe((st, changed) => {
     if (mcp && portfolio.derived() && ['briefing', 'holdings'].includes(st.view) && !st.holdingChecks) portfolio.check();
   }
   views[st.view].render(st, changed);
-  if (changed.some(k => ['pipeline', 'data', 'caps', 'model', 'signals', 'workspace', 'cloud'].includes(k))) chrome(st);
+  if (changed.some(k => ['pipeline', 'data', 'caps', 'model', 'signals', 'workspace', 'wsSync', 'cloud'].includes(k))) chrome(st);
 });
 
 function chrome(st) {
@@ -259,7 +265,9 @@ function chrome(st) {
   mount($('#sb-cloud'), st.cloud?.status === 'on' ? html`Prices: <b>${q?.asOf ? fmtDate(q.asOf, { year: false }) : 'none yet'}</b> · logos <b>${fmtInt(st.cloud.logoCount || 0)}</b>${st.cloud.job ? html` · job <b>${st.cloud.job.state}</b>` : ''}` : '');
   mount($('#sb-rows'), st.data ? html`Rows: <b>${fmtInt(st.data.insiderBuys.length + st.data.congressRows.length)}</b> · tickers <b>${fmtInt(st.signals.length)}</b> · requests <b>${fmtInt(conn.log.length)}</b>` : '');
   const enr = p.stages.find(x => x.key === 'enrich');
-  mount($('#sb-sync'), p.status === 'running' ? html`Pipeline: <b>running</b>` : enr && enr.status === 'running' ? html`Selling check <b>${enr.detail || ''}</b>` : p.finishedAt ? html`Synced <b>${fmtClock(p.finishedAt)}</b> · workspace <b>${workspace.mode}</b>` : '');
+  const ws = st.wsSync || { mode: workspace.mode, pending: 0 };
+  const wsText = { synced: html`settings <b>synced</b>`, saving: html`settings <b>saving…</b>`, retrying: html`<b class="sb-warn" data-tip="${ws.error || ''}">settings not synced · retrying (${ws.pending})</b>`, error: html`<b class="sb-warn" data-tip="${ws.error || ''}">settings on this device only</b>` }[ws.mode] || html`settings <b>on this device</b>`;
+  mount($('#sb-sync'), p.status === 'running' ? html`Pipeline: <b>running</b> · ${wsText}` : enr && enr.status === 'running' ? html`Selling check <b>${enr.detail || ''}</b> · ${wsText}` : p.finishedAt ? html`Synced <b>${fmtClock(p.finishedAt)}</b> · ${wsText}` : wsText);
 }
 
 /* ---------- Global interactions ---------- */

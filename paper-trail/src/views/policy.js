@@ -1,4 +1,4 @@
-import { html, mount, on, $, $$ } from '../ui/html.js';
+import { html, mount, patch, on, $, $$ } from '../ui/html.js';
 import { brand, nameOf } from '../ui/brand.js';
 import { tierChip, errorAlert } from '../ui/parts.js';
 import { ICON } from '../ui/icons.js';
@@ -139,14 +139,14 @@ export function createPolicyView(ctx) {
     const host = $('#pl-recent', el);
     if (!host) return;
     const list = pws().analyses;
-    mount(host, list.length ? html`<div class="pl-recent"><span class="xs muted">Saved</span>${list.map(a => html`<span class="pl-pill saved${a.id === shown ? ' on' : ''}"><button type="button" data-saved="${a.id}" data-tip="${`${a.result.headline}\n${fmtDate(a.asOf)}`}">${a.q}</button><button type="button" class="x" data-unsave="${a.id}" aria-label="${`Delete ${a.q}`}">×</button></span>`)}</div>` : '');
+    patch(host, list.length ? html`<div class="pl-recent"><span class="xs muted">Saved</span>${list.map(a => html`<span class="pl-pill saved${a.id === shown ? ' on' : ''}"><button type="button" data-saved="${a.id}" data-tip="${`${a.result.headline}\n${fmtDate(a.asOf)}`}">${a.q}</button><button type="button" class="x" data-unsave="${a.id}" aria-label="${`Delete ${a.q}`}">×</button></span>`)}</div>` : '');
   }
 
   function renderOut() {
     const host = $('#pl-out', el);
     if (!host) return;
     if (run && run.status === 'running') {
-      mount(host, html`<div class="pl-run" aria-live="polite">
+      patch(host, html`<div class="pl-run" aria-live="polite">
         <div class="pl-run-h"><span class="spin" aria-hidden="true"></span><b>Tracing “${run.question}”</b><span class="grow"></span><button class="btn sm" type="button" id="pl-stop">Stop</button></div>
         <ol class="pl-steps">${run.steps.map((s, i) => html`<li${i === run.steps.length - 1 ? html` class="cur"` : ''}>${s}</li>`)}</ol>
         <p class="xs muted">Claude searches bills, checks the candidate companies against federal awards, lobbying and your screen, then writes. Usually 30–90 seconds.</p></div>`);
@@ -155,12 +155,12 @@ export function createPolicyView(ctx) {
     if (run && run.status === 'error') {
       const e = run.error;
       const msg = e && e.code === 'invalid_json' ? 'Claude’s answer could not be read as a result. Try again, or phrase the event more specifically.' : e && e.code && e.code !== 'upstream_error' ? sampleErrorCopy(e) : `Something failed: ${(e && e.message) || 'unknown error'}`;
-      mount(host, html`<div class="alert" data-tone="${e && e.code === 'cancelled' ? 'info' : 'error'}" role="alert"><div><b>${e && e.code === 'cancelled' ? 'Stopped' : 'No analysis'}</b> ${msg}</div><button class="btn sm" type="button" id="pl-retry">Try again</button></div>`);
+      patch(host, html`<div class="alert" data-tone="${e && e.code === 'cancelled' ? 'info' : 'error'}" role="alert"><div><b>${e && e.code === 'cancelled' ? 'Stopped' : 'No analysis'}</b> ${msg}</div><button class="btn sm" type="button" id="pl-retry">Try again</button></div>`);
       return;
     }
     const a = shown && pws().analyses.find(x => x.id === shown);
-    if (!a) { mount(host, ''); return; }
-    mount(host, analysisView(a, store.get()));
+    if (!a) { patch(host, ''); return; }
+    patch(host, analysisView(a, store.get()));
     requestAnimationFrame(drawLinks);
   }
 
@@ -249,12 +249,12 @@ export function createPolicyView(ctx) {
   function renderCross(st) {
     const host = $('#pl-cross', el);
     const p = st.policy;
-    if (p.status === 'loading' && !p.feed.length) { mount(host, html`<div class="skel"></div><div class="skel"></div><div class="skel"></div>`); return; }
-    if (p.status === 'error' && !p.feed.length) { mount(host, errorAlert(p.error)); return; }
-    if (p.status === 'idle') { mount(host, html`<p class="small muted">${st.caps.mcp === 'off' ? 'Needs the Quiver Quant connector in the claude.ai viewer.' : 'Loads after the trading screen.'}</p>`); return; }
+    if (p.status === 'loading' && !p.feed.length) { patch(host, html`<div class="skel"></div><div class="skel"></div><div class="skel"></div>`); return; }
+    if (p.status === 'error' && !p.feed.length) { patch(host, errorAlert(p.error)); return; }
+    if (p.status === 'idle') { patch(host, html`<p class="small muted">${st.caps.mcp === 'off' ? 'Needs the Quiver Quant connector in the claude.ai viewer.' : 'Loads after the trading screen.'}</p>`); return; }
     const rows = crossReference({ feed: p.feed, awards: p.awards, signals: st.signals, congressRows: st.data?.congressRows || [], held: heldSet(), planned: planSet(st) }).slice(0, 12);
-    if (!rows.length) { mount(host, html`<div class="empty"><h3>No overlap right now</h3><span>None of the ${fmtInt(p.feed.filter(x => x.tickers.length).length)} recent bills that name companies, or the ${fmtInt(contractLeaders(p.awards).length)} companies with large awards, show buying in your screen, depot or plan.</span></div>`); return; }
-    mount(host, html`<ul class="pl-xs">${rows.map(x => html`<li class="pl-x">
+    if (!rows.length) { patch(host, html`<div class="empty"><h3>No overlap right now</h3><span>None of the ${fmtInt(p.feed.filter(x => x.tickers.length).length)} recent bills that name companies, or the ${fmtInt(contractLeaders(p.awards).length)} companies with large awards, show buying in your screen, depot or plan.</span></div>`); return; }
+    patch(host, html`<ul class="pl-xs">${rows.map(x => html`<li class="pl-x">
       <div class="pl-x-id">${brand(x.ticker, { name: nameOf(x.ticker, x.signal?.company || x.contracts?.recipient), size: 28 })}</div>
       <div class="pl-x-b">
         <div class="pl-why-tags">${x.why.map(k => html`<span class="pl-chip ${k}" data-tip="${REASON[k][1]}">${k === 'congress' && x.signal?.congress.overseers ? '◆ Oversight buying' : REASON[k][0]}</span>`)}</div>
@@ -270,8 +270,8 @@ export function createPolicyView(ctx) {
   function renderAwards(st) {
     const host = $('#pl-awards', el);
     const p = st.policy;
-    if (p.status === 'loading' && !p.awards.length) { mount(host, html`<div class="skel"></div><div class="skel"></div>`); return; }
-    if (!p.awards.length) { mount(host, html`<p class="small muted">${p.status === 'done' ? `No awards of $10M or more in ${CONTRACT_DAYS} days.` : ''}</p>`); return; }
+    if (p.status === 'loading' && !p.awards.length) { patch(host, html`<div class="skel"></div><div class="skel"></div>`); return; }
+    if (!p.awards.length) { patch(host, html`<p class="small muted">${p.status === 'done' ? `No awards of $10M or more in ${CONTRACT_DAYS} days.` : ''}</p>`); return; }
     const leaders = contractLeaders(p.awards).slice(0, 10);
     const max = leaders[0].usd;
     const agencies = [...new Set(leaders.map(l => l.agency))];
@@ -279,7 +279,7 @@ export function createPolicyView(ctx) {
     const sig = new Map(st.signals.map(s => [s.ticker, s]));
     const latest = p.awards.reduce((m, a) => (a.date > m ? a.date : m), '');
     const big = [...p.awards].filter(a => a.usd > 0).sort((a, b) => b.usd - a.usd).slice(0, 5);
-    mount(host, html`
+    patch(host, html`
       <ul class="pl-bars">${leaders.map(l => { const s = sig.get(l.ticker); return html`<li>
         <span class="pl-bar-id">${brand(l.ticker, { name: nameOf(l.ticker, l.recipient), size: 20, sub: null })}</span>
         <span class="pl-bar"><i style="width:${Math.max(3, (100 * l.usd) / max).toFixed(1)}%;background:${color(l.agency)}" data-tip="${`${fmtUSD(l.usd)} · ${l.n} award${l.n > 1 ? 's' : ''}\n${[...l.agencies].map(([k, v]) => `${k}: ${fmtUSD(v)}`).join('\n')}\nLargest: ${l.top.desc.slice(0, 120)}`}"></i></span>
@@ -297,17 +297,17 @@ export function createPolicyView(ctx) {
   function renderFeed(st) {
     const host = $('#pl-feed', el);
     const p = st.policy;
-    if (p.status === 'loading' && !p.feed.length) { mount(host, html`<div class="skel"></div><div class="skel"></div><div class="skel"></div>`); return; }
-    if (p.status === 'error' && !p.feed.length) { mount(host, errorAlert(p.error)); return; }
+    if (p.status === 'loading' && !p.feed.length) { patch(host, html`<div class="skel"></div><div class="skel"></div><div class="skel"></div>`); return; }
+    if (p.status === 'error' && !p.feed.length) { patch(host, errorAlert(p.error)); return; }
     const sig = new Map(st.signals.map(s => [s.ticker, s]));
     const held = heldSet(), plan = planSet(st);
     const mineT = t => sig.has(t) || held.has(t) || plan.has(t);
     const items = p.feed.filter(x => feedFilter === 'releases' ? x.kind === 'release'
       : x.kind === 'bill' && (feedFilter === 'all' || (feedFilter === 'named' ? x.tickers.length : x.tickers.some(mineT))));
-    if (!items.length) { mount(host, html`<p class="small muted">${p.status === 'done' ? (feedFilter === 'mine' ? 'None of the newest bills name a company in your screen, depot or plan.' : 'Nothing in the latest feed.') : ''}</p>`); return; }
+    if (!items.length) { patch(host, html`<p class="small muted">${p.status === 'done' ? (feedFilter === 'mine' ? 'None of the newest bills name a company in your screen, depot or plan.' : 'Nothing in the latest feed.') : ''}</p>`); return; }
     const shownItems = feedMore ? items : items.slice(0, 12);
     const tk = t => { const s = sig.get(t); return html`<button type="button" class="pl-tk${held.has(t) ? ' own' : ''}${plan.has(t) ? ' plan' : ''}" data-open="${t}" data-tip="${`${nameOf(t)}${s ? `\nTier ${s.tier} · score ${s.score}` : '\nNo recent buying in the screen'}${held.has(t) ? '\nIn your depot' : ''}${plan.has(t) ? '\nIn your plan' : ''}`}">${s ? html`<i class="dot" data-t="${s.tier}"></i>` : ''}${t}</button>`; };
-    mount(host, html`<div class="pl-feed">${shownItems.map(x => html`<article class="pl-bill${isNewSince(x, prevSeen) ? ' new' : ''}">
+    patch(host, html`<div class="pl-feed">${shownItems.map(x => html`<article class="pl-bill${isNewSince(x, prevSeen) ? ' new' : ''}">
       <div class="pl-bill-h">${x.billId ? html`<span class="pl-bid">${x.billId}</span>` : html`<span class="pl-bid rel">Release</span>`}<b>${x.title}</b>${isNewSince(x, prevSeen) ? html`<span class="pl-new">New</span>` : ''}</div>
       <div class="pl-bill-m">${x.sponsor ? html`<button type="button" class="linkish" data-sponsor="${x.sponsor}" data-bio="${x.bioguide || ''}">${x.role === 'Senator' ? 'Sen.' : x.role ? 'Rep.' : ''} ${x.sponsor}</button>` : ''}<span>${x.received ? `introduced ${fmtDate(x.received, { year: false })}` : fmtDate(x.date, { year: false })}</span>${x.cosponsors != null ? html`<span>${x.cosponsors} cosponsor${x.cosponsors === 1 ? '' : 's'}</span>` : ''}${x.kind === 'bill' ? stageTrack({ step: 1, raw: 'Introduced' }) : ''}</div>
       <p class="pl-sum">${x.summary.length > 280 ? x.summary.slice(0, 279) + '…' : x.summary}</p>
@@ -330,7 +330,7 @@ export function createPolicyView(ctx) {
     if (cur && !data && st.caps.mcp === 'on') setTimeout(() => policy.topic(cur), 0);
     const sig = new Map(st.signals.map(s => [s.ticker, s]));
     const bills = data && data.bills ? data.bills.slice(0, 25) : [];
-    mount(host, html`
+    patch(host, html`
       <div class="pl-topics-h">
         <div class="pl-topic-list" role="tablist" aria-label="Topics">${topics.map(t => html`<span class="pl-pill topic${t === cur ? ' on' : ''}"><button type="button" role="tab" aria-selected="${t === cur}" data-topic="${t}">${t}</button><button type="button" class="x" data-untopic="${t}" aria-label="${`Stop watching ${t}`}">×</button></span>`)}</div>
         <form id="pl-topic-form" class="pl-topic-form"><input id="pl-topic-in" type="text" maxlength="40" placeholder="Add a topic, e.g. diesel" aria-label="Add a topic"><button class="btn sm" type="submit">${ICON.plus} Watch</button></form>
@@ -351,7 +351,7 @@ export function createPolicyView(ctx) {
   function renderAll(st) {
     if (!built) build();
     const p = st.policy;
-    mount($('#pl-stamp', el), p.loadedAt ? html`Updated ${fmtClock(p.loadedAt)}` : p.status === 'loading' ? 'Loading…' : '');
+    patch($('#pl-stamp', el), p.loadedAt ? html`Updated ${fmtClock(p.loadedAt)}` : p.status === 'loading' ? 'Loading…' : '');
     renderRecent();
     renderOut();
     renderCross(st);
@@ -367,7 +367,7 @@ export function createPolicyView(ctx) {
       if (!changed || !built) { renderAll(st); return; }
       if (changed.some(k => ['policy', 'signals', 'workspace', 'portfolioLocalAt', 'caps', 'cloud'].includes(k))) {
         const p = st.policy;
-        mount($('#pl-stamp', el), p.loadedAt ? html`Updated ${fmtClock(p.loadedAt)}` : p.status === 'loading' ? 'Loading…' : '');
+        patch($('#pl-stamp', el), p.loadedAt ? html`Updated ${fmtClock(p.loadedAt)}` : p.status === 'loading' ? 'Loading…' : '');
         renderCross(st); renderAwards(st); renderFeed(st); renderTopics(st);
         if (changed.includes('workspace') && !(run && run.status === 'running')) { renderRecent(); renderOut(); }
       }

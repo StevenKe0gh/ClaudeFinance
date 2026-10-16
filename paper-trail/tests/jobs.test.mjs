@@ -66,3 +66,49 @@ test('parseTrades reads arrays, wrappers and concatenated objects', () => {
   assert.equal(parseTrades('{"items":[{"a":1}]}').length, 1);
   assert.equal(parseTrades('{"a":1}{"a":2}{"a":3}').length, 3);
 });
+
+import { checkBrief, wordCount } from '../jobs/check-brief.mjs';
+import { finalStatus } from '../jobs/status.mjs';
+import { buyability } from '../jobs/buyable.mjs';
+
+const md = '### What changed\nA director bought.\n\n### Your depot\nQuiet.\n\n### Worth a closer look\nOne name.\n\n### Discount these\nA fund.\n\nNot investment advice.';
+const brief = (o = {}) => ({ date: '2026-10-15', headline: 'A director bought.', markdown: md, picks: [], alerts: [], sources: 'Quiver Quant', ...o });
+
+test('checkBrief passes a well-formed brief with buyable picks', () => {
+  const r = checkBrief(brief({ picks: [{ ticker: 'BORR', name: 'Borr Drilling', why: 'Director bought $10.9M' }] }), { filings: 40, buy: { BORR: { status: 'likely' } }, date: '2026-10-15' });
+  assert.deepEqual(r.errors, []);
+  assert.equal(r.ok, true);
+});
+
+test('checkBrief blocks a brief written without filings, and unbuyable picks', () => {
+  const r = checkBrief(brief({ picks: [{ ticker: 'BPRE', name: 'Bluerock', why: 'Tier A' }] }), { filings: 0, buy: { BPRE: { status: 'no', reason: 'US closed-end fund' } } });
+  assert.equal(r.ok, false);
+  assert.match(r.errors.join('\n'), /No filings/);
+  assert.match(r.errors.join('\n'), /BPRE cannot be bought/);
+});
+
+test('checkBrief wants "check your broker" on doubtful picks and enforces length and sections', () => {
+  const long = `${md}\n${'word '.repeat(400)}`;
+  const r = checkBrief(brief({ markdown: long.replace('### Your depot', '### Depot'), picks: [{ ticker: 'TDIC', name: 'Dreamland', why: 'CEO bought' }] }), { filings: 5, buy: { TDIC: { status: 'unlikely', reason: 'Micro cap' } } });
+  const e = r.errors.join('\n');
+  assert.match(e, /words; the limit is 350/);
+  assert.match(e, /"### Your depot"/);
+  assert.match(e, /say "check your broker"/);
+  assert.equal(checkBrief(brief({ picks: [{ ticker: 'TDIC', name: 'Dreamland', why: 'CEO bought; check your broker' }] }), { filings: 5, buy: { TDIC: { status: 'unlikely' } } }).ok, true);
+  assert.equal(wordCount('### Head\n- **Borr** bought $10.9M on Oct 13–14.'), 6);
+});
+
+test('finalStatus decides the run state by rule', () => {
+  const s = finalStatus([{ key: 'quiver', status: 'error', detail: 'connector off' }, { key: 'quotes', status: 'ok' }, { key: 'brief', status: 'skipped', detail: 'no filings' }], { startedAt: 1, finishedAt: 2 });
+  assert.equal(s.state, 'partial');
+  assert.equal(s.message, 'quiver error: connector off');
+  assert.equal(finalStatus([{ key: 'quiver', status: 'ok' }, { key: 'brief', status: 'ok' }]).state, 'ok');
+  assert.equal(finalStatus([{ key: 'brief', status: 'error', detail: 'write refused' }]).state, 'error');
+  assert.throws(() => finalStatus([{ key: 'news', status: 'ok' }]), /unknown step/);
+});
+
+test('buyability rules out US funds and keeps listed companies', () => {
+  const r = buyability(['BPRE', 'BORR'], { quotes: { q: { BORR: [4.8, 0, 1477] } } });
+  assert.equal(r.BPRE.status, 'no');
+  assert.equal(r.BORR.status, 'likely');
+});

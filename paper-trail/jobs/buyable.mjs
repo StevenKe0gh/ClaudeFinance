@@ -12,19 +12,27 @@ import { readFileSync } from 'node:fs';
 import { companyOf } from '../src/core/directory.js';
 import { availability, DEFAULT_BROKERS, BROKERS } from '../src/model/brokers.js';
 
-const arg = k => { const i = process.argv.indexOf(k); return i > 0 ? process.argv[i + 1] : null; };
-const tickers = String(arg('--tickers') || '').split(',').map(t => t.trim().toUpperCase()).filter(Boolean);
-if (!tickers.length) { console.error('usage: --tickers A,B [--quotes file] [--brokers scalable,traderepublic] [--marks file]'); process.exit(2); }
-const read = f => (f ? JSON.parse(readFileSync(f, 'utf8')) : null);
-const quotes = read(arg('--quotes'));
-const q = quotes ? (quotes.q || (quotes.data && quotes.data.q) || {}) : {};
-const marks = read(arg('--marks')) || {};
-const use = (arg('--brokers') || DEFAULT_BROKERS.join(',')).split(',').filter(b => BROKERS[b]);
+/** `quotes/latest` as saved by the job or read from the database. */
+export const quoteMap = quotes => (quotes ? quotes.q || (quotes.data && quotes.data.q) || {} : {});
 
-const out = {};
-for (const t of tickers) {
-  const c = companyOf(t);
-  const av = availability(t, { use, marks, info: { listed: !!c, name: c ? c.name : '', sector: c ? c.sector : '', industry: c ? c.industry : '', capM: q[t] ? q[t][2] : null } });
-  out[t] = { status: av.status, kind: av.kind, reason: av.per[av.best].reason };
+/** ticker → { status, kind, reason } for the given brokers and confirmations. */
+export function buyability(tickers, { quotes = null, marks = {}, use = DEFAULT_BROKERS } = {}) {
+  const q = quoteMap(quotes);
+  const brokers = use.filter(b => BROKERS[b]);
+  const out = {};
+  for (const t of tickers) {
+    const c = companyOf(t);
+    const av = availability(t, { use: brokers, marks, info: { listed: !!c, name: c ? c.name : '', sector: c ? c.sector : '', industry: c ? c.industry : '', capM: q[t] ? q[t][2] : null } });
+    out[t] = { status: av.status, kind: av.kind, reason: av.per[av.best].reason };
+  }
+  return out;
 }
-console.log(JSON.stringify(out, null, 1));
+
+if (import.meta.url === `file://${process.argv[1]}`) {
+  const arg = k => { const i = process.argv.indexOf(k); return i > 0 ? process.argv[i + 1] : null; };
+  const tickers = String(arg('--tickers') || '').split(',').map(t => t.trim().toUpperCase()).filter(Boolean);
+  if (!tickers.length) { console.error('usage: --tickers A,B [--quotes file] [--brokers scalable,traderepublic] [--marks file]'); process.exit(2); }
+  const read = f => (f ? JSON.parse(readFileSync(f, 'utf8')) : null);
+  const use = (arg('--brokers') || DEFAULT_BROKERS.join(',')).split(',');
+  console.log(JSON.stringify(buyability(tickers, { quotes: read(arg('--quotes')), marks: read(arg('--marks')) || {}, use }), null, 1));
+}

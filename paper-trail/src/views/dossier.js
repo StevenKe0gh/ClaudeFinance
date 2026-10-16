@@ -1,4 +1,4 @@
-import { html, mount, on, $, markdown } from '../ui/html.js';
+import { html, patch, on, $, markdown } from '../ui/html.js';
 import { ICON } from '../ui/icons.js';
 import { tierChip, flagsList, roleChip, partyChip, errorAlert } from '../ui/parts.js';
 import { waterfall, timeline, columns, diverging, tri, priceChart } from '../ui/charts.js';
@@ -38,7 +38,7 @@ export function createDossierView(ctx) {
 
   function emptyState() {
     const top = store.get().signals.slice(0, 8);
-    mount(el, html`<div class="view-h"><div><h1>Dossier</h1><p>Everything Quiver has on one ticker: insider and congressional ledgers, federal awards, lobbying, off-exchange volume, ownership and news, with a memo from Claude.</p></div></div>
+    patch(el, html`<div class="view-h"><div><h1>Dossier</h1><p>Everything Quiver has on one ticker: insider and congressional ledgers, federal awards, lobbying, off-exchange volume, ownership and news, with a memo from Claude.</p></div></div>
       <div class="panel"><div class="empty"><h3>Open a ticker</h3><span>Press <kbd>⌘K</kbd> and type a symbol, or open one from Signals.</span>
       ${top.length ? html`<div class="chips" style="margin-top:8px">${top.map(s => html`<button class="btn sm" type="button" data-open="${s.ticker}">${tierChip(s.tier)} ${nameOf(s.ticker, s.company)}</button>`)}</div>` : ''}</div></div>`);
   }
@@ -108,7 +108,7 @@ export function createDossierView(ctx) {
     const awards = x.contracts.reduce((a, c) => a + +c.total_dollars_obligated, 0);
     const lob4 = x.quarters.slice(-4).reduce((a, q) => a + q.value, 0);
 
-    mount(el, html`
+    patch(el, html`
       <div class="panel">
         <div class="dz-head">
           <div class="dz-id">${brandHead(e.ticker, { name: nameOf(e.ticker, x.company) })}${s ? tierChip(s.tier, true) : ''}${buyChip(buyOf(st)(e.ticker, x.company))}</div>
@@ -282,8 +282,8 @@ export function createDossierView(ctx) {
       onError: e => { if (memo && memo.ticker === ticker) { memo.busy = false; if (e && e.code === 'refused') memo.text = ''; else memo.text = (e && e.text) || memo.text; memo.note = sampleErrorCopy(e); renderMemo(); } }
     });
   }
-  function paintMemoText() { const out = $('#memo-out', el); if (out) mount(out, markdown(memo.text)); }
-  function renderMemo() { const host = $('#dz-memo .panel-b', el); if (host) mount(host, memoBlock()); }
+  function paintMemoText() { const out = $('#memo-out', el); if (out) patch(out, markdown(memo.text)); }
+  function renderMemo() { const host = $('#dz-memo .panel-b', el); if (host) patch(host, memoBlock()); }
 
   /* ---------- Charts ---------- */
   function drawCharts(e, x) {

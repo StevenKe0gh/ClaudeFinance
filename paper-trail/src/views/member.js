@@ -1,4 +1,4 @@
-import { html, mount } from '../ui/html.js';
+import { html, patch } from '../ui/html.js';
 import { tierChip, errorAlert, kpi } from '../ui/parts.js';
 import { tri } from '../ui/charts.js';
 import { fmtUSD, fmtInt, fmtDate, isoDate, addDays, groupBy, initials, cleanCompany } from '../core/util.js';
@@ -31,7 +31,7 @@ export function createMemberView(ctx) {
 
   function render() {
     if (!cur) {
-      mount(el, html`<div class="view-h"><div><h1>Member profile</h1><p>Open a member of Congress from any ledger, inspector or the graph.</p></div></div><div class="panel"><div class="empty"><h3>No member selected</h3><span>Click a member’s name anywhere in the workstation.</span></div></div>`);
+      patch(el, html`<div class="view-h"><div><h1>Member profile</h1><p>Open a member of Congress from any ledger, inspector or the graph.</p></div></div><div class="panel"><div class="empty"><h3>No member selected</h3><span>Click a member’s name anywhere in the workstation.</span></div></div>`);
       return;
     }
     const p = cur.profile && cur.profile.profile ? cur.profile.profile : null;
@@ -55,7 +55,7 @@ export function createMemberView(ctx) {
     const ROLE = { chair: 'Chair', ranking: 'Ranking member' };
     const tr = trackOf(store.get(), bid);
 
-    mount(el, html`
+    patch(el, html`
       <div class="panel"><div class="dz-head">
         <div class="member-h"><span class="avatar">${initials(p ? p.name : cur.name)}</span><div><h1 style="font:600 22px var(--f-ui)">${p ? p.name : cur.name}</h1><div class="small muted">${{ D: 'Democrat', R: 'Republican', I: 'Independent' }[party] || ''}${p && p.state ? ` · ${p.state}` : ''}${chamber ? ` · ${chamber}` : ''}${p && p.bioguide_id ? ` · ${p.bioguide_id}` : ''}</div></div></div>
       </div></div>

@@ -123,6 +123,7 @@
 }
 .statusbar .sep { flex: 1; }
 .statusbar b { color: var(--fg-1); font-weight: 500; }
+.statusbar b.sb-warn { color: var(--warn); }
 .statusbar button { border: 0; background: none; color: var(--fg-2); font: inherit; cursor: pointer; padding: 0; }
 .statusbar button:hover { color: var(--fg-0); }
 

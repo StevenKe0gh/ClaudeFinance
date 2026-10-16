@@ -1,4 +1,4 @@
-import { html, mount, on, $, markdown } from '../ui/html.js';
+import { html, patch, on, $, markdown } from '../ui/html.js';
 import { ICON } from '../ui/icons.js';
 import { tierChip, scoreCell } from '../ui/parts.js';
 import { brand, nameOf } from '../ui/brand.js';
@@ -26,7 +26,7 @@ export function createBriefingView(ctx) {
   el.id = 'v-briefing';
   let shown = null;
 
-  mount(el, html`
+  patch(el, html`
     <div class="view-h">
       <div><h1>Briefing</h1><p id="b-sub">The daily read: new insider and congressional buying, what changed since yesterday, and what it means for your holdings.</p></div>
       <div class="tools">
@@ -54,13 +54,13 @@ export function createBriefingView(ctx) {
     const host = $('#b-hero', el);
     if (!b) {
       const top = st.signals.filter(s => s.tier === 'A').slice(0, 3);
-      mount(host, html`<div class="brief-hero"><span class="date">${fmtDate(isoDate())} · live</span>
+      patch(host, html`<div class="brief-hero"><span class="date">${fmtDate(isoDate())} · live</span>
         <h2>${st.signals.length ? `${fmtInt(st.signals.filter(s => s.tier === 'A').length)} tier-A signals in the ${st.windowDays}-day screen${top.length ? `, led by ${top.map(s => nameOf(s.ticker, s.company)).join(', ')}` : ''}.` : st.caps.mcp === 'off' ? 'Open on claude.ai to load live filings.' : 'Loading today’s filings…'}</h2>
         <p class="small muted">The written brief arrives with the first daily run. Until then this page summarises the live screen. Press <b>Run now</b> to start the job, or <b>Desk brief</b> for an instant read from Claude.</p></div>`);
       return;
     }
     const stale = b.date && b.date < isoDate() && !shown;
-    mount(host, html`<div class="brief-hero"><span class="date">${fmtDate(b.date)}${toMs(b.generatedAt) ? ` · ${fmtClock(toMs(b.generatedAt))}` : ''}${shown && shown !== briefs[0]?.id ? html` · archive <button class="linkish" type="button" id="b-latest">back to latest</button>` : ''}${stale ? ' · today’s run has not finished yet' : ''}</span>
+    patch(host, html`<div class="brief-hero"><span class="date">${fmtDate(b.date)}${toMs(b.generatedAt) ? ` · ${fmtClock(toMs(b.generatedAt))}` : ''}${shown && shown !== briefs[0]?.id ? html` · archive <button class="linkish" type="button" id="b-latest">back to latest</button>` : ''}${stale ? ' · today’s run has not finished yet' : ''}</span>
       <h2>${b.headline || 'Daily brief'}</h2>
       <div class="md">${markdown(b.markdown || '')}</div>
       ${b.sources ? html`<p class="xs dim">${b.sources}</p>` : ''}</div>`);
@@ -74,7 +74,7 @@ export function createBriefingView(ctx) {
     $('#b-sig-src', el).textContent = live.length ? `live · ${st.windowDays}d · ${st.model.preset}` : brief?.picks?.length ? `from the ${fmtDate(brief.date, { year: false })} brief` : '';
     if (live.length) {
       const why = new Map((brief?.picks || []).map(p => [p.ticker, p.why]));
-      mount($('#b-picks', el), html`${live.map(s => {
+      patch($('#b-picks', el), html`${live.map(s => {
         const q = quoteFor(st, s);
         const p = prev && prev.map.get(s.ticker);
         const top = s.insider.buyers[0];
@@ -86,10 +86,10 @@ export function createBriefingView(ctx) {
       return;
     }
     if (brief?.picks?.length) {
-      mount($('#b-picks', el), html`${brief.picks.map(p => html`<div class="pick"><span class="cell-row">${tierChip(p.tier || 'B')}${brand(p.ticker, { name: p.name || nameOf(p.ticker), size: 30 })}</span><span class="mono">${p.score ?? ''}</span><p>${p.why || ''}</p></div>`)}`);
+      patch($('#b-picks', el), html`${brief.picks.map(p => html`<div class="pick"><span class="cell-row">${tierChip(p.tier || 'B')}${brand(p.ticker, { name: p.name || nameOf(p.ticker), size: 30 })}</span><span class="mono">${p.score ?? ''}</span><p>${p.why || ''}</p></div>`)}`);
       return;
     }
-    mount($('#b-picks', el), st.pipeline.status === 'running' ? html`<div class="skel"></div><div class="skel" style="width:80%"></div><div class="skel" style="width:60%"></div>` : html`<p class="small muted">No tier A or B signals in this window.</p>`);
+    patch($('#b-picks', el), st.pipeline.status === 'running' ? html`<div class="skel"></div><div class="skel" style="width:80%"></div><div class="skel" style="width:60%"></div>` : html`<p class="small muted">No tier A or B signals in this window.</p>`);
   }
 
   function job(st) {
@@ -101,11 +101,11 @@ export function createBriefingView(ctx) {
     run.disabled = !canRun || (j && j.state === 'running' && Date.now() - (j.startedAt || 0) < 45 * 60e3);
     run.setAttribute('data-tip', !cfg?.triggerId ? 'The daily job is not set up for this page yet' : !ctx.canFireJob() ? 'Needs permission to use the Claude Code Remote connector on claude.ai' : 'Start the daily job now (takes 5–15 minutes)');
     $('#b-job-src', el).textContent = cfg?.schedule || 'daily';
-    if (st.cloud?.status !== 'on') { mount(host, html`<p class="small muted">Job status, briefs and prices are stored in this page’s database, which needs the claude.ai viewer.</p>`); return; }
-    if (!j) { mount(host, html`<p class="small muted">No run recorded yet. ${cfg?.triggerId ? 'The first scheduled run writes here.' : 'Set up the routine to start daily runs.'}</p>`); return; }
+    if (st.cloud?.status !== 'on') { patch(host, html`<p class="small muted">Job status, briefs and prices are stored in this page’s database, which needs the claude.ai viewer.</p>`); return; }
+    if (!j) { patch(host, html`<p class="small muted">No run recorded yet. ${cfg?.triggerId ? 'The first scheduled run writes here.' : 'Set up the routine to start daily runs.'}</p>`); return; }
     const label = { running: 'Running', ok: 'Finished', partial: 'Finished with gaps', error: 'Failed' }[j.state] || j.state;
     const requested = j.requestedAt && (!j.startedAt || j.requestedAt > j.startedAt) && Date.now() - j.requestedAt < 30 * 60e3;
-    mount(host, html`<div style="display:flex;flex-direction:column;gap:10px">
+    patch(host, html`<div style="display:flex;flex-direction:column;gap:10px">
       <div class="cell-row"><span class="status-dot" data-s="${j.state === 'ok' ? 'live' : j.state === 'running' ? 'running' : j.state === 'error' ? 'error' : 'wait'}"></span><b>${requested ? 'Requested, waiting to start' : label}</b><span class="grow"></span><span class="xs muted">${j.finishedAt ? `${fmtDate(new Date(j.finishedAt).toISOString().slice(0, 10), { year: false })} ${fmtClock(j.finishedAt)}` : j.startedAt ? `started ${fmtClock(j.startedAt)}` : ''}</span></div>
       ${j.steps?.length ? html`<div class="job-steps">${j.steps.map(s => html`<span class="job-step" data-s="${s.status}" data-tip="${s.detail || s.status}"><i></i>${STEP_LABEL[s.key] || s.label || s.key}</span>`)}</div>` : ''}
       ${j.message ? html`<p class="small muted">${j.message}</p>` : ''}
@@ -115,24 +115,24 @@ export function createBriefingView(ctx) {
   function holdings(st) {
     const d = portfolio.derived();
     const host = $('#b-hold', el);
-    if (!d) { mount(host, html`<p class="small muted">Import your Finanzfluss depot to get daily insider and Congress checks on what you own.</p><div style="margin-top:8px"><button class="btn sm" type="button" id="b-import">${ICON.plus} Import depot</button></div>`); return; }
+    if (!d) { patch(host, html`<p class="small muted">Import your Finanzfluss depot to get daily insider and Congress checks on what you own.</p><div style="margin-top:8px"><button class="btn sm" type="button" id="b-import">${ICON.plus} Import depot</button></div>`); return; }
     const list = holdingAlerts(d, st.holdingChecks?.map, st.signals);
     const brief = (st.cloud?.briefs?.[0]?.alerts || []).filter(a => !list.some(b => b.ticker === a.ticker));
     const all = [...list, ...brief].slice(0, 6);
     const best = [...d.positions].sort((a, b) => (b.dayPct ?? 0) - (a.dayPct ?? 0));
-    mount(host, html`${all.length ? all.map(a => html`<div class="alert-row" data-tone="${a.tone}"><span class="dot"></span><div><b>${a.ticker ? html`<button class="linkish" type="button" data-open="${a.ticker}">${a.name || nameOf(a.ticker)}</button>` : a.name}</b> ${a.text}</div></div>`) : html`<p class="small muted">${st.holdingChecks?.status === 'running' ? 'Checking your US holdings…' : 'No insider or congressional activity worth flagging in your US holdings.'}</p>`}
+    patch(host, html`${all.length ? all.map(a => html`<div class="alert-row" data-tone="${a.tone}"><span class="dot"></span><div><b>${a.ticker ? html`<button class="linkish" type="button" data-open="${a.ticker}">${a.name || nameOf(a.ticker)}</button>` : a.name}</b> ${a.text}</div></div>`) : html`<p class="small muted">${st.holdingChecks?.status === 'running' ? 'Checking your US holdings…' : 'No insider or congressional activity worth flagging in your US holdings.'}</p>`}
       ${best.length ? html`<p class="xs muted" style="margin-top:8px">At import: best day ${best[0].short} ${fmtSignedPct(best[0].dayPct, 2)}, worst ${best.at(-1).short} ${fmtSignedPct(best.at(-1).dayPct, 2)}.</p>` : ''}`);
   }
 
   function changes(st) {
     const prev = previousSnapshot(st);
     const host = $('#b-chg', el);
-    if (!prev || !st.signals.length) { $('#b-chg-src', el).textContent = ''; mount(host, html`<p class="small muted">${st.cloud?.status === 'on' ? 'Comparisons start after the second day of snapshots.' : 'Day-over-day changes need the claude.ai viewer.'}</p>`); return; }
+    if (!prev || !st.signals.length) { $('#b-chg-src', el).textContent = ''; patch(host, html`<p class="small muted">${st.cloud?.status === 'on' ? 'Comparisons start after the second day of snapshots.' : 'Day-over-day changes need the claude.ai viewer.'}</p>`); return; }
     $('#b-chg-src', el).textContent = `vs ${fmtDate(prev.date, { year: false })}`;
     const newA = st.signals.filter(s => s.tier === 'A' && prev.map.get(s.ticker)?.tier !== 'A').slice(0, 5);
     const movers = st.signals.slice(0, 120).map(s => ({ s, d: prev.map.has(s.ticker) ? s.score - prev.map.get(s.ticker).score : null })).filter(x => x.d != null && Math.abs(x.d) >= 3).sort((a, b) => Math.abs(b.d) - Math.abs(a.d)).slice(0, 5);
     const gone = [...prev.map].filter(([t, v]) => v.tier === 'A' && !st.signals.some(s => s.ticker === t && s.tier === 'A')).slice(0, 4);
-    mount(host, html`${newA.length ? html`<div class="label" style="margin-bottom:4px">New in tier A</div><ul class="rows">${newA.map(s => html`<li>${brand(s.ticker, { name: nameOf(s.ticker, s.company), size: 20, sub: s.ticker })}<span class="grow"></span><span class="mono">${s.score}</span></li>`)}</ul>` : ''}
+    patch(host, html`${newA.length ? html`<div class="label" style="margin-bottom:4px">New in tier A</div><ul class="rows">${newA.map(s => html`<li>${brand(s.ticker, { name: nameOf(s.ticker, s.company), size: 20, sub: s.ticker })}<span class="grow"></span><span class="mono">${s.score}</span></li>`)}</ul>` : ''}
       ${movers.length ? html`<div class="label" style="margin:8px 0 4px">Biggest score moves</div><ul class="rows">${movers.map(({ s, d }) => html`<li>${brand(s.ticker, { name: nameOf(s.ticker, s.company), size: 20, sub: s.ticker })}<span class="grow"></span><span class="delta ${d > 0 ? 'up' : 'down'}">${d > 0 ? '▲' : '▼'}${Math.abs(Math.round(d))}</span></li>`)}</ul>` : ''}
       ${gone.length ? html`<div class="label" style="margin:8px 0 4px">Dropped out of tier A</div><p class="small">${gone.map(([t]) => nameOf(t)).join(', ')}</p>` : ''}
       ${!newA.length && !movers.length && !gone.length ? html`<p class="small muted">No material changes.</p>` : ''}`);
@@ -140,7 +140,7 @@ export function createBriefingView(ctx) {
 
   function archive(st) {
     const briefs = st.cloud?.briefs || [];
-    mount($('#b-arch', el), briefs.length > 1 || (briefs.length && shown)
+    patch($('#b-arch', el), briefs.length > 1 || (briefs.length && shown)
       ? html`<ul class="rows">${briefs.slice(0, 14).map(b => html`<li><button class="linkish grow t1" type="button" data-brief="${b.id}" style="text-align:left">${b.headline || 'Daily brief'}</button><span class="xs muted nowrap">${fmtDate(b.date, { year: false })}</span></li>`)}</ul>`
       : html`<p class="small muted">Briefs collect here day by day.</p>`);
   }
@@ -148,13 +148,13 @@ export function createBriefingView(ctx) {
   function whales(st) {
     const f = ctx.whales.feed();
     const host = $('#b-wh', el);
-    if (st.caps.mcp !== 'on') { mount(host, html`<p class="small muted">Needs the Quiver Quant connector.</p>`); return; }
-    if (f.status === 'idle' || (f.status === 'loading' && !f.items.length)) { mount(host, html`<div class="skel"></div><div class="skel"></div>`); return; }
-    if (f.status === 'error' && !f.items.length) { mount(host, html`<p class="small muted">Fund filings could not be loaded.</p>`); return; }
+    if (st.caps.mcp !== 'on') { patch(host, html`<p class="small muted">Needs the Quiver Quant connector.</p>`); return; }
+    if (f.status === 'idle' || (f.status === 'loading' && !f.items.length)) { patch(host, html`<div class="skel"></div><div class="skel"></div>`); return; }
+    if (f.status === 'error' && !f.items.length) { patch(host, html`<p class="small muted">Fund filings could not be loaded.</p>`); return; }
     const buy = buyOf(st);
     const sig = new Map(st.signals.map(s => [s.ticker, s]));
     const latest = f.items.slice(0, 12);
-    mount(host, html`${latest.length ? html`<ul class="wh-feed">${latest.map(i => { const s = sig.get(i.ticker); return html`<li>
+    patch(host, html`${latest.length ? html`<ul class="wh-feed">${latest.map(i => { const s = sig.get(i.ticker); return html`<li>
         ${brand(i.ticker, { size: 24 })}
         <span class="wh-who"><b>${i.whale.name}</b><span class="xs muted">${ACTION_LABEL[i.action]}${i.usd ? ` · ${fmtUSD(i.usd)}` : ''}${i.pct != null && Number.isFinite(i.pct) ? ` · ${i.pct > 0 ? '+' : ''}${Math.round(i.pct)}%` : ''} · ${quarterLabel(i.quarter)}</span></span>
         <span class="wh-side">${s ? tierChip(s.tier) : ''}${buyChip(buy(i.ticker), { label: false })}</span>

@@ -1,4 +1,4 @@
-import { html, mount, on, $ } from '../ui/html.js';
+import { html, patch, on, $ } from '../ui/html.js';
 import { ICON } from '../ui/icons.js';
 import { tierChip, flagsList, roleChip, partyChip, errorAlert, kpi, scoreCell, skeletonRows } from '../ui/parts.js';
 import { sparkline, stackbar, waterfall, activityChart } from '../ui/charts.js';
@@ -102,7 +102,7 @@ export function createSignalsView(ctx) {
   let limit = 150;
   let visible = [];
 
-  mount(el, html`
+  patch(el, html`
     <div class="view-h">
       <div><h1>Signals</h1><p>Open-market insider purchases and congressional buying, scored by the conviction model. Select a row to see why it scored what it did.</p></div>
       <div class="tools">
@@ -137,7 +137,7 @@ export function createSignalsView(ctx) {
     const counts = { A: 0, B: 0, C: 0, D: 0 };
     for (const s of st.signals) counts[s.tier]++;
     const opt = (name, value, label) => html`<label class="check"><input type="radio" name="${name}" value="${value}" ${f[name] === value ? 'checked' : ''}> ${label}</label>`;
-    mount($('#facets', el), html`
+    patch($('#facets', el), html`
       <div class="facet"><span class="label">Search</span><input class="input" id="f-q" type="search" placeholder="Company, ticker, insider, member" value="${f.q}" aria-label="Search signals"></div>
       <div class="facet"><span class="label">Tier</span><div class="tiers">${['A', 'B', 'C', 'D'].map(t => html`<button type="button" data-tier="${t}" aria-pressed="${!!f.tiers[t]}" data-tip="${`Tier ${t}: ${counts[t]} tickers`}">${tierChip(t)}</button>`)}<span class="count">${fmtInt(counts.A + counts.B + counts.C + counts.D)}</span></div></div>
       <div class="facet"><span class="label">Source</span>${opt('source', 'all', 'Any')}${opt('source', 'oversight', 'Congress with committee oversight')}${opt('source', 'congress', 'Congress buying')}${opt('source', 'insider', 'Insider buying')}${opt('source', 'both', 'Both (convergence)')}</div>
@@ -169,7 +169,7 @@ export function createSignalsView(ctx) {
     const loading = st.pipeline.status === 'running' && !st.signals.length;
     const head = html`<thead><tr>
       ${th('ticker', 'Company', st)}${th('score', 'Score · mix', st)}${th('move', 'Price · vs insiders', st, 'num')}${th('insiders', 'Insiders · stake', st)}${th('members', 'Congress', st)}${th('last', 'Activity', st, 'col-act')}<th>Flags</th><th><span class="sr-only">Watch</span></th></tr></thead>`;
-    if (loading) { mount(wrap, html`<table class="grid">${head}<tbody>${skeletonRows(8, 12)}</tbody></table>`); $('#sig-foot', el).textContent = ''; return; }
+    if (loading) { patch(wrap, html`<table class="grid">${head}<tbody>${skeletonRows(8, 12)}</tbody></table>`); $('#sig-foot', el).textContent = ''; return; }
     const days = st.data ? dayRange(st.data.from, st.data.asOf) : null;
     const filtered = applyFilters(st.signals, st.filters, days, buyOf(st));
     for (const s of filtered) s._move = quoteFor(st, s)?.sinceInsider ?? null;
@@ -179,7 +179,7 @@ export function createSignalsView(ctx) {
     visible = filtered.slice(0, limit);
     $('#sig-count', el).textContent = `${fmtInt(filtered.length)} of ${fmtInt(st.signals.length)}`;
     if (!filtered.length) {
-      mount(wrap, st.signals.length
+      patch(wrap, st.signals.length
         ? html`<div class="empty"><h3>No signals match these filters</h3><span>Loosen a filter or press Reset.</span></div>`
         : html`<div class="empty"><h3>No signals yet</h3><span>${st.pipeline.status === 'error' ? 'The last pull failed. See the message above.' : 'Signals appear here once the first pull from Quiver finishes.'}</span></div>`);
       $('#sig-foot', el).textContent = '';
@@ -187,9 +187,9 @@ export function createSignalsView(ctx) {
     }
     const watch = new Set(st.workspace.watch.map(w => w.ticker));
     const prev = previousSnapshot(st);
-    mount(wrap, html`<table class="grid" id="sig-grid">${head}<tbody>${visible.map(s => row(s, st, watch, prev))}</tbody></table>`);
+    patch(wrap, html`<table class="grid" id="sig-grid">${head}<tbody>${visible.map(s => row(s, st, watch, prev))}</tbody></table>`);
     const shown = visible.length;
-    mount($('#sig-foot', el), html`<span>Showing ${fmtInt(shown)} of ${fmtInt(filtered.length)}</span>${filtered.length > shown ? html`<button class="btn sm" type="button" id="sig-more">Show ${Math.min(150, filtered.length - shown)} more</button>` : ''}<span class="grow" style="flex:1"></span><span><kbd>J</kbd> <kbd>K</kbd> move · <kbd>Enter</kbd> dossier · <kbd>W</kbd> watch</span>`);
+    patch($('#sig-foot', el), html`<span>Showing ${fmtInt(shown)} of ${fmtInt(filtered.length)}</span>${filtered.length > shown ? html`<button class="btn sm" type="button" id="sig-more">Show ${Math.min(150, filtered.length - shown)} more</button>` : ''}<span class="grow" style="flex:1"></span><span><kbd>J</kbd> <kbd>K</kbd> move · <kbd>Enter</kbd> dossier · <kbd>W</kbd> watch</span>`);
   }
   function th(key, label, st, cls = '') {
     const active = st.sort.key === key;
@@ -242,12 +242,12 @@ export function createSignalsView(ctx) {
     const ins = $('#sig-ins', el);
     const s = st.signals.find(x => x.ticker === st.selected) || null;
     if (!s) {
-      mount(ins, html`<div class="panel-h"><h2>Inspector</h2></div><div class="empty"><h3>Select a signal</h3><span>Pick a row to see the score breakdown, who bought, and what to be careful about. Press <kbd>J</kbd> to start.</span></div>`);
+      patch(ins, html`<div class="panel-h"><h2>Inspector</h2></div><div class="empty"><h3>Select a signal</h3><span>Pick a row to see the score breakdown, who bought, and what to be careful about. Press <kbd>J</kbd> to start.</span></div>`);
       return;
     }
     const watched = st.workspace.watch.some(w => w.ticker === s.ticker);
     const enr = st.enrichment.get(s.ticker);
-    mount(ins, html`
+    patch(ins, html`
       <div class="panel-h"><h2>Inspector</h2><span class="src">rank ${s.rank} of ${fmtInt(st.signals.length)}</span></div>
       <div class="panel-b">
         <div class="ins-h">${brandHead(s.ticker, { name: nameOf(s.ticker, s.company), size: 40 })}${tierChip(s.tier, true)}</div>
@@ -271,7 +271,7 @@ export function createSignalsView(ctx) {
     const d = st.data;
     const sigs = st.signals;
     if (!d) {
-      mount($('#sig-kpis', el), html`${['Tickers screened', 'Tier A', 'Tier B', 'Insider dollars', 'Congress purchases', 'Convergence'].map(l => kpi(l, html`<span class="skel" style="display:block;width:60%;height:18px"></span>`, ''))}`);
+      patch($('#sig-kpis', el), html`${['Tickers screened', 'Tier A', 'Tier B', 'Insider dollars', 'Congress purchases', 'Convergence'].map(l => kpi(l, html`<span class="skel" style="display:block;width:60%;height:18px"></span>`, ''))}`);
       return;
     }
     const insiders = new Set(d.insiderBuys.map(r => r.owner)).size;
@@ -280,7 +280,7 @@ export function createSignalsView(ctx) {
     const tiers = sigs.reduce((m, s) => (m[s.tier]++, m), { A: 0, B: 0, C: 0, D: 0 });
     const conv = sigs.filter(s => s.flags.some(f => f.id === 'convergence')).length;
     const fresh = sigs.filter(s => s.isNew).length;
-    mount($('#sig-kpis', el), html`
+    patch($('#sig-kpis', el), html`
       ${kpi('Tickers screened', fmtInt(sigs.length), `${d.windowDays} days to ${fmtDate(d.asOf, { year: false })}`)}
       ${kpi('Tier A', fmtInt(tiers.A), `score ≥ ${st.model.tiers.A} · Tier B ${fmtInt(tiers.B)}`)}
       ${kpi('Insider dollars', fmtUSD(d.insiderBuys.reduce((s, r) => s + r.value, 0)), `${fmtInt(d.insiderBuys.length)} buys by ${fmtInt(insiders)} insiders`)}
@@ -292,28 +292,28 @@ export function createSignalsView(ctx) {
     const p = st.pipeline;
     const host = $('#sig-alert', el);
     if (st.caps.mcp === 'off') {
-      mount(host, html`<div class="alert" data-tone="info"><div><b>Live data needs the claude.ai viewer</b>Open this page on claude.ai, signed in to the account that has the Quiver Quant connector. Everything here is computed from that connector; nothing is stored on a server.</div></div>`);
+      patch(host, html`<div class="alert" data-tone="info"><div><b>Live data needs the claude.ai viewer</b>Open this page on claude.ai, signed in to the account that has the Quiver Quant connector. Everything here is computed from that connector; nothing is stored on a server.</div></div>`);
       return;
     }
     if (p.status === 'error') {
-      mount(host, html`<div style="display:flex;flex-direction:column;gap:8px">${errorAlert(p.error)}<div><button class="btn" type="button" data-retry>${ICON.refresh} Retry</button></div></div>`);
+      patch(host, html`<div style="display:flex;flex-direction:column;gap:8px">${errorAlert(p.error)}<div><button class="btn" type="button" data-retry>${ICON.refresh} Retry</button></div></div>`);
       return;
     }
     if (p.status === 'running') {
       const parts = p.stages.filter(s => s.key !== 'enrich').map(s => `${s.label}: ${s.status === 'done' || s.status === 'partial' ? fmtInt(s.rows) + ' rows' : s.status}`);
-      mount(host, html`<div class="alert" data-tone="info"><div><b>Pulling filings from Quiver</b><span class="mono xs">${parts.join(' · ')}</span></div></div>`);
+      patch(host, html`<div class="alert" data-tone="info"><div><b>Pulling filings from Quiver</b><span class="mono xs">${parts.join(' · ')}</span></div></div>`);
       return;
     }
     const warn = [];
     if (st.data && !st.data.coverage.insider) warn.push('Form 4 purchases hit the page limit; the oldest days of the window may be missing.');
     if (st.data && !st.data.coverage.congress) warn.push('Congressional trades hit the page limit.');
     if (st.data && st.data.failures.length) warn.push(`${st.data.failures.length} dataset${st.data.failures.length > 1 ? 's' : ''} failed to load; scores use what arrived.`);
-    mount(host, warn.length ? html`<div class="alert" data-tone="warn"><div>${warn.join(' ')}</div></div>` : '');
+    patch(host, warn.length ? html`<div class="alert" data-tone="warn"><div>${warn.join(' ')}</div></div>` : '');
   }
   function renderActivity(st) {
     const chartEl = $('#act-chart', el);
     const d = st.data;
-    if (!d) { mount(chartEl, html`<div class="skel" style="height:120px"></div>`); return; }
+    if (!d) { patch(chartEl, html`<div class="skel" style="height:120px"></div>`); return; }
     const days = dayRange(d.from, d.asOf);
     const idx = new Map(days.map((x, i) => [x, i]));
     const ins = new Array(days.length).fill(0);
@@ -322,7 +322,7 @@ export function createSignalsView(ctx) {
     for (const r of d.congressRows) if (r.kind === 'buy') { const i = idx.get(r.filed); if (i != null) cg[i]++; }
     activityChart(chartEl, { days, insider: ins, congress: cg, range: st.filters.range, onRange: range => setFilters({ range }) });
     const r = st.filters.range;
-    mount($('#act-range', el), r ? html`<button class="btn sm" type="button" id="act-clear">${r[0] === r[1] ? fmtDate(r[0], { year: false }) : `${fmtDate(r[0], { year: false })} – ${fmtDate(r[1], { year: false })}`} ✕</button>` : '');
+    patch($('#act-range', el), r ? html`<button class="btn sm" type="button" id="act-clear">${r[0] === r[1] ? fmtDate(r[0], { year: false }) : `${fmtDate(r[0], { year: false })} – ${fmtDate(r[1], { year: false })}`} ✕</button>` : '');
   }
   on(el, 'click', '#act-clear', () => setFilters({ range: null }));
 

@@ -81,13 +81,15 @@ Each stage reports status, rows, pages and timing into the store. The status bar
 
 ## State and rendering
 
-`core/store.js` holds one state object. `set(patch)` notifies subscribers with the list of top-level keys that changed, and each view re-renders only the parts that depend on those keys. Views are mounted once and hidden or shown. The graph view stops its simulation when hidden.
+`core/store.js` holds one state object. `set(patch)` notifies subscribers with the list of top-level keys that changed, and each view re-renders only the parts that depend on those keys. Views are mounted once and hidden or shown.
+
+Views redraw with `patch()` from `ui/html.js`, which parses the new markup and updates the existing DOM in place, reusing every node that matches by tag and `id` / `data-key`. What the viewer was doing survives a redraw: an opened `<details>`, focus and caret in a field, scroll inside a table. `mount()` replaces content outright and is kept for content that attaches listeners directly to its nodes (drawers, the depot import); everything else uses delegated `on()` handlers, which work with both. Data a view needs for its focused item (the radar's whale holdings) is requested after drawing, once per item, never from the code that builds markup.
 
 All markup goes through the `html` tagged template in `ui/html.js`, which escapes every interpolated value. Filing data such as insider names, bill text and headlines is untrusted input.
 
 ## Persistence
 
-`app/persist.js` stores the workspace (watchlist, notes, portfolio settings, model weights, last visit) in the artifact's `db` under the viewer's private path `data/users/<id>/workspace`. It falls back to `localStorage` when `db` is unavailable. Writes are debounced and serialised, one at a time. A snapshot listener picks up changes made on another device.
+`app/persist.js` stores the workspace (plan, notes, portfolio settings, brokers, policy topics, model weights, last visit) in the artifact's `db` under the viewer's private collection `data/users/<id>`, one document per section (`ws.watch`, `ws.brokers`, …, each `{ v, key, at, value }`). Each section carries its own timestamp, and a snapshot listener on the collection merges section by section, so an edit to the plan on one device and to the brokers on another both survive; only two edits to the same section race, and the later one wins. Writes are debounced, then sent one at a time; a write that fails for a transient reason is retried with backoff (2 s doubling to 60 s), and one that cannot succeed stops with an error. The sync state is in `store.wsSync` (`synced`, `saving`, `retrying`, `error`, `local`); the status bar shows it and a toast says when changes are only on this device and when they sync again. Pending writes are flushed when the page is hidden. `localStorage` keeps a copy for offline use. After every write the page also refreshes `data/users/<id>/workspace`, a read-only copy of the whole workspace for the daily job; the page never reads it back except once, to migrate a workspace saved before sections existed.
 
 ### Shared documents
 

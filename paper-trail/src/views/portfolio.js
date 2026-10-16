@@ -1,4 +1,4 @@
-import { html, mount, on, $ } from '../ui/html.js';
+import { html, patch, on, $ } from '../ui/html.js';
 import { ICON } from '../ui/icons.js';
 import { tierChip } from '../ui/parts.js';
 import { toast } from '../ui/overlay.js';
@@ -14,7 +14,7 @@ export function createPortfolioView(ctx) {
   el.className = 'view';
   el.id = 'v-portfolio';
 
-  mount(el, html`
+  patch(el, html`
     <div class="view-h">
       <div><h1>Portfolio plan</h1><p>Sizes the stocks you picked under a cash reserve and a cap per position. Scores refresh from the live signals; notes are saved to your workspace.</p></div>
       <div class="tools">
@@ -40,7 +40,7 @@ export function createPortfolioView(ctx) {
 
   function form(st) {
     const p = st.workspace.portfolio;
-    mount($('#p-form', el), html`<div class="form-grid">
+    patch($('#p-form', el), html`<div class="form-grid">
       <div class="field full"><label class="label" for="p-cap">Cash to invest ($)</label><input class="input" type="number" id="p-cap" min="100" step="100" value="${p.capital}"></div>
       <div class="field"><label class="label" for="p-res">Cash reserve (%)</label><input class="input" type="number" id="p-res" min="0" max="80" step="5" value="${p.reserve}"></div>
       <div class="field"><label class="label" for="p-max">Max per stock (%)</label><input class="input" type="number" id="p-max" min="5" max="100" step="5" value="${p.cap}"></div>
@@ -61,13 +61,13 @@ export function createPortfolioView(ctx) {
     const p = st.workspace.portfolio;
     $('#p-count', el).textContent = `${list.length} position${list.length === 1 ? '' : 's'}`;
     if (!list.length) {
-      mount($('#p-table', el), html`<div class="empty"><h3>No positions yet</h3><span>Press ☆ on a signal, <b>Add to plan</b> in a dossier, or <b>Add top 6 tier A/B</b> above.</span></div>`);
-      mount($('#p-sum', el), html`<p class="small muted">Add positions to see the plan.</p>`);
+      patch($('#p-table', el), html`<div class="empty"><h3>No positions yet</h3><span>Press ☆ on a signal, <b>Add to plan</b> in a dossier, or <b>Add top 6 tier A/B</b> above.</span></div>`);
+      patch($('#p-sum', el), html`<p class="small muted">Add positions to see the plan.</p>`);
       return;
     }
     const a = allocate(list, { capital: p.capital, reserve: p.reserve, cap: p.cap, method: p.method });
     const maxAmt = Math.max(1, ...a.amounts);
-    mount($('#p-table', el), html`<div class="table-wrap"><table class="grid"><thead><tr><th>Ticker</th><th>Buy at</th><th>Tier</th><th class="num">Score</th><th class="num">Weight</th><th class="num">Amount</th><th style="min-width:90px"><span class="sr-only">Bar</span></th><th>Thesis / exit note</th><th><span class="sr-only">Remove</span></th></tr></thead><tbody>
+    patch($('#p-table', el), html`<div class="table-wrap"><table class="grid"><thead><tr><th>Ticker</th><th>Buy at</th><th>Tier</th><th class="num">Score</th><th class="num">Weight</th><th class="num">Amount</th><th style="min-width:90px"><span class="sr-only">Bar</span></th><th>Thesis / exit note</th><th><span class="sr-only">Remove</span></th></tr></thead><tbody>
       ${list.map((it, i) => html`<tr>
         <td>${brand(it.ticker, { name: nameOf(it.ticker, it.company) })}</td>
         <td>${buyChip(buyOf(st)(it.ticker, it.company))}</td>
@@ -80,7 +80,7 @@ export function createPortfolioView(ctx) {
         <td><button class="btn ghost sm" type="button" data-remove="${it.ticker}" aria-label="Remove ${it.ticker}">${ICON.close}</button></td>
       </tr>`)}</tbody></table></div>`);
     const warn = a.idle >= 1 ? html`<div class="alert" data-tone="warn"><div>${fmtMoney(a.idle)} stays in cash because of the ${p.cap}% cap. Add ${Math.max(1, a.minPositionsForFullInvestment - list.length)} more position${a.minPositionsForFullInvestment - list.length > 1 ? 's' : ''} or raise the cap.</div></div>` : '';
-    mount($('#p-sum', el), html`${warn}<dl class="kv">
+    patch($('#p-sum', el), html`${warn}<dl class="kv">
       <dt>Invested</dt><dd>${fmtMoney(a.invested)}</dd>
       <dt>Cash (reserve + uninvested)</dt><dd>${fmtMoney(a.cash)}</dd>
       <dt>Largest position</dt><dd>${fmtPct(a.largest * 100, 1)}</dd>

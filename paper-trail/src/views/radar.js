@@ -1,4 +1,4 @@
-import { html, raw, mount, on, $, esc } from '../ui/html.js';
+import { html, raw, patch, on, $, esc } from '../ui/html.js';
 import { ICON } from '../ui/icons.js';
 import { tierChip, roleChip, partyChip } from '../ui/parts.js';
 import { brandHead, nameOf, sectorOf, logoSrc, logo } from '../ui/brand.js';
@@ -38,7 +38,7 @@ export function createRadarView(ctx) {
   const prev = new Map();
   const reduce = () => window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-  mount(el, html`
+  patch(el, html`
     <div class="view-h rd-head">
       <div><h1>Radar</h1><p id="rd-today">Spot the strongest insider and congressional buying, read why it matters, then decide. Everything you add lands in your plan below.</p></div>
       <div class="tools">
@@ -274,7 +274,7 @@ export function createRadarView(ctx) {
     const inPlan = new Set(st.workspace.watch.map(w => w.ticker));
     const ab = st.signals.filter(s => s.tier === 'A' || s.tier === 'B');
     const decided = ab.filter(s => inPlan.has(s.ticker) || isSkipped(st, s)).length;
-    mount($('#rd-progress', el), ab.length ? html`<span class="rd-prog-t">${fmtInt(decided)} of ${fmtInt(ab.length)} strong signals reviewed</span><span class="rd-prog-bar" role="progressbar" aria-valuemin="0" aria-valuemax="${ab.length}" aria-valuenow="${decided}"><i style="width:${(100 * decided) / ab.length}%"></i></span>` : '');
+    patch($('#rd-progress', el), ab.length ? html`<span class="rd-prog-t">${fmtInt(decided)} of ${fmtInt(ab.length)} strong signals reviewed</span><span class="rd-prog-bar" role="progressbar" aria-valuemin="0" aria-valuemax="${ab.length}" aria-valuenow="${decided}"><i style="width:${(100 * decided) / ab.length}%"></i></span>` : '');
     legend(st, L);
   }
 
@@ -296,7 +296,7 @@ export function createRadarView(ctx) {
 
   function legend(st, L) {
     const kinds = new Set(L.nodes.map(n => n.kind));
-    mount($('#rd-legend', el), html`
+    patch($('#rd-legend', el), html`
       ${['insider', 'congress', 'cross'].filter(k => kinds.has(k)).map(k => html`<span><i class="lg-dot" data-k="${k}"></i>${KIND_LABEL[k] === 'Both' ? 'Insiders and Congress' : KIND_LABEL[k]}</span>`)}
       ${L.nodes.some(n => n.oversight) ? html`<span><i class="lg-gavel"></i>A buyer’s committee oversees the company</span>` : ''}
       <span><i class="lg-size"></i>Bubble area = dollars bought</span>
@@ -312,7 +312,7 @@ export function createRadarView(ctx) {
     const host = $('#rd-card', el);
     const s = st.signals.find(x => x.ticker === focus);
     if (!s) {
-      mount(host, html`<div class="panel-h"><h2><span class="step">2</span> Understand</h2></div><div class="empty"><h3>${st.signals.length ? 'Nothing left to review' : 'Waiting for signals'}</h3><span>${st.signals.length ? 'Every strong signal has been added or skipped. Tick “Show skipped” to see them again, or widen the source filter.' : 'The radar fills in as soon as the first pull from Quiver finishes.'}</span></div>`);
+      patch(host, html`<div class="panel-h"><h2><span class="step">2</span> Understand</h2></div><div class="empty"><h3>${st.signals.length ? 'Nothing left to review' : 'Waiting for signals'}</h3><span>${st.signals.length ? 'Every strong signal has been added or skipped. Tick “Show skipped” to see them again, or widen the source filter.' : 'The radar fills in as soon as the first pull from Quiver finishes.'}</span></div>`);
       return;
     }
     const q = quoteFor(st, s);
@@ -329,10 +329,9 @@ export function createRadarView(ctx) {
     const whoMax = Math.max(1, ...s.insider.buyers.map(b => b.usd), ...members.map(m => m.usd));
     const suggestion = suggest(st, s);
     const av = buyOf(st)(s.ticker, s.company);
-    if (st.caps.mcp === 'on') queueMicrotask(() => ctx.whales.load(s.ticker));
     const whaleBuys = ctx.whales.buysOf(s.ticker);
 
-    mount(host, html`
+    patch(host, html`
       <div class="panel-h"><h2><span class="step">2</span> Understand</h2><span class="grow"></span>
         <span class="rd-nav"><button class="btn ghost sm" type="button" id="rd-prev" aria-label="Previous company" data-tip="Previous · ←">‹</button><span class="mono xs muted">${pos >= 0 ? `${pos + 1} of ${qList.length}` : `rank ${s.rank}`}</span><button class="btn ghost sm" type="button" id="rd-next" aria-label="Next company" data-tip="Next · →">›</button></span></div>
       <div class="panel-b rd-card-b">
@@ -426,9 +425,9 @@ export function createRadarView(ctx) {
     const host = $('#rd-px', el);
     if (!host) return;
     const draw = doc => {
-      if (!doc || !doc.c || doc.c.length < 5 || focus !== s.ticker) { mount(host, ''); host.hidden = true; return; }
+      if (!doc || !doc.c || doc.c.length < 5 || focus !== s.ticker) { patch(host, ''); host.hidden = true; return; }
       host.hidden = false;
-      mount(host, html`<span class="label">One year · Yahoo Finance</span>${spark(doc, s.insider.avgPrice)}`);
+      patch(host, html`<span class="label">One year · Yahoo Finance</span>${spark(doc, s.insider.avgPrice)}`);
     };
     if (priceCache.has(s.ticker)) { draw(priceCache.get(s.ticker)); return; }
     host.hidden = true;
@@ -474,14 +473,14 @@ export function createRadarView(ctx) {
     $('#rd-plan-cap', el).textContent = fmtMoney(p.capital);
     $('#rd-plan-src', el).textContent = `${p.reserve}% reserve · max ${p.cap}% each`;
     if (!list.length) {
-      mount(host, html`<div class="rd-plan-bar"><span class="seg cash" style="flex:1"><span class="t">Nothing allocated yet. Press <b>Add to plan</b> on a company; the money is split by conviction within your reserve and cap.</span></span></div>`);
+      patch(host, html`<div class="rd-plan-bar"><span class="seg cash" style="flex:1"><span class="t">Nothing allocated yet. Press <b>Add to plan</b> on a company; the money is split by conviction within your reserve and cap.</span></span></div>`);
       return;
     }
     const a = allocate(list, p);
     const buy = buyOf(st);
     const segs = list.map((it, i) => ({ it, amt: a.amounts[i], av: buy(it.ticker, it.company) })).filter(x => x.amt > 0);
     const cash = p.capital - a.invested;
-    mount(host, html`<div class="rd-plan-bar" role="img" aria-label="${`Plan: ${segs.map(x => `${nameOf(x.it.ticker, x.it.company)} ${fmtMoney(x.amt)}`).join(', ')}, cash ${fmtMoney(cash)}`}">
+    patch(host, html`<div class="rd-plan-bar" role="img" aria-label="${`Plan: ${segs.map(x => `${nameOf(x.it.ticker, x.it.company)} ${fmtMoney(x.amt)}`).join(', ')}, cash ${fmtMoney(cash)}`}">
         ${segs.map(x => { const pct = (100 * x.amt) / p.capital; return html`<button type="button" class="seg${x.it.ticker === focus ? ' on' : ''}${doubtful(x.av) ? ' nobuy' : ''}" data-focus="${x.it.ticker}" style="flex:${x.amt}" data-tip="${`${nameOf(x.it.ticker, x.it.company)} · ${fmtMoney(x.amt)} (${pct.toFixed(1)}%)${x.it.tier ? ` · tier ${x.it.tier}` : ''}
 ${buyText(x.av)}`}">${pct >= 7 ? html`${logo(x.it.ticker, nameOf(x.it.ticker, x.it.company), 18)}<span class="t">${short(nameOf(x.it.ticker, x.it.company), 16)}</span><span class="v">${fmtMoney(x.amt)}</span>` : pct >= 3.5 ? logo(x.it.ticker, nameOf(x.it.ticker, x.it.company), 16) : ''}</button>`; })}
         <span class="seg cash" style="flex:${Math.max(cash, 0.0001)}" data-tip="${`Cash ${fmtMoney(cash)}${a.idle > 1 ? ` · ${fmtMoney(a.idle)} idle because of the per-position cap` : ''}`}">${(100 * cash) / p.capital >= 7 ? html`<span class="t">Cash</span><span class="v">${fmtMoney(cash)}</span>` : ''}</span>
@@ -493,7 +492,7 @@ ${buyText(x.av)}`}">${pct >= 7 ? html`${logo(x.it.ticker, nameOf(x.it.ticker, x.
   function today(st) {
     const b = st.cloud?.briefs?.[0];
     const host = $('#rd-today', el);
-    if (b && b.headline) mount(host, html`<span class="rd-brief"><span class="label">Today</span> ${b.headline} <button class="linkish" type="button" data-nav="briefing">Read the brief</button></span>`);
+    if (b && b.headline) patch(host, html`<span class="rd-brief"><span class="label">Today</span> ${b.headline} <button class="linkish" type="button" data-nav="briefing">Read the brief</button></span>`);
   }
   function toolbar() {
     for (const b of el.querySelectorAll('#rd-src button')) b.setAttribute('aria-pressed', String(b.dataset.src === source));
@@ -505,6 +504,7 @@ ${buyText(x.av)}`}">${pct >= 7 ? html`${logo(x.it.ticker, nameOf(x.it.ticker, x.
     drawRadar(st);
     card(st);
     plan(st);
+    loadFocus(st);
   }
   function setFocus(t) {
     if (!t || t === focus) return;
@@ -515,6 +515,14 @@ ${buyText(x.av)}`}">${pct >= 7 ? html`${logo(x.it.ticker, nameOf(x.it.ticker, x.
     drawRadar(st);
     card(st);
     plan(st);
+    loadFocus(st);
+  }
+  /** Fetches what the focused card shows, once per ticker, after drawing; the card redraws when it lands. */
+  let loadedFocus = null;
+  function loadFocus(st) {
+    if (!focus || focus === loadedFocus || st.caps.mcp !== 'on') return;
+    loadedFocus = focus;
+    ctx.whales.load(focus);
   }
   function step(dir) {
     const st = store.get();
